@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1296pt" height="936pt" viewBox="0 0 1296 936" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-28T17:33:53.039529</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.6, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 936 
+L 1296 936 
+L 1296 0 
+L 0 0 
+z
+" style="fill: #f7fafc"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 72.576 248.30208 
+L 389.8368 248.30208 
+Q 406.01088 248.30208 406.01088 236.6208 
+L 406.01088 124.3008 
+Q 406.01088 112.61952 389.8368 112.61952 
+L 72.576 112.61952 
+Q 56.40192 112.61952 56.40192 124.3008 
+L 56.40192 236.6208 
+Q 56.40192 248.30208 72.576 248.30208 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #edf6ff; stroke: #b7d6f0; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 483.1488 248.30208 
+L 812.8512 248.30208 
+Q 829.02528 248.30208 829.02528 236.6208 
+L 829.02528 124.3008 
+Q 829.02528 112.61952 812.8512 112.61952 
+L 483.1488 112.61952 
+Q 466.97472 112.61952 466.97472 124.3008 
+L 466.97472 236.6208 
+Q 466.97472 248.30208 483.1488 248.30208 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #eefaf5; stroke: #b7dccb; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 906.1632 248.30208 
+L 1223.424 248.30208 
+Q 1239.59808 248.30208 1239.59808 236.6208 
+L 1239.59808 124.3008 
+Q 1239.59808 112.61952 1223.424 112.61952 
+L 906.1632 112.61952 
+Q 889.98912 112.61952 889.98912 124.3008 
+L 889.98912 236.6208 
+Q 889.98912 248.30208 906.1632 248.30208 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #fbf4ff; stroke: #dac5ec; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 411.122841 180.4608 
+Q 437.738251 180.4608 462.453003 180.4608 
+" clip-path="url(#p0ff9d77a4c)" style="fill: none; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+    <path d="M 456.053003 177.2608 
+L 462.453003 180.4608 
+L 456.053003 183.6608 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #7891a4; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 72.576 499.89888 
+L 601.344 499.89888 
+Q 617.51808 499.89888 617.51808 488.2176 
+L 617.51808 295.0272 
+Q 617.51808 283.34592 601.344 283.34592 
+L 72.576 283.34592 
+Q 56.40192 283.34592 56.40192 295.0272 
+L 56.40192 488.2176 
+Q 56.40192 499.89888 72.576 499.89888 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #f0f5ff; stroke: #bdd0ed; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 694.656 499.89888 
+L 1223.424 499.89888 
+Q 1239.59808 499.89888 1239.59808 488.2176 
+L 1239.59808 295.0272 
+Q 1239.59808 283.34592 1223.424 283.34592 
+L 694.656 283.34592 
+Q 678.48192 283.34592 678.48192 295.0272 
+L 678.48192 488.2176 
+Q 678.48192 499.89888 694.656 499.89888 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #f5efff; stroke: #d7bdec; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 646.016133 248.113308 
+Q 511.143503 265.823855 378.155353 283.286946 
+" clip-path="url(#p0ff9d77a4c)" style="fill: none; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+    <path d="M 384.917504 285.626457 
+L 378.155353 283.286946 
+L 384.084254 279.280932 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #7891a4; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 737.063107 248.187895 
+Q 840.8444 265.823932 942.751899 283.141546 
+" clip-path="url(#p0ff9d77a4c)" style="fill: none; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+    <path d="M 936.978459 278.914563 
+L 942.751899 283.141546 
+L 935.906248 285.224109 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #7891a4; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 72.576 688.59648 
+L 601.344 688.59648 
+Q 617.51808 688.59648 617.51808 676.9152 
+L 617.51808 555.6096 
+Q 617.51808 543.92832 601.344 543.92832 
+L 72.576 543.92832 
+Q 56.40192 543.92832 56.40192 555.6096 
+L 56.40192 676.9152 
+Q 56.40192 688.59648 72.576 688.59648 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #fff8eb; stroke: #e6d2ab; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 694.656 688.59648 
+L 1223.424 688.59648 
+Q 1239.59808 688.59648 1239.59808 676.9152 
+L 1239.59808 555.6096 
+Q 1239.59808 543.92832 1223.424 543.92832 
+L 694.656 543.92832 
+Q 678.48192 543.92832 678.48192 555.6096 
+L 678.48192 676.9152 
+Q 678.48192 688.59648 694.656 688.59648 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #fff8eb; stroke: #e6d2ab; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 336.96 501.448655 
+Q 336.96 521.913531 336.96 540.477749 
+" clip-path="url(#p0ff9d77a4c)" style="fill: none; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+    <path d="M 340.16 534.077749 
+L 336.96 540.477749 
+L 333.76 534.077749 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #7891a4; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 957.048634 499.643953 
+Q 728.86959 521.913679 502.582215 543.998783 
+" clip-path="url(#p0ff9d77a4c)" style="fill: none; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+    <path d="M 509.262786 546.56198 
+L 502.582215 543.998783 
+L 508.641115 540.192245 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #7891a4; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 618.894143 616.2624 
+Q 647.378275 616.2624 673.961748 616.2624 
+" clip-path="url(#p0ff9d77a4c)" style="fill: none; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+    <path d="M 667.561748 613.0624 
+L 673.961748 616.2624 
+L 667.561748 619.4624 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #7891a4; stroke: #7891a4; stroke-width: 1.7; stroke-linecap: round"/>
+   </g>
+   <g id="patch_15">
+    <path d="M 72.576 886.27968 
+L 1223.424 886.27968 
+Q 1239.59808 886.27968 1239.59808 874.5984 
+L 1239.59808 744.3072 
+Q 1239.59808 732.62592 1223.424 732.62592 
+L 72.576 732.62592 
+Q 56.40192 732.62592 56.40192 744.3072 
+L 56.40192 874.5984 
+Q 56.40192 886.27968 72.576 886.27968 
+z
+" clip-path="url(#p0ff9d77a4c)" style="fill: #ffffff; stroke: #ccd9e2; stroke-width: 1.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 25px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #112d48" x="63.2448" y="63.2249" transform="rotate(-0 63.2448 63.2249)">Pipeline v2：面向机器人的隐式交互记忆</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #5b7387" x="63.2448" y="90.17325" transform="rotate(-0 63.2448 90.17325)">研究草案 · 几何监督和交互数据用于训练 · 运行时不要求显式地图</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 16px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #205d99" x="88.128" y="145.44185" transform="rotate(-0 88.128 145.44185)">① 当前观察</text>
+   </g>
+   <g id="text_4">
+    <!-- $o_t=(I_t,D_t,K,T_t),\quad s_t$ -->
+    <g style="fill: #263b50" transform="translate(88.128 178.034005)">
+     <text>
+      <tspan x="0" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">o</tspan>
+      <tspan x="35.438184" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">I</tspan>
+      <tspan x="50.970117" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">D</tspan>
+      <tspan x="73.153418" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">K</tspan>
+      <tspan x="89.511816" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">T</tspan>
+      <tspan x="128.566211" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">s</tspan>
+      <tspan x="8.56543" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="39.56709" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="61.750391" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="98.063574" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="135.860156" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="15.518262" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">=</tspan>
+      <tspan x="29.97627" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">(</tspan>
+      <tspan x="43.792383" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="65.975684" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="82.334082" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="102.288867" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">)</tspan>
+      <tspan x="107.750781" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="88.128" y="208.373404" transform="rotate(-0 88.128 208.373404)">RGB-D、相机标定、机器人状态</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #607a8e" x="88.128" y="230.55467" transform="rotate(-0 88.128 230.55467)">只使用当前及过去的信息</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 16px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #147155" x="498.7008" y="145.44935" transform="rotate(-0 498.7008 145.44935)">② 局部几何关系编码</text>
+   </g>
+   <g id="text_8">
+    <!-- $r_t=E_{\theta}(o_t,s_t)$ -->
+    <g style="fill: #263b50" transform="translate(498.7008 178.034005)">
+     <text>
+      <tspan x="0" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">r</tspan>
+      <tspan x="27.166699" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">E</tspan>
+      <tspan x="47.85293" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">o</tspan>
+      <tspan x="67.821387" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">s</tspan>
+      <tspan x="5.755859" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="36.012402" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">θ</tspan>
+      <tspan x="56.418359" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="75.115332" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="12.708691" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">=</tspan>
+      <tspan x="42.391016" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">(</tspan>
+      <tspan x="60.643652" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="79.340625" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">)</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="498.7008" y="208.417233" transform="rotate(-0 498.7008 208.417233)">局部区域 + 邻域相对几何</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #57796b" x="498.7008" y="230.499982" transform="rotate(-0 498.7008 230.499982)">局部 token；不要求类别标签</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 16px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #744594" x="921.7152" y="145.44185" transform="rotate(-0 921.7152 145.44185)">③ 意图与读取条件</text>
+   </g>
+   <g id="text_12">
+    <!-- $q_t=(g_t,s_t)$ -->
+    <g style="fill: #263b50" transform="translate(921.7152 178.02088)">
+     <text>
+      <tspan x="0" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">q</tspan>
+      <tspan x="35.759473" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">g</tspan>
+      <tspan x="56.049219" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">s</tspan>
+      <tspan x="8.886719" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="44.646191" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="63.343164" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="15.839551" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">=</tspan>
+      <tspan x="30.297559" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">(</tspan>
+      <tspan x="48.871484" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="67.568457" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">)</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="921.7152" y="208.389733" transform="rotate(-0 921.7152 208.389733)">语言 / 目标状态 + 机器人状态</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #816b8b" x="921.7152" y="230.52967" transform="rotate(-0 921.7152 230.52967)">目标可变，不限定动作类别</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 16px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #355c9a" x="88.128" y="317.96537" transform="rotate(-0 88.128 317.96537)">④ 状态记忆：过去与当前的局部几何</text>
+   </g>
+   <g id="text_16">
+    <!-- $S_t=U_S(S_{t-1},r_t)$ -->
+    <g style="fill: #263b50" transform="translate(88.128 350.833462)">
+     <text>
+      <tspan x="0" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">S</tspan>
+      <tspan x="32.46167" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">U</tspan>
+      <tspan x="56.36792" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">S</tspan>
+      <tspan x="97.676514" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">r</tspan>
+      <tspan x="9.521484" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="43.440674" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">S</tspan>
+      <tspan x="65.889404" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="103.843506" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="16.970947" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">=</tspan>
+      <tspan x="50.515869" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">(</tspan>
+      <tspan x="89.986084" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="108.370605" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">)</tspan>
+      <tspan x="72.052002" y="1.835938" style="font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">−</tspan>
+      <tspan x="82.895508" y="1.835938" style="font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">1</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_17">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="88.128" y="386.277113" transform="rotate(-0 88.128 386.277113)">可学习 slots：保持场景关系与观测历史</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="88.128" y="417.775697" transform="rotate(-0 88.128 417.775697)">遮挡时保留已有状态；不把未知当作消失</text>
+   </g>
+   <g id="text_19">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #617587" x="88.128" y="455.275139" transform="rotate(-0 88.128 455.275139)">输出：隐式场景状态，不是显式对象图</text>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 16px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #72419a" x="710.208" y="317.96537" transform="rotate(-0 710.208 317.96537)">⑤ 事件记忆：已经发生的交互</text>
+   </g>
+   <g id="text_21">
+    <!-- $E_t=U_E(E_{t-1},r_{t-1},a_{t-1},r_t)$ -->
+    <g style="fill: #263b50" transform="translate(710.208 350.557525)">
+     <text>
+      <tspan x="0" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">E</tspan>
+      <tspan x="30.256543" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">U</tspan>
+      <tspan x="52.540332" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">E</tspan>
+      <tspan x="91.054004" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">r</tspan>
+      <tspan x="126.477832" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">a</tspan>
+      <tspan x="164.724902" y="-0.375" style="font-style: oblique; font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">r</tspan>
+      <tspan x="8.845703" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="40.503613" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">E</tspan>
+      <tspan x="61.386035" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="96.809863" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="135.056934" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="170.480762" y="1.921875" style="font-style: oblique; font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="15.798535" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">=</tspan>
+      <tspan x="47.078418" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">(</tspan>
+      <tspan x="83.87627" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="119.300098" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="157.547168" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="174.706055" y="-0.375" style="font-size: 14px; font-family: 'DejaVu Sans'; fill: #263b50">)</tspan>
+      <tspan x="67.137793" y="1.921875" style="font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">−</tspan>
+      <tspan x="77.258398" y="1.921875" style="font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">1</tspan>
+      <tspan x="102.561621" y="1.921875" style="font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">−</tspan>
+      <tspan x="112.682227" y="1.921875" style="font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">1</tspan>
+      <tspan x="140.808691" y="1.921875" style="font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">−</tspan>
+      <tspan x="150.929297" y="1.921875" style="font-size: 9.8px; font-family: 'DejaVu Sans'; fill: #263b50">1</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="710.208" y="386.320941" transform="rotate(-0 710.208 386.320941)">实际动作 + 后续观测到的变化 → 写入 slots</text>
+   </g>
+   <g id="text_23">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="710.208" y="417.759369" transform="rotate(-0 710.208 417.759369)">无需动作或未观测结果时：不写伪事件</text>
+   </g>
+   <g id="text_24">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #7c6b85" x="710.208" y="455.154826" transform="rotate(-0 710.208 455.154826)">事件选择门控是待验证设计，非已证明创新</text>
+   </g>
+   <g id="text_25">
+    <text style="font-size: 15px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #9b5b19" x="88.128" y="578.209254" transform="rotate(-0 88.128 578.209254)">⑥ 按任务读取：得到交互记忆特征</text>
+   </g>
+   <g id="text_26">
+    <!-- $z_t=\operatorname{Read}(S_t,E_t,g_t,s_t)$ -->
+    <g style="fill: #263b50" transform="translate(88.128 611.4018)">
+     <text>
+      <tspan x="0" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">z</tspan>
+      <tspan x="75.030029" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">S</tspan>
+      <tspan x="96.769043" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">E</tspan>
+      <tspan x="118.464111" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">g</tspan>
+      <tspan x="140.203125" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">s</tspan>
+      <tspan x="7.873535" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="84.551514" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="106.246582" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="127.985596" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="148.018066" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="15.322998" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">=</tspan>
+      <tspan x="30.813721" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">R</tspan>
+      <tspan x="41.236084" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">e</tspan>
+      <tspan x="50.4646" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">a</tspan>
+      <tspan x="59.656494" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">d</tspan>
+      <tspan x="69.177979" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">(</tspan>
+      <tspan x="89.078613" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="110.773682" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="132.512695" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="152.545166" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">)</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_27">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="88.128" y="648.684133" transform="rotate(-0 88.128 648.684133)">给 VLA 的是连续特征，不必生成文本</text>
+   </g>
+   <g id="text_28">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #866b55" x="88.128" y="671.74763" transform="rotate(-0 88.128 671.74763)">训练时可另用候选动作预测后果</text>
+   </g>
+   <g id="text_29">
+    <text style="font-size: 15px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #9b5b19" x="710.208" y="578.209254" transform="rotate(-0 710.208 578.209254)">⑦ 机器人动作接口</text>
+   </g>
+   <g id="text_30">
+    <!-- $a_t\sim\pi_{\phi}(o_t,s_t,g_t,z_t)$ -->
+    <g style="fill: #263b50" transform="translate(710.208 610.6518)">
+     <text>
+      <tspan x="0" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">a</tspan>
+      <tspan x="32.13208" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">π</tspan>
+      <tspan x="54.351562" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">o</tspan>
+      <tspan x="75.746338" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">s</tspan>
+      <tspan x="95.778809" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">g</tspan>
+      <tspan x="117.517822" y="-0.625" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">z</tspan>
+      <tspan x="9.191895" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="41.162842" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">ϕ</tspan>
+      <tspan x="63.528809" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="83.561279" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="105.300293" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="125.391357" y="1.835938" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="16.641357" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">∼</tspan>
+      <tspan x="48.499512" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">(</tspan>
+      <tspan x="68.055908" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="88.088379" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="109.827393" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">,</tspan>
+      <tspan x="129.918457" y="-0.625" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">)</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_31">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #263b50" x="710.208" y="648.733117" transform="rotate(-0 710.208 648.733117)">VLA / 策略输出动作；执行后再观察</text>
+   </g>
+   <g id="text_32">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #866b55" x="710.208" y="671.863255" transform="rotate(-0 710.208 671.863255)">Adapter 对齐需要机器人轨迹数据</text>
+   </g>
+   <g id="text_33">
+    <text style="font-size: 15px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #375a76" x="88.128" y="768.703974" transform="rotate(-0 88.128 768.703974)">训练专用监督</text>
+   </g>
+   <g id="text_34">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #287261" x="88.128" y="801.833707" transform="rotate(-0 88.128 801.833707)">局部几何关系</text>
+   </g>
+   <g id="text_35">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #aa6032" x="386.7264" y="801.995895" transform="rotate(-0 386.7264 801.995895)">动作后的状态变化 / 碰撞</text>
+   </g>
+   <g id="text_36">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #714496" x="834.624" y="801.833707" transform="rotate(-0 834.624 801.833707)">机器人示范或交互动作</text>
+   </g>
+   <g id="text_37">
+    <!-- $L=\lambda_g L_{geo}+\lambda_e L_{effect}+\lambda_a L_{action}$ -->
+    <g style="fill: #263b50" transform="translate(88.128 845.17596)">
+     <text>
+      <tspan x="0" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">L</tspan>
+      <tspan x="26.77002" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">λ</tspan>
+      <tspan x="42.722168" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">L</tspan>
+      <tspan x="89.451416" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">λ</tspan>
+      <tspan x="105.198486" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">L</tspan>
+      <tspan x="162.581543" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">λ</tspan>
+      <tspan x="178.302979" y="-0.609375" style="font-style: oblique; font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">L</tspan>
+      <tspan x="11.279297" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">=</tspan>
+      <tspan x="73.960693" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">+</tspan>
+      <tspan x="147.09082" y="-0.609375" style="font-size: 15px; font-family: 'DejaVu Sans'; fill: #263b50">+</tspan>
+      <tspan x="35.646973" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">g</tspan>
+      <tspan x="51.079102" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">g</tspan>
+      <tspan x="57.744141" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">e</tspan>
+      <tspan x="64.204102" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">o</tspan>
+      <tspan x="98.328369" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">e</tspan>
+      <tspan x="113.55542" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">e</tspan>
+      <tspan x="120.015381" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">f</tspan>
+      <tspan x="123.711914" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">f</tspan>
+      <tspan x="127.408447" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">e</tspan>
+      <tspan x="133.868408" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">c</tspan>
+      <tspan x="139.641357" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="171.458496" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">a</tspan>
+      <tspan x="186.659912" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">a</tspan>
+      <tspan x="193.094238" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">c</tspan>
+      <tspan x="198.867188" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">t</tspan>
+      <tspan x="202.984131" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">i</tspan>
+      <tspan x="205.901367" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">o</tspan>
+      <tspan x="212.325439" y="1.851562" style="font-style: oblique; font-size: 10.5px; font-family: 'DejaVu Sans'; fill: #263b50">n</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_38">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #6f7f8c" x="759.9744" y="845.16971" transform="rotate(-0 759.9744 845.16971)">仿真真值只用于训练 / 评估；未来结果不可提前写入</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p0ff9d77a4c">
+   <rect x="25.92" y="18.72" width="1244.16" height="898.56"/>
+  </clipPath>
+ </defs>
+</svg>

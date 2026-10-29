@@ -1,0 +1,18 @@
+# Paper collection
+
+This is a selected starting set, not an exhaustive list. Each link leads to the original paper, publisher, or author-hosted source. Relationships are explained in [research-path.md](research-path.md).
+
+| Suggested order | Paper | Why read it | Status |
+| --- | --- | --- | --- |
+| 1 | [AROS: Affordance Recognition with One-Shot Human Stances](https://doi.org/10.3389/frobt.2023.1076780), Pacheco-Ortega & Mayol-Cuevas, 2023 | The central paper: articulated human–scene interaction with proximity and clearance. | Published; full paper examined |
+| 2 | [Where Can I Do This? Geometric Affordances from a Single Example with the Interaction Tensor](https://doi.org/10.1109/ICRA.2018.8462835), Ruiz & Mayol-Cuevas, 2018 ([author PDF](https://research-information.bris.ac.uk/files/190338511/Walterio_Mayol_Cuevas_Where_Can_I_Do_This_Geometric_Affordances_from_a_Single_Example_with_the_Interaction_Tensor.pdf)) | One-example geometric affordances for rigid object–scene interactions. | Published; targeted source review |
+| 3 | [Indexing 3D Scenes Using the Interaction Bisector Surface](https://doi.org/10.1145/2574860), Zhao, Wang & Komura, 2014 ([author record](https://www.research.ed.ac.uk/en/publications/indexing-3d-scenes-using-the-interaction-bisector-surface/)) | Foundation for representing geometry between interacting objects. | Published; targeted source review |
+| 4 | [Geometric Affordance Perception: Leveraging Deep 3D Saliency With the Interaction Tensor](https://doi.org/10.3389/fnbot.2020.00045), Ruiz & Mayol-Cuevas, 2020 | Combines geometric interaction descriptors with learned 3D saliency; explicitly cited by AROS. | Published; abstract and AROS context reviewed |
+| 5 | [PLACE: Proximity Learning of Articulation and Contact in 3D Environments](https://is.mpg.de/ps/publications/place-3dv-2020), Zhang et al., 2020 | A scene-centric learned human placement baseline and source of the refinement procedure. | Published; AROS comparison reviewed |
+| 6 | [Populating 3D Scenes by Learning Human-Scene Interaction](https://openaccess.thecvf.com/content/CVPR2021/html/Hassan_Populating_3D_Scenes_by_Learning_Human-Scene_Interaction_CVPR_2021_paper.html), Hassan et al., 2021 | POSA: a body-centred learned interaction model; AROS evaluates a contact-only version. | Published; AROS comparison reviewed |
+| 7 | [SceneGrok: Inferring Action Maps in 3D Environments](https://doi.org/10.1145/2661229.2661230), Savva et al., 2014 | An earlier action-map approach relating human activities and scene geometry. | Published; AROS related-work context reviewed |
+| 8 | [Is That a Chair? Imagining Affordances Using Simulations of an Articulated Human Body](https://doi.org/10.1109/ICRA40945.2020.9197384), Wu et al., 2020 | A complementary simulation-based route to physical affordances. | Published; AROS related-work context reviewed |
+| 9 | [Character–Object Interaction Retrieval Using the Interaction Bisector Surface](https://doi.org/10.1111/cgf.13112), Zhao, Choi & Komura, 2017 | An IBS-based approach to articulated character–object interaction retrieval. | Published; metadata and AROS context reviewed |
+| 10 | [Robo-ABC: Affordance Generalization Beyond Categories via Semantic Correspondence for Robot Manipulation](https://arxiv.org/abs/2401.07487), Ju et al., 2024 | A later, complementary robotics approach mapping human-derived contact points to novel objects for manipulation. | arXiv version; abstract reviewed; a direct link to AROS has not been established |
+
+The collection includes direct foundations, baselines and related methods. It does not yet establish a comprehensive set of later papers that cite or extend AROS.
