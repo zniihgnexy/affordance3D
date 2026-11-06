@@ -1,0 +1,1597 @@
+{
+  "date": "2026-11-02",
+  "review_type": "targeted scoping review for project feasibility",
+  "question": "Video observations/history, optionally language and robot state, to closed-loop executable robot actions; value of spatial/functional memory",
+  "scope": [
+    "VLA action baselines",
+    "video representation and pretraining",
+    "history and persistent memory",
+    "3D/affordance action grounding",
+    "robot trajectory datasets and closed-loop evaluation"
+  ],
+  "include": "Primary research or official implementation/data sources with an explicit video-to-embodied-action or comparison role",
+  "exclude": "Pure video QA/generation without embodiment grounding, high-level text planning mislabelled low-level control, unverified secondary SOTA claims",
+  "screening": "Deduplicate arXiv/DOI/title and distinguish first release, publication, current version; mark reading depth",
+  "caveat": "No exhaustive search result count; no dataset/model download or execution; no universal SOTA ranking",
+  "queries": [
+    "vision language action model 2026 video robot policy latest October memory history",
+    "Physical Intelligence pi0.6 pi0.7 2026 robot policy video",
+    "NVIDIA GR00T 2026 latest vision language action model video N1.6",
+    "OpenVLA OFT pi0.5 video observation history action chunk training",
+    "OpenVLA OFT fine tuning optimized training paper continuous action parallel decoding 2025",
+    "pi0.5 vision language action open world generalization openpi action history",
+    "SmolVLA A vision language action model for affordable efficient robotics paper",
+    "RT-1 Robotics Transformer RT-2 vision language action robot control papers",
+    "CALVIN A Benchmark Language Conditioned Policy Learning Long Horizon Robot Manipulation Mees paper",
+    "Fine Tuning Vision Language Action Models Optimizing Speed Success OpenVLA OFT RSS CoRL 2025",
+    "NativeMEM Native Memory Compression Long Horizon Robotic Manipulation CoRL 2026",
+    "LIBERO Plus Progressive Robustness Benchmark Visual Language Action Fei 2026",
+    "Cosmos Policy Robot Control from Video Generation authors Kim 2026 arxiv",
+    "Open X Embodiment Robotic Learning Datasets RT X Models 2310.08864 authors"
+  ],
+  "methods": [
+    {
+      "id": 2,
+      "name": "HistRISE",
+      "title": "History-Aware Visuomotor Policy Learning via Point Tracking",
+      "url": "https://arxiv.org/html/2509.17141",
+      "level": "A",
+      "group": "memory",
+      "sections": "§III–IV、任务附录",
+      "relation": "双 RGB-D 历史点轨迹接策略；Guess 遮挡任务较直接，非必须 VLA。"
+    },
+    {
+      "id": 5,
+      "name": "MemBodied",
+      "title": "MemBodied: Recurrent Associative Memory for Vision-Language-Action Models",
+      "url": "https://arxiv.org/html/2609.28256",
+      "level": "A",
+      "group": "memory",
+      "sections": "§3.2、3.5–3.6、§4–6",
+      "relation": "执行动作并取得后续真实视觉后，因果写入当前 rollout 关联记忆；每回合重置，不是跨 episode 持久地图。"
+    },
+    {
+      "id": 6,
+      "name": "UniMPA",
+      "title": "UniMPA: A Unified Memory-Prediction-Action Model via Action-Grounded Transition Modeling",
+      "url": "https://arxiv.org/html/2609.11875",
+      "level": "A",
+      "group": "memory",
+      "sections": "§III–IV、附录 G",
+      "relation": "离线动作—视觉经验库；完成 rollout 后可追加。当前 rollout 同步写入尚为未来工作，推理禁用未来真图路径。"
+    },
+    {
+      "id": 7,
+      "name": "GeoMem-VLA",
+      "title": "GeoMem-VLA: Internalizing 3D Scene Understanding into Temporal Memory for Vision-Language-Action Models",
+      "url": "https://arxiv.org/html/2610.29866",
+      "level": "A",
+      "group": "memory",
+      "sections": "§3–4",
+      "relation": "几何教师与末端轨迹为训练监督；推理 episode memory+flow动作，非在线显式重建。",
+      "code": "https://github.com/GeoMem-VLA/GeoMem-VLA",
+      "code_status": "作者训练评测与 HF 链接可见；quick-start 与论文完整 checkpoint/实机部署不同。"
+    },
+    {
+      "id": 8,
+      "name": "AffordVLA",
+      "title": "AffordVLA: Injecting Affordance Representations into Vision-Language-Action Models via Implicit Feature Alignment",
+      "url": "https://arxiv.org/html/2605.17517",
+      "level": "A",
+      "group": "geometry",
+      "sections": "§III–IV",
+      "relation": "训练以功能教师对齐学生特征，同时动作 flow loss；推理移除 teacher。不要与 AffordanceVLA 合并。"
+    },
+    {
+      "id": 15,
+      "name": "Actron3D",
+      "title": "Actron3D: Learning Actionable Neural Functions from Videos for Transferable Robotic Manipulation",
+      "url": "https://arxiv.org/html/2510.12971",
+      "level": "A",
+      "group": "geometry",
+      "sections": "沿用前轮 §III-C/D、§IV 核查",
+      "relation": "人视频连续几何/接触/动作函数；目标部署有 RGB-D，检索对齐操作，不等同持久环境记忆。"
+    },
+    {
+      "id": 32,
+      "name": "RT-1",
+      "title": "RT-1: Robotics Transformer for Real-World Control at Scale",
+      "authors": "Anthony Brohan 等",
+      "year": "2022 首发",
+      "url": "https://arxiv.org/abs/2212.06817",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "短 RGB 序列与语言|图像 token 压缩与 Transformer|离散控制动作|循环执行与再观察",
+      "abstract": "把图像历史和任务指令转成机器人控制 token，研究多任务机器人数据扩大后，策略在新物体和场景中的泛化。",
+      "contributions": [
+        "短视频条件控制。",
+        "统一离散动作接口。",
+        "大规模真实机器人多任务评测。"
+      ],
+      "relation": "短历史视频→动作在 VLA 早期已有先例；未因此解决长期空间记忆。"
+    },
+    {
+      "id": 33,
+      "name": "RT-2",
+      "title": "RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control",
+      "authors": "Anthony Brohan 等",
+      "year": "2023 首发",
+      "url": "https://arxiv.org/abs/2307.15818",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "视觉语言预训练|机器人动作 token 联合微调|图像与指令|闭环机器人动作",
+      "abstract": "将机器人动作编码为语言模型可预测的 token，与视觉语言任务共同训练，以把网络知识迁移到机器人控制。",
+      "contributions": [
+        "动作作为 token。",
+        "网络视觉语言知识迁移。",
+        "真实控制和语义泛化测试。"
+      ],
+      "relation": "语义理解接动作已有；网络知识不保证任意新技能或物理可行性。",
+      "code_status": "本轮未验证可复现训练与完整权重。"
+    },
+    {
+      "id": 34,
+      "name": "Diffusion Policy",
+      "title": "Diffusion Policy: Visuomotor Policy Learning via Action Diffusion",
+      "authors": "Cheng Chi 等",
+      "year": "2023 首发 / 2024 修订",
+      "url": "https://arxiv.org/abs/2303.04137",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "视觉观察及状态|条件动作扩散|预测动作序列|滚动执行与再观察",
+      "abstract": "以条件去噪建模多模态机器人动作分布，结合视觉条件、时序建模和滚动时域控制，在仿真与真实操作中评价。",
+      "contributions": [
+        "动作分布扩散建模。",
+        "视觉与时序条件化。",
+        "滚动时域闭环控制。"
+      ],
+      "relation": "是 action head 和非 VLA 控制基线；原始版本不自动具有语言理解或持久环境记忆。",
+      "code": "https://github.com/real-stanford/diffusion_policy",
+      "code_status": "作者项目提供 sim/real 源码链接；未运行。"
+    },
+    {
+      "id": 35,
+      "name": "OpenVLA",
+      "title": "OpenVLA: An Open-Source Vision-Language-Action Model",
+      "authors": "Moo Jin Kim 等",
+      "year": "2024 首发；PMLR 2025",
+      "url": "https://arxiv.org/html/2406.09246",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "当前 RGB 与语言|DINOv2 / SigLIP 与 Llama 2|离散动作 token|机器人执行反馈",
+      "abstract": "在视觉语言模型上用多机器人演示训练动作预测，提供开放模型、训练代码和下游适配方法。",
+      "contributions": [
+        "开放通用动作模型。",
+        "语义与视觉特征融合。",
+        "微调与量化适配研究。"
+      ],
+      "relation": "经典可适配基线。原始单帧接口不代表不能修改，但多帧、状态和 action chunk 需明确实现。",
+      "sections": "§3、§5",
+      "code": "https://github.com/openvla/openvla",
+      "code_status": "官方代码和 checkpoint 入口存在；未下载或运行。"
+    },
+    {
+      "id": 36,
+      "name": "OpenVLA-OFT",
+      "title": "Fine-Tuning Vision-Language-Action Models: Optimizing Speed and Success",
+      "authors": "Moo Jin Kim、Chelsea Finn、Percy Liang",
+      "year": "2025；本轮依据 arXiv 版",
+      "url": "https://arxiv.org/html/2502.19645",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "预训练 OpenVLA|并行解码与连续动作头|L1 动作块适配|执行后重规划",
+      "abstract": "比较 VLA 适配中的解码、动作表示和训练目标，提出并行生成、连续动作与 action chunking 的 OFT 配方。",
+      "contributions": [
+        "系统比较适配设计。",
+        "高效连续动作块。",
+        "LIBERO 与真实双臂适配。"
+      ],
+      "relation": "建议的主 backbone 候选。OFT 是适配配方，不是视频记忆模型；原论文 LIBERO 默认单图，ALOHA 增加多相机和状态。",
+      "sections": "§IV–VI",
+      "code": "https://github.com/moojink/openvla-oft",
+      "code_status": "作者项目提供训练、评测与 checkpoint；未运行。"
+    },
+    {
+      "id": 37,
+      "name": "π0.5",
+      "title": "π0.5: a Vision-Language-Action Model with Open-World Generalization",
+      "authors": "Physical Intelligence / Kevin Black 等",
+      "year": "2025；CoRL 2025",
+      "url": "https://arxiv.org/html/2504.16054",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "多相机 RGB / 状态 / 语言|异构数据共同训练|子任务预测|flow action expert 动作块",
+      "abstract": "结合机器人演示、网络视觉语言数据和高层子任务监督，研究在新家庭环境中的移动操作泛化。",
+      "contributions": [
+        "异构任务共训练。",
+        "高层语义与连续动作。",
+        "未见家庭环境评测。"
+      ],
+      "relation": "强动作与语义基线。当前多相机不等于长视频历史，公开 openpi 也不等于复现原始全部数据系统。",
+      "sections": "§IV–V",
+      "code": "https://github.com/Physical-Intelligence/openpi",
+      "code_status": "官方 pi05 base 和 LIBERO/DROID 权重路径与适配示例可见；未下载。"
+    },
+    {
+      "id": 38,
+      "name": "SmolVLA",
+      "title": "SmolVLA: A Vision-Language-Action Model for Affordable and Efficient Robotics",
+      "authors": "Mustafa Shukor 等",
+      "year": "2025；本轮依据 arXiv 版",
+      "url": "https://arxiv.org/html/2506.01844",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "RGB / 机器人状态 / 语言|紧凑 VLM 与 action expert|flow matching|同步或异步执行",
+      "abstract": "提出较小的视觉语言动作模型及社区数据训练方案，并通过动作队列研究感知、推理与执行异步化。",
+      "contributions": [
+        "紧凑动作模型。",
+        "公开社区机器人数据。",
+        "异步推理与执行。"
+      ],
+      "relation": "适合资源较少时的对接候选。作者的仿真逐步重观测与实机完整动作块执行不同；支持多相机不代表现成长期记忆。",
+      "sections": "§3–4",
+      "code": "https://github.com/huggingface/lerobot",
+      "code_status": "官方 LeRobot 文档和模型入口可见；未核验目标仿真完整兼容。"
+    },
+    {
+      "id": 39,
+      "name": "π0.7",
+      "title": "π0.7: a Steerable Generalist Robotic Foundation Model with Emergent Capabilities",
+      "authors": "Physical Intelligence 等",
+      "year": "2026-04 预印本",
+      "url": "https://arxiv.org/abs/2604.15483",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "多模态提示与观察|可引导通用策略|视觉子目标及动作专家|跨任务机器人动作",
+      "abstract": "通过语言、元数据、控制模式和视觉子目标等提示研究可引导的通用机器人策略与技能组合。",
+      "contributions": [
+        "多模态策略引导。",
+        "技能组合与泛化。",
+        "多本体机器人实验。"
+      ],
+      "relation": "前沿能力参照，不作为本轮已验证的可训练起点。作者页出现 observation memory，但内部记忆机制和公平复现未核查。",
+      "code_status": "本轮未确认完整 pi0.7 公开训练权重；已查看的 openpi 主列表仍为 pi0 / FAST / pi0.5。"
+    },
+    {
+      "id": 40,
+      "name": "Vid2Robot",
+      "title": "Vid2Robot: End-to-end Video-conditioned Policy Learning with Cross-Attention Transformers",
+      "authors": "Vidhi Jain 等",
+      "year": "2024",
+      "url": "https://arxiv.org/html/2403.12943",
+      "level": "A",
+      "group": "video",
+      "pipeline": "人或机器人任务示范视频|近期机器人观察序列|跨注意力对齐|动作块与闭环执行",
+      "abstract": "使用示范视频表达任务，并与当前机器人观察结合预测动作，学习跨人和机器人示范的控制迁移。",
+      "contributions": [
+        "推理时视频任务条件。",
+        "示范与机器人观察跨注意力。",
+        "真实机器人视频条件控制。"
+      ],
+      "relation": "最直接的 video-input→action 先例之一。训练仍用大量带动作标签的机器人轨迹，示范短视频不等于任意长互联网视频。",
+      "sections": "方法与实验",
+      "code_status": "论文有拟发布表述；本轮未确认完整可用官方实现/权重。"
+    },
+    {
+      "id": 41,
+      "name": "UniVLA-Latent",
+      "title": "UniVLA: Learning to Act Anywhere with Task-centric Latent Actions",
+      "authors": "Qingwen Bu 等",
+      "year": "RSS 2025",
+      "url": "https://arxiv.org/html/2505.06111",
+      "level": "A",
+      "group": "video",
+      "pipeline": "跨本体视频|任务中心潜在动作学习|VLA 潜在动作预测|目标机器人动作解码",
+      "abstract": "从人和机器人视频提取任务中心潜在动作，并通过目标机器人数据训练解码器，把视频知识接入控制。",
+      "contributions": [
+        "任务中心潜在动作。",
+        "跨本体视频预训练。",
+        "目标本体解码与控制。"
+      ],
+      "relation": "视频主要作用于训练；实际策略不是无限长视频环境记忆。潜在动作必须有目标机器人 grounding。",
+      "sections": "方法与实验",
+      "code": "https://github.com/OpenDriveLab/UniVLA",
+      "code_status": "官方代码和模型入口存在；未下载目标本体 checkpoint。"
+    },
+    {
+      "id": 42,
+      "name": "UniVLA-Unified",
+      "title": "Unified Vision-Language-Action Model",
+      "authors": "Yuqi Wang 等",
+      "year": "2025 首发；作者仓库标 ICLR 2026",
+      "url": "https://arxiv.org/html/2506.19850",
+      "level": "A",
+      "group": "video",
+      "pipeline": "无动作视频世界模型训练|视觉 / 语言 / 动作统一 token|机器人动作监督适配|历史与未来预测辅助控制",
+      "abstract": "将视觉、语言与动作统一为序列建模，利用无动作视频及有动作机器人数据，研究视觉预测与控制的共同训练。",
+      "contributions": [
+        "统一多模态 token。",
+        "视频与机器人数据分阶段学习。",
+        "历史与预测的控制消融。"
+      ],
+      "relation": "与 Bu 等的 UniVLA 是不同论文。历史视频与未来预测已有，但仍需机器人动作监督。",
+      "sections": "方法与实验",
+      "code": "https://github.com/baaivision/UniVLA",
+      "code_status": "官方仓库可见；完整训练与模型可用性未逐项验证。"
+    },
+    {
+      "id": 43,
+      "name": "VIPA-VLA",
+      "title": "Spatial-Aware VLA Pretraining through Visual-Physical Alignment from Human Videos",
+      "authors": "Yicheng Feng 等",
+      "year": "2025 首发；CVPR 2026 信息见作者来源",
+      "url": "https://arxiv.org/html/2512.13080",
+      "level": "A",
+      "group": "video",
+      "pipeline": "人类视频重建手部 / 场景|空间与运动监督|视觉物理对齐预训练|机器人演示适配动作",
+      "abstract": "从人类视频生成空间和运动学习信号，结合视觉物理表示及机器人示范进行操作迁移。",
+      "contributions": [
+        "人视频空间物理监督。",
+        "空间与语义表征融合。",
+        "机器人低样本适配研究。"
+      ],
+      "relation": "主要是训练视频，不是持久视频记忆。重建与手部模型有额外假设，实机评测仅指定任务，不能概括全面优于。",
+      "sections": "方法与实验",
+      "code": "https://github.com/BeingBeyond/VIPA-VLA",
+      "code_status": "本轮作者仓库显示 code coming soon；完整代码/权重未验证。"
+    },
+    {
+      "id": 44,
+      "name": "Being-H0",
+      "title": "Being-H0: Vision-Language-Action Pretraining from Large-Scale Human Videos",
+      "authors": "Hao Luo 等",
+      "year": "2025 首发；ICML 2026",
+      "url": "https://arxiv.org/html/2507.15597",
+      "level": "A",
+      "group": "video",
+      "pipeline": "人类视频及手部运动|物理空间动作 token|大规模预训练|机器人 physical instruction tuning",
+      "abstract": "利用大规模人类视频中的运动和物理空间表示预训练，再用机器人数据对齐目标机器人的动作。",
+      "contributions": [
+        "人视频动作表征。",
+        "物理空间对齐。",
+        "模型规模与机器人迁移分析。"
+      ],
+      "relation": "官方示例有单张图输入，不能因为训练用视频就认定运行时有视频长期记忆。MANO 等附加资产协议需核查。",
+      "sections": "方法与实验",
+      "publication": "https://proceedings.mlr.press/v306/luo26e.html",
+      "code": "https://github.com/BeingBeyond/Being-H0",
+      "code_status": "若干预训练 checkpoint 和 motion tokenizer 链接可见；README TODO 与训练/真机完整性仍需核实。"
+    },
+    {
+      "id": 45,
+      "name": "Cosmos Policy",
+      "title": "Cosmos Policy: Fine-Tuning Video Models for Visuomotor Control and Planning",
+      "authors": "Moo Jin Kim 等",
+      "year": "ICLR 2026",
+      "url": "https://arxiv.org/abs/2601.16163",
+      "level": "A",
+      "group": "video",
+      "pipeline": "预训练视频扩散|机器人演示后训练|动作 / 未来图像 / value latent|动作执行或候选规划",
+      "abstract": "把预训练视频生成模型后训练为机器人策略，将动作、未来状态和价值编码为 latent frames，既可直接控制也可支持规划。",
+      "contributions": [
+        "视频模型直接动作化。",
+        "未来状态与价值预测。",
+        "闭环仿真和真实双臂评测。"
+      ],
+      "relation": "未来图像是预测，不是历史真值。仍用目标平台机器人演示；官方训练示例计算量大，不是低成本起点。",
+      "sections": "原文方法与实验",
+      "code": "https://github.com/NVlabs/cosmos-policy",
+      "code_status": "官方代码、checkpoint 和训练数据入口存在；未运行。"
+    },
+    {
+      "id": 46,
+      "name": "VPP2",
+      "title": "Video Prediction Policy 2: Predict Better, Act Better",
+      "authors": "Yanjiang Guo 等",
+      "year": "2026-10 预印本；核查 v4",
+      "url": "https://arxiv.org/html/2610.10270",
+      "level": "A",
+      "group": "video",
+      "pipeline": "大视频骨干继续训练|未来视频预测及蒸馏|机器人 action expert|动作块与反馈",
+      "abstract": "以混合视频训练和高质量未来预测支持机器人动作生成，研究视频模型与动作专家结合的通用操作能力。",
+      "contributions": [
+        "视频预测与动作联合。",
+        "预测蒸馏和动作专家。",
+        "多任务机器人与历史变体评测。"
+      ],
+      "relation": "RoboDojo 历史帧变体与 ALOHA 默认结果须分开。未见任务不等于未见机器人本体，14B backbone 不适合首轮从头训练。",
+      "sections": "方法与实验",
+      "code": "https://github.com/roboterax/video-prediction-policy-2",
+      "code_status": "视频和部分仿真 action weights 链接可见；完整真实 ALOHA 部署权重未验证。"
+    },
+    {
+      "id": 47,
+      "name": "MemoryVLA",
+      "title": "MemoryVLA: Perceptual-Cognitive Memory in Vision-Language-Action Models for Robotic Manipulation",
+      "authors": "Hao Shi 等",
+      "year": "2025 首发；ICLR 2026",
+      "url": "https://arxiv.org/html/2508.19236",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "当前 RGB / 语言|感知与认知历史银行|检索压缩融合|diffusion 动作专家",
+      "abstract": "构建感知与认知两类历史记忆，供视觉语言动作策略检索并融合，研究长期与部分可观测操作。",
+      "contributions": [
+        "双类型历史记忆。",
+        "压缩检索和策略融合。",
+        "记忆任务与真实操作评测。"
+      ],
+      "relation": "直接记忆增强 VLA 近邻。官方 release 所列观察仅第三人称 RGB 和语言，不应默认它拥有腕相机或本体输入；不是所有任务均最好。",
+      "sections": "§3–4",
+      "code": "https://github.com/Penation/MemoryVLA",
+      "code_status": "作者代码和模型 zoo 链接可见；未下载或运行。"
+    },
+    {
+      "id": 48,
+      "name": "SOMA",
+      "title": "Spatial Memory for Out-of-Vision Manipulation in Vision-Language-Action",
+      "authors": "Pengteng Li 等",
+      "year": "ICML 2026",
+      "url": "https://arxiv.org/html/2605.22283",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "移动头相机 RGB 扫描|估计几何与对象空间记忆|动态细化和指令检索|VLA 动作块",
+      "abstract": "用可移动相机的多视角探索建立空间语义记忆，动态维护并按任务读取，以支持目标不在当前视野中的机器人操作。",
+      "contributions": [
+        "扫描构建空间记忆。",
+        "动态一致性维护。",
+        "视野外闭环操作。"
+      ],
+      "relation": "已直接覆盖 RGB扫描→空间记忆→查询→动作。真实实验需要机器人状态/当前多相机及训练演示；不能仅连接同类模块就称新。",
+      "sections": "§3–4",
+      "publication": "https://proceedings.mlr.press/v306/li26ay.html",
+      "code_status": "论文/出版摘要写 code will be released；本轮未确认完整官方代码/权重。"
+    },
+    {
+      "id": 49,
+      "name": "NativeMEM",
+      "title": "NativeMEM: Native Memory Compression for Long-Horizon Robotic Manipulation",
+      "authors": "Ziye Wang 等",
+      "year": "2026；作者标 CoRL 2026",
+      "url": "https://arxiv.org/html/2607.06678",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "多相机历史与状态 / 语言|原生视觉编码器每视图压为 token|动作监督对齐与微调|连续动作块",
+      "abstract": "复用 VLA 视觉编码器压缩历史，先用冻结策略的动作损失训练记忆 tokenizer，再微调策略以进行长期控制。",
+      "contributions": [
+        "原生历史 token 压缩。",
+        "动作监督的两阶段对齐。",
+        "记忆效率及闭环操作。"
+      ],
+      "relation": "固定预算历史 token→动作已有。高效不等于保存了全部功能细节，是否丢失小部位需独立比较，不能预设其失败。",
+      "sections": "§3–4、附录 C",
+      "code": "https://github.com/OpenDriveLab/NativeMEM",
+      "code_status": "README 给 tokenizer 与任务 checkpoint 路径；未验证二进制下载和运行。"
+    },
+    {
+      "id": 50,
+      "name": "EvoMem-VLA",
+      "title": "EvoMem-VLA: State-Evolution Memory for Long-Horizon Robot Manipulation",
+      "authors": "Yuheng Na 等",
+      "year": "2026-10 预印本",
+      "url": "https://arxiv.org/html/2610.05418",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "历史帧及有向帧对|条件 delta token|状态演化记忆与可选子任务|动作块",
+      "abstract": "通过有序帧对编码交互前后的变化，保留状态演化证据，再由共享视觉语言骨干与动作头生成控制。",
+      "contributions": [
+        "有方向的变化 token。",
+        "历史状态证据保留。",
+        "记忆基准和真实机器人。"
+      ],
+      "relation": "记住发生了什么变化已有直接先例。部分子任务路由不是最终只输出文本；仍需同观察历史置换等更强因果测试。",
+      "sections": "§3.2–3.4、§4",
+      "code_status": "本轮未确认完整官方代码/权重；不据此断言未公开。"
+    },
+    {
+      "id": 51,
+      "name": "MEM",
+      "title": "MEM: Multi-Scale Embodied Memory for Vision Language Action Models",
+      "authors": "Marcel Torne 等",
+      "year": "2026-03 预印本",
+      "url": "https://arxiv.org/html/2603.03596",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "短历史视频 / 状态 / 指令|视频编码的短期记忆|语言事件摘要与子任务|连续动作块",
+      "abstract": "结合视频短期记忆和文本长期摘要，让机器人策略在多阶段操作中利用不同时间尺度的事件与观察。",
+      "contributions": [
+        "混合模态多尺度记忆。",
+        "长任务语义进度。",
+        "机器人长期操作与上下文适应。"
+      ],
+      "relation": "长任务视频+文本 memory 已有。任务级语言摘要与可回溯的精细功能证据不同，但是否影响成功必须测试。",
+      "sections": "§III–IV",
+      "code_status": "完整代码与权重本轮未验证。"
+    },
+    {
+      "id": 52,
+      "name": "SpatialVLA",
+      "title": "SpatialVLA: Exploring Spatial Representations for Visual-Language-Action Model",
+      "authors": "Delin Qu 等",
+      "year": "2025；作者标 RSS 2025",
+      "url": "https://arxiv.org/html/2501.15830",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "RGB / 语言|估计深度与 Ego3D 位置编码|空间特征和自适应动作网格|机器人动作块",
+      "abstract": "通过估计几何、三维位置编码和动作空间离散化增强视觉语言动作表示，并研究新机器人和任务适配。",
+      "contributions": [
+        "空间感知表示。",
+        "自适应动作网格。",
+        "仿真和真实控制迁移。"
+      ],
+      "relation": "RGB 驱动的几何动作对齐已有；估计深度与实测深度设置分开，不是长期环境 memory。",
+      "sections": "方法、实验及附录 D",
+      "code": "https://github.com/SpatialVLA",
+      "code_status": "官方组织有代码/model zoo；未逐个下载 checkpoint。"
+    },
+    {
+      "id": 53,
+      "name": "3D-VLA",
+      "title": "3D-VLA: A 3D Vision-Language-Action Generative World Model",
+      "authors": "Haoyu Zhen 等",
+      "year": "ICML 2024",
+      "url": "https://arxiv.org/html/2403.09631",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "图像 / 点云 / 语言|3D 交互 token|目标图像与点云生成|动作预测",
+      "abstract": "把三维理解、目标生成和动作预测结合，构建具身指令数据以训练三维视觉语言动作模型。",
+      "contributions": [
+        "三维具身指令数据。",
+        "交互 token 与几何理解。",
+        "目标视觉与点云生成。"
+      ],
+      "relation": "原文 §5.3 RLBench 动作实验为 open-loop，不应把它当作已经验证的真实闭环控制。",
+      "sections": "§3–5",
+      "code": "https://github.com/UMass-Embodied-AGI/3D-VLA",
+      "code_status": "预训练与部分生成权重可见；完整动作 checkpoint 和闭环复现未验证。"
+    },
+    {
+      "id": 54,
+      "name": "GeomVLA",
+      "title": "GeomVLA: Unifying Scene, Motion, and Action in 3D",
+      "authors": "Ziyin Xiong 等",
+      "year": "CoRL 2026 接收；2026-09 首发",
+      "url": "https://arxiv.org/html/2609.13812",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "多视图 RGB / 深度 / 标定|机器人坐标 3D 特征|场景运动 token|flow 动作预测",
+      "abstract": "将场景、运动和动作置于统一几何空间，使用点轨迹监督及几何条件动作去噪进行机器人控制。",
+      "contributions": [
+        "统一三维场景与动作。",
+        "视觉轨迹中间监督。",
+        "连续动作与真实双臂实验。"
+      ],
+      "relation": "不是纯 RGB 推理；依赖深度和标定。两阶段训练不意味着无需机器人动作标签。",
+      "sections": "§3.4、§4及附录",
+      "code": "https://github.com/ziyin-xiong/GeomVLA",
+      "code_status": "本轮项目指向的代码页面返回404；不得写成已验证开源可跑。"
+    },
+    {
+      "id": 55,
+      "name": "AffordanceVLA",
+      "title": "AffordanceVLA: A Vision-Language-Action Model Empowering Action Generation through Affordance-Aware Understanding",
+      "authors": "Qize Yu 等",
+      "year": "2026-06 预印本；核查 v2",
+      "url": "https://arxiv.org/html/2606.06155",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "RGB / 语言|Which2Act / Where2Act / How2Act|多层功能表示|动作专家与闭环控制",
+      "abstract": "以对象选择、二维交互位置及三维形状布局等分层表示连接视觉语言理解和机器人动作，利用多阶段数据训练。",
+      "contributions": [
+        "多层 affordance 条件。",
+        "自动化中间标注。",
+        "多阶段动作适配。"
+      ],
+      "relation": "与 Kong 等 AffordVLA 是不同论文。功能表征接 action 已做；大规模 grounding 与机器人数据是额外监督。",
+      "sections": "§3–4、附录 G–I",
+      "code": "https://github.com/Skywalker-yqz/AffordanceVLA",
+      "code_status": "官方代码入口存在；完整可用权重未验证。"
+    },
+    {
+      "id": 56,
+      "name": "AffordanceWAM",
+      "title": "AffordanceWAM: Affordance-Aware Joint World-Action Modeling for Robot Manipulation",
+      "authors": "Jiadi You 等",
+      "year": "2026-09 预印本；核查 v3 摘要",
+      "url": "https://arxiv.org/abs/2609.22332",
+      "level": "B",
+      "group": "video",
+      "pipeline": "人和机器人视频|未来 RGB / affordance 标量与热图|联合 world-action expert|连续机器人动作",
+      "abstract": "将未来视觉、时空功能表征及连续动作共同建模，用人类视频提供世界与功能监督，用机器人轨迹提供动作监督。",
+      "contributions": [
+        "功能感知 world-action 模型。",
+        "人视频与机器人监督分工。",
+        "仿真及真实操作评测。"
+      ],
+      "relation": "直接削弱‘未来视频＋affordance＋action’的组合创新；摘要级核查不足以断言它没有记忆或某种能力。",
+      "code_status": "摘要提供项目/代码链接；本轮未验证完整实现与权重。"
+    },
+    {
+      "id": 64,
+      "name": "VERA",
+      "title": "Turning Video Models into Generalist Robot Policies",
+      "authors": "Sizhe Lester Li 等",
+      "year": "2026-05 预印本",
+      "url": "https://arxiv.org/abs/2605.27817",
+      "level": "B",
+      "group": "video",
+      "pipeline": "视频世界模型给视觉计划|本体专用 Jacobian IDM|计划转动作块|执行再观察和重规划",
+      "abstract": "研究保持视频规划器与动作解码分离，通过面向机器人本体的逆动力学模型，把视觉计划转为闭环动作。",
+      "contributions": [
+        "模块化视频计划与动作映射。",
+        "Jacobian 结构的 IDM。",
+        "多本体仿真和真实实验。"
+      ],
+      "relation": "重要替代路线。视频规划部分不读动作标签不等于整个系统无需动作数据；IDM 仍用该机器人自交互 video-action 数据。",
+      "code": "https://vera.csail.mit.edu/",
+      "code_status": "已读摘要与方法概况；完整实现/权重未验证。"
+    },
+    {
+      "id": 65,
+      "name": "MoGAP",
+      "title": "Adapting Video Models for Robot Control via Motion-guided Asymmetric Prediction",
+      "authors": "Taeyoung Kim 等",
+      "year": "2026-10-27 预印本",
+      "url": "https://arxiv.org/abs/2610.36624",
+      "level": "B",
+      "group": "video",
+      "pipeline": "带动作机器人训练视频|视频中提取运动线索|训练专用非对称视觉预测|共享 world-action 策略",
+      "abstract": "在视频动作模型训练中给动态区域更多预测监督，研究视觉训练目标如何更好服务动作控制。",
+      "contributions": [
+        "运动聚焦辅助预测。",
+        "不新增外部教师模态。",
+        "跨 WAM 骨干实验。"
+      ],
+      "relation": "最新训练目标参考，未全文核查；局部/交互相关视觉监督本身并非空白，原文作者的提升不自动迁移到记忆课题。",
+      "code_status": "项目入口在原文；本轮未验证完整代码/权重。"
+    },
+    {
+      "id": 66,
+      "name": "3DS-VLA",
+      "title": "3DS-VLA: A 3D Spatial-Aware Vision Language Action Model for Robust Multi-Task Manipulation",
+      "authors": "Xiaoqi Li 等",
+      "year": "CoRL 2025",
+      "url": "https://proceedings.mlr.press/v305/li25g.html",
+      "level": "B",
+      "group": "geometry",
+      "pipeline": "视觉语言输入|2D 到 3D 空间对齐|功能相关 3D 关键点序列约束|机器人末端姿态动作",
+      "abstract": "通过二维三维位置对齐和功能相关关键点的顺序空间约束，把空间理解连接到机器人末端动作，并报告多任务及跨本体操作实验。",
+      "contributions": [
+        "二维三维空间对齐。",
+        "功能关键点顺序空间约束。",
+        "多任务及机器人操作评价。"
+      ],
+      "relation": "比一般三维理解更直接涉及功能几何到动作；本轮只核查官方摘要，不据此推断长期 memory、RGB-only 或遮挡历史能力。",
+      "code_status": "推理具体模态、完整代码/权重及可运行性未验证。"
+    }
+  ],
+  "datasets": [
+    {
+      "id": 9,
+      "name": "RoboMME",
+      "title": "RoboMME: Benchmarking and Understanding Memory for Robotic Generalist Policies",
+      "url": "https://arxiv.org/abs/2603.04639",
+      "level": "B",
+      "group": "dataset",
+      "code": "https://robomme.github.io/"
+    },
+    {
+      "id": 57,
+      "name": "MIKASA-Robo-VLA",
+      "title": "MIKASA-Robo-VLA: Benchmarking Memory in VLA Models for Long-Horizon Manipulation",
+      "authors": "Egor Cherepanov 等",
+      "year": "2026-09 首发；arXiv 2610 号",
+      "url": "https://arxiv.org/abs/2610.00604",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "语言条件机器人任务|隐藏关键信息和 reactive 控制|oracle 动作轨迹|记忆相关闭环评估",
+      "abstract": "构建带语言的记忆操作任务与对照，发布机器人专家轨迹，研究关键线索消失后策略能否依据历史行动。",
+      "contributions": [
+        "90 个任务及 reactive 控制。",
+        "可测的信息间隔。",
+        "22,500 条机器人轨迹。"
+      ],
+      "relation": "优先 pilot 候选；MIKASA-Robo-VLA 90任务版与旧 MIKASA-Robo 32任务版不可混称。并非每个已发 baseline 覆盖全部90任务。",
+      "code": "https://mikasarobo.github.io/",
+      "code_status": "官方说明有 RLDS / LeRobot v3；未下载或运行。"
+    },
+    {
+      "id": 58,
+      "name": "Open X-Embodiment",
+      "title": "Open X-Embodiment: Robotic Learning Datasets and RT-X Models",
+      "authors": "Open X-Embodiment Collaboration",
+      "year": "2023 首发；ICRA 2024",
+      "url": "https://arxiv.org/abs/2310.08864",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "多机构机器人轨迹|RLDS episode / step 整理|跨机器人混合训练|RT-X 与迁移评估",
+      "abstract": "汇集多机器人操作数据并研究跨本体学习，提供统一数据格式和示例通用策略。",
+      "contributions": [
+        "多本体数据协作。",
+        "统一存储与加载格式。",
+        "跨机器人迁移证据。"
+      ],
+      "relation": "格式统一不意味着动作坐标、单位、频率和相机全部统一；需选具体子集，不建议首轮全量重训。",
+      "code": "https://github.com/google-deepmind/open_x_embodiment",
+      "code_status": "官方数据格式和入口已查；子集许可与下载未逐项验证。"
+    },
+    {
+      "id": 59,
+      "name": "DROID",
+      "title": "DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset",
+      "authors": "Alexander Khazatsky 等",
+      "year": "2024 首发；本轮亦查官方 schema",
+      "url": "https://arxiv.org/abs/2403.12945",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "真实机器人多场景示范|多相机 / 状态 / 动作|数据整理与语言|策略训练和泛化",
+      "abstract": "采集真实环境中的多样机器人操作轨迹，用于研究策略在场景、任务和物体变化中的泛化。",
+      "contributions": [
+        "真实环境数据多样性。",
+        "视觉与机器人动作同步。",
+        "开放策略学习资源。"
+      ],
+      "relation": "可用于后续真实域适配，非现成功能记忆标签。官方动作维数描述存在需 inspect 样本确认的细节，不能直接按文字猜接口。",
+      "code": "https://droid-dataset.github.io/droid/the-droid-dataset",
+      "code_status": "官方 schema 已查；未下载 TB 级数据或核对样本。"
+    },
+    {
+      "id": 60,
+      "name": "BridgeData V2",
+      "title": "BridgeData V2: A Dataset for Robot Learning at Scale",
+      "authors": "Homer Walke 等",
+      "year": "2023 首发 / 2024 修订",
+      "url": "https://arxiv.org/abs/2308.12952",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "低成本机器人多环境示范|图像 / 状态 / 动作 / 任务|多任务策略学习|跨场景迁移",
+      "abstract": "提供多环境机器人操作轨迹，支持语言或目标图像条件的学习，并研究数据与技能多样性对泛化的作用。",
+      "contributions": [
+        "多环境动作演示。",
+        "多种任务条件接口。",
+        "数据规模与泛化分析。"
+      ],
+      "relation": "是机器人 video-action 数据而非纯人类视频；WidowX 动作接口需与目标策略和仿真一致。",
+      "code": "https://rail-berkeley.github.io/bridgedata/",
+      "code_status": "原始项目链接；具体数据版本、许可与下载未验证。"
+    },
+    {
+      "id": 61,
+      "name": "LIBERO",
+      "title": "LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning",
+      "authors": "Bo Liu 等",
+      "year": "2023",
+      "url": "https://arxiv.org/abs/2306.03310",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "语言条件仿真任务|专家图像状态动作演示|策略适配|多任务闭环评价",
+      "abstract": "组织语言条件机器人操作任务，评价空间、对象、目标及长任务上的知识迁移。",
+      "contributions": [
+        "多维任务集合。",
+        "专家示范与策略评测。",
+        "终身学习与迁移研究。"
+      ],
+      "relation": "适合打通 VLA 闭环，但 Long 不自动是记忆依赖。改变遮挡协议通常需重新采集对应历史演示。",
+      "code": "https://github.com/Lifelong-Robot-Learning/LIBERO",
+      "code_status": "官方环境与演示入口可见；未安装。"
+    },
+    {
+      "id": 62,
+      "name": "CALVIN",
+      "title": "CALVIN: A Benchmark for Language-Conditioned Policy Learning for Long-Horizon Robot Manipulation Tasks",
+      "authors": "Oier Mees 等",
+      "year": "2021 首发；2022 发表信息见官方库",
+      "url": "https://arxiv.org/abs/2112.03227",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "机器人 play 视频与状态动作|语言标注|连续子任务策略|未见环境长序列评价",
+      "abstract": "提供长时程语言条件操作平台，研究从视觉和语言学习可组合技能及新环境泛化。",
+      "contributions": [
+        "连续 play 与语言学习。",
+        "长序列技能组合。",
+        "跨环境测试。"
+      ],
+      "relation": "适合后续长序列验证；并非每项标准任务必须依赖历史。完整 ABC→D 数据和多模型实验存储开销较大。",
+      "code": "https://github.com/mees/calvin",
+      "code_status": "官方库及数据说明可见；未下载或运行。"
+    },
+    {
+      "id": 63,
+      "name": "LIBERO-Plus",
+      "title": "LIBERO-Plus: A Progressive Robustness Benchmark for Visual-Language-Action Models",
+      "authors": "Senyu Fei 等",
+      "year": "CVPR 2026",
+      "url": "https://openaccess.thecvf.com/content/CVPR2026/html/Fei_LIBERO-Plus_A_Progressive_Robustness_Benchmark_for_Visual-Language-Action_Models_CVPR_2026_paper.html",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "既有 VLA 与 LIBERO|视角 / 布局 / 语言等扰动|闭环测试|细粒度鲁棒性分析",
+      "abstract": "在多个受控扰动维度评价视觉语言动作模型，检验原始基准高分在环境变化下是否保持。",
+      "contributions": [
+        "自动化多维扰动。",
+        "细粒度失效分析。",
+        "高分与稳健性的区分。"
+      ],
+      "relation": "可加到 LIBERO 路线作鲁棒性外测，不直接证明记忆作用；不能把脆弱性当成已证实训练泄漏。",
+      "code": "https://github.com/sylvestf/LIBERO-plus",
+      "code_status": "官方库存在；未核查版本与安装。"
+    }
+  ],
+  "counts": {
+    "selected_method_studies": 34,
+    "method_A": 26,
+    "method_B": 8,
+    "dataset_benchmark_studies": 8,
+    "new_archive_entries": 35
+  },
+  "new_archive_records": [
+    {
+      "id": 32,
+      "name": "RT-1",
+      "title": "RT-1: Robotics Transformer for Real-World Control at Scale",
+      "authors": "Anthony Brohan 等",
+      "year": "2022 首发",
+      "url": "https://arxiv.org/abs/2212.06817",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "短 RGB 序列与语言|图像 token 压缩与 Transformer|离散控制动作|循环执行与再观察",
+      "abstract": "把图像历史和任务指令转成机器人控制 token，研究多任务机器人数据扩大后，策略在新物体和场景中的泛化。",
+      "contributions": [
+        "短视频条件控制。",
+        "统一离散动作接口。",
+        "大规模真实机器人多任务评测。"
+      ],
+      "relation": "短历史视频→动作在 VLA 早期已有先例；未因此解决长期空间记忆。"
+    },
+    {
+      "id": 33,
+      "name": "RT-2",
+      "title": "RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control",
+      "authors": "Anthony Brohan 等",
+      "year": "2023 首发",
+      "url": "https://arxiv.org/abs/2307.15818",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "视觉语言预训练|机器人动作 token 联合微调|图像与指令|闭环机器人动作",
+      "abstract": "将机器人动作编码为语言模型可预测的 token，与视觉语言任务共同训练，以把网络知识迁移到机器人控制。",
+      "contributions": [
+        "动作作为 token。",
+        "网络视觉语言知识迁移。",
+        "真实控制和语义泛化测试。"
+      ],
+      "relation": "语义理解接动作已有；网络知识不保证任意新技能或物理可行性。",
+      "code_status": "本轮未验证可复现训练与完整权重。"
+    },
+    {
+      "id": 34,
+      "name": "Diffusion Policy",
+      "title": "Diffusion Policy: Visuomotor Policy Learning via Action Diffusion",
+      "authors": "Cheng Chi 等",
+      "year": "2023 首发 / 2024 修订",
+      "url": "https://arxiv.org/abs/2303.04137",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "视觉观察及状态|条件动作扩散|预测动作序列|滚动执行与再观察",
+      "abstract": "以条件去噪建模多模态机器人动作分布，结合视觉条件、时序建模和滚动时域控制，在仿真与真实操作中评价。",
+      "contributions": [
+        "动作分布扩散建模。",
+        "视觉与时序条件化。",
+        "滚动时域闭环控制。"
+      ],
+      "relation": "是 action head 和非 VLA 控制基线；原始版本不自动具有语言理解或持久环境记忆。",
+      "code": "https://github.com/real-stanford/diffusion_policy",
+      "code_status": "作者项目提供 sim/real 源码链接；未运行。"
+    },
+    {
+      "id": 35,
+      "name": "OpenVLA",
+      "title": "OpenVLA: An Open-Source Vision-Language-Action Model",
+      "authors": "Moo Jin Kim 等",
+      "year": "2024 首发；PMLR 2025",
+      "url": "https://arxiv.org/html/2406.09246",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "当前 RGB 与语言|DINOv2 / SigLIP 与 Llama 2|离散动作 token|机器人执行反馈",
+      "abstract": "在视觉语言模型上用多机器人演示训练动作预测，提供开放模型、训练代码和下游适配方法。",
+      "contributions": [
+        "开放通用动作模型。",
+        "语义与视觉特征融合。",
+        "微调与量化适配研究。"
+      ],
+      "relation": "经典可适配基线。原始单帧接口不代表不能修改，但多帧、状态和 action chunk 需明确实现。",
+      "sections": "§3、§5",
+      "code": "https://github.com/openvla/openvla",
+      "code_status": "官方代码和 checkpoint 入口存在；未下载或运行。"
+    },
+    {
+      "id": 36,
+      "name": "OpenVLA-OFT",
+      "title": "Fine-Tuning Vision-Language-Action Models: Optimizing Speed and Success",
+      "authors": "Moo Jin Kim、Chelsea Finn、Percy Liang",
+      "year": "2025；本轮依据 arXiv 版",
+      "url": "https://arxiv.org/html/2502.19645",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "预训练 OpenVLA|并行解码与连续动作头|L1 动作块适配|执行后重规划",
+      "abstract": "比较 VLA 适配中的解码、动作表示和训练目标，提出并行生成、连续动作与 action chunking 的 OFT 配方。",
+      "contributions": [
+        "系统比较适配设计。",
+        "高效连续动作块。",
+        "LIBERO 与真实双臂适配。"
+      ],
+      "relation": "建议的主 backbone 候选。OFT 是适配配方，不是视频记忆模型；原论文 LIBERO 默认单图，ALOHA 增加多相机和状态。",
+      "sections": "§IV–VI",
+      "code": "https://github.com/moojink/openvla-oft",
+      "code_status": "作者项目提供训练、评测与 checkpoint；未运行。"
+    },
+    {
+      "id": 37,
+      "name": "π0.5",
+      "title": "π0.5: a Vision-Language-Action Model with Open-World Generalization",
+      "authors": "Physical Intelligence / Kevin Black 等",
+      "year": "2025；CoRL 2025",
+      "url": "https://arxiv.org/html/2504.16054",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "多相机 RGB / 状态 / 语言|异构数据共同训练|子任务预测|flow action expert 动作块",
+      "abstract": "结合机器人演示、网络视觉语言数据和高层子任务监督，研究在新家庭环境中的移动操作泛化。",
+      "contributions": [
+        "异构任务共训练。",
+        "高层语义与连续动作。",
+        "未见家庭环境评测。"
+      ],
+      "relation": "强动作与语义基线。当前多相机不等于长视频历史，公开 openpi 也不等于复现原始全部数据系统。",
+      "sections": "§IV–V",
+      "code": "https://github.com/Physical-Intelligence/openpi",
+      "code_status": "官方 pi05 base 和 LIBERO/DROID 权重路径与适配示例可见；未下载。"
+    },
+    {
+      "id": 38,
+      "name": "SmolVLA",
+      "title": "SmolVLA: A Vision-Language-Action Model for Affordable and Efficient Robotics",
+      "authors": "Mustafa Shukor 等",
+      "year": "2025；本轮依据 arXiv 版",
+      "url": "https://arxiv.org/html/2506.01844",
+      "level": "A",
+      "group": "baseline",
+      "pipeline": "RGB / 机器人状态 / 语言|紧凑 VLM 与 action expert|flow matching|同步或异步执行",
+      "abstract": "提出较小的视觉语言动作模型及社区数据训练方案，并通过动作队列研究感知、推理与执行异步化。",
+      "contributions": [
+        "紧凑动作模型。",
+        "公开社区机器人数据。",
+        "异步推理与执行。"
+      ],
+      "relation": "适合资源较少时的对接候选。作者的仿真逐步重观测与实机完整动作块执行不同；支持多相机不代表现成长期记忆。",
+      "sections": "§3–4",
+      "code": "https://github.com/huggingface/lerobot",
+      "code_status": "官方 LeRobot 文档和模型入口可见；未核验目标仿真完整兼容。"
+    },
+    {
+      "id": 39,
+      "name": "π0.7",
+      "title": "π0.7: a Steerable Generalist Robotic Foundation Model with Emergent Capabilities",
+      "authors": "Physical Intelligence 等",
+      "year": "2026-04 预印本",
+      "url": "https://arxiv.org/abs/2604.15483",
+      "level": "B",
+      "group": "baseline",
+      "pipeline": "多模态提示与观察|可引导通用策略|视觉子目标及动作专家|跨任务机器人动作",
+      "abstract": "通过语言、元数据、控制模式和视觉子目标等提示研究可引导的通用机器人策略与技能组合。",
+      "contributions": [
+        "多模态策略引导。",
+        "技能组合与泛化。",
+        "多本体机器人实验。"
+      ],
+      "relation": "前沿能力参照，不作为本轮已验证的可训练起点。作者页出现 observation memory，但内部记忆机制和公平复现未核查。",
+      "code_status": "本轮未确认完整 pi0.7 公开训练权重；已查看的 openpi 主列表仍为 pi0 / FAST / pi0.5。"
+    },
+    {
+      "id": 40,
+      "name": "Vid2Robot",
+      "title": "Vid2Robot: End-to-end Video-conditioned Policy Learning with Cross-Attention Transformers",
+      "authors": "Vidhi Jain 等",
+      "year": "2024",
+      "url": "https://arxiv.org/html/2403.12943",
+      "level": "A",
+      "group": "video",
+      "pipeline": "人或机器人任务示范视频|近期机器人观察序列|跨注意力对齐|动作块与闭环执行",
+      "abstract": "使用示范视频表达任务，并与当前机器人观察结合预测动作，学习跨人和机器人示范的控制迁移。",
+      "contributions": [
+        "推理时视频任务条件。",
+        "示范与机器人观察跨注意力。",
+        "真实机器人视频条件控制。"
+      ],
+      "relation": "最直接的 video-input→action 先例之一。训练仍用大量带动作标签的机器人轨迹，示范短视频不等于任意长互联网视频。",
+      "sections": "方法与实验",
+      "code_status": "论文有拟发布表述；本轮未确认完整可用官方实现/权重。"
+    },
+    {
+      "id": 41,
+      "name": "UniVLA-Latent",
+      "title": "UniVLA: Learning to Act Anywhere with Task-centric Latent Actions",
+      "authors": "Qingwen Bu 等",
+      "year": "RSS 2025",
+      "url": "https://arxiv.org/html/2505.06111",
+      "level": "A",
+      "group": "video",
+      "pipeline": "跨本体视频|任务中心潜在动作学习|VLA 潜在动作预测|目标机器人动作解码",
+      "abstract": "从人和机器人视频提取任务中心潜在动作，并通过目标机器人数据训练解码器，把视频知识接入控制。",
+      "contributions": [
+        "任务中心潜在动作。",
+        "跨本体视频预训练。",
+        "目标本体解码与控制。"
+      ],
+      "relation": "视频主要作用于训练；实际策略不是无限长视频环境记忆。潜在动作必须有目标机器人 grounding。",
+      "sections": "方法与实验",
+      "code": "https://github.com/OpenDriveLab/UniVLA",
+      "code_status": "官方代码和模型入口存在；未下载目标本体 checkpoint。"
+    },
+    {
+      "id": 42,
+      "name": "UniVLA-Unified",
+      "title": "Unified Vision-Language-Action Model",
+      "authors": "Yuqi Wang 等",
+      "year": "2025 首发；作者仓库标 ICLR 2026",
+      "url": "https://arxiv.org/html/2506.19850",
+      "level": "A",
+      "group": "video",
+      "pipeline": "无动作视频世界模型训练|视觉 / 语言 / 动作统一 token|机器人动作监督适配|历史与未来预测辅助控制",
+      "abstract": "将视觉、语言与动作统一为序列建模，利用无动作视频及有动作机器人数据，研究视觉预测与控制的共同训练。",
+      "contributions": [
+        "统一多模态 token。",
+        "视频与机器人数据分阶段学习。",
+        "历史与预测的控制消融。"
+      ],
+      "relation": "与 Bu 等的 UniVLA 是不同论文。历史视频与未来预测已有，但仍需机器人动作监督。",
+      "sections": "方法与实验",
+      "code": "https://github.com/baaivision/UniVLA",
+      "code_status": "官方仓库可见；完整训练与模型可用性未逐项验证。"
+    },
+    {
+      "id": 43,
+      "name": "VIPA-VLA",
+      "title": "Spatial-Aware VLA Pretraining through Visual-Physical Alignment from Human Videos",
+      "authors": "Yicheng Feng 等",
+      "year": "2025 首发；CVPR 2026 信息见作者来源",
+      "url": "https://arxiv.org/html/2512.13080",
+      "level": "A",
+      "group": "video",
+      "pipeline": "人类视频重建手部 / 场景|空间与运动监督|视觉物理对齐预训练|机器人演示适配动作",
+      "abstract": "从人类视频生成空间和运动学习信号，结合视觉物理表示及机器人示范进行操作迁移。",
+      "contributions": [
+        "人视频空间物理监督。",
+        "空间与语义表征融合。",
+        "机器人低样本适配研究。"
+      ],
+      "relation": "主要是训练视频，不是持久视频记忆。重建与手部模型有额外假设，实机评测仅指定任务，不能概括全面优于。",
+      "sections": "方法与实验",
+      "code": "https://github.com/BeingBeyond/VIPA-VLA",
+      "code_status": "本轮作者仓库显示 code coming soon；完整代码/权重未验证。"
+    },
+    {
+      "id": 44,
+      "name": "Being-H0",
+      "title": "Being-H0: Vision-Language-Action Pretraining from Large-Scale Human Videos",
+      "authors": "Hao Luo 等",
+      "year": "2025 首发；ICML 2026",
+      "url": "https://arxiv.org/html/2507.15597",
+      "level": "A",
+      "group": "video",
+      "pipeline": "人类视频及手部运动|物理空间动作 token|大规模预训练|机器人 physical instruction tuning",
+      "abstract": "利用大规模人类视频中的运动和物理空间表示预训练，再用机器人数据对齐目标机器人的动作。",
+      "contributions": [
+        "人视频动作表征。",
+        "物理空间对齐。",
+        "模型规模与机器人迁移分析。"
+      ],
+      "relation": "官方示例有单张图输入，不能因为训练用视频就认定运行时有视频长期记忆。MANO 等附加资产协议需核查。",
+      "sections": "方法与实验",
+      "publication": "https://proceedings.mlr.press/v306/luo26e.html",
+      "code": "https://github.com/BeingBeyond/Being-H0",
+      "code_status": "若干预训练 checkpoint 和 motion tokenizer 链接可见；README TODO 与训练/真机完整性仍需核实。"
+    },
+    {
+      "id": 45,
+      "name": "Cosmos Policy",
+      "title": "Cosmos Policy: Fine-Tuning Video Models for Visuomotor Control and Planning",
+      "authors": "Moo Jin Kim 等",
+      "year": "ICLR 2026",
+      "url": "https://arxiv.org/abs/2601.16163",
+      "level": "A",
+      "group": "video",
+      "pipeline": "预训练视频扩散|机器人演示后训练|动作 / 未来图像 / value latent|动作执行或候选规划",
+      "abstract": "把预训练视频生成模型后训练为机器人策略，将动作、未来状态和价值编码为 latent frames，既可直接控制也可支持规划。",
+      "contributions": [
+        "视频模型直接动作化。",
+        "未来状态与价值预测。",
+        "闭环仿真和真实双臂评测。"
+      ],
+      "relation": "未来图像是预测，不是历史真值。仍用目标平台机器人演示；官方训练示例计算量大，不是低成本起点。",
+      "sections": "原文方法与实验",
+      "code": "https://github.com/NVlabs/cosmos-policy",
+      "code_status": "官方代码、checkpoint 和训练数据入口存在；未运行。"
+    },
+    {
+      "id": 46,
+      "name": "VPP2",
+      "title": "Video Prediction Policy 2: Predict Better, Act Better",
+      "authors": "Yanjiang Guo 等",
+      "year": "2026-10 预印本；核查 v4",
+      "url": "https://arxiv.org/html/2610.10270",
+      "level": "A",
+      "group": "video",
+      "pipeline": "大视频骨干继续训练|未来视频预测及蒸馏|机器人 action expert|动作块与反馈",
+      "abstract": "以混合视频训练和高质量未来预测支持机器人动作生成，研究视频模型与动作专家结合的通用操作能力。",
+      "contributions": [
+        "视频预测与动作联合。",
+        "预测蒸馏和动作专家。",
+        "多任务机器人与历史变体评测。"
+      ],
+      "relation": "RoboDojo 历史帧变体与 ALOHA 默认结果须分开。未见任务不等于未见机器人本体，14B backbone 不适合首轮从头训练。",
+      "sections": "方法与实验",
+      "code": "https://github.com/roboterax/video-prediction-policy-2",
+      "code_status": "视频和部分仿真 action weights 链接可见；完整真实 ALOHA 部署权重未验证。"
+    },
+    {
+      "id": 47,
+      "name": "MemoryVLA",
+      "title": "MemoryVLA: Perceptual-Cognitive Memory in Vision-Language-Action Models for Robotic Manipulation",
+      "authors": "Hao Shi 等",
+      "year": "2025 首发；ICLR 2026",
+      "url": "https://arxiv.org/html/2508.19236",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "当前 RGB / 语言|感知与认知历史银行|检索压缩融合|diffusion 动作专家",
+      "abstract": "构建感知与认知两类历史记忆，供视觉语言动作策略检索并融合，研究长期与部分可观测操作。",
+      "contributions": [
+        "双类型历史记忆。",
+        "压缩检索和策略融合。",
+        "记忆任务与真实操作评测。"
+      ],
+      "relation": "直接记忆增强 VLA 近邻。官方 release 所列观察仅第三人称 RGB 和语言，不应默认它拥有腕相机或本体输入；不是所有任务均最好。",
+      "sections": "§3–4",
+      "code": "https://github.com/Penation/MemoryVLA",
+      "code_status": "作者代码和模型 zoo 链接可见；未下载或运行。"
+    },
+    {
+      "id": 48,
+      "name": "SOMA",
+      "title": "Spatial Memory for Out-of-Vision Manipulation in Vision-Language-Action",
+      "authors": "Pengteng Li 等",
+      "year": "ICML 2026",
+      "url": "https://arxiv.org/html/2605.22283",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "移动头相机 RGB 扫描|估计几何与对象空间记忆|动态细化和指令检索|VLA 动作块",
+      "abstract": "用可移动相机的多视角探索建立空间语义记忆，动态维护并按任务读取，以支持目标不在当前视野中的机器人操作。",
+      "contributions": [
+        "扫描构建空间记忆。",
+        "动态一致性维护。",
+        "视野外闭环操作。"
+      ],
+      "relation": "已直接覆盖 RGB扫描→空间记忆→查询→动作。真实实验需要机器人状态/当前多相机及训练演示；不能仅连接同类模块就称新。",
+      "sections": "§3–4",
+      "publication": "https://proceedings.mlr.press/v306/li26ay.html",
+      "code_status": "论文/出版摘要写 code will be released；本轮未确认完整官方代码/权重。"
+    },
+    {
+      "id": 49,
+      "name": "NativeMEM",
+      "title": "NativeMEM: Native Memory Compression for Long-Horizon Robotic Manipulation",
+      "authors": "Ziye Wang 等",
+      "year": "2026；作者标 CoRL 2026",
+      "url": "https://arxiv.org/html/2607.06678",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "多相机历史与状态 / 语言|原生视觉编码器每视图压为 token|动作监督对齐与微调|连续动作块",
+      "abstract": "复用 VLA 视觉编码器压缩历史，先用冻结策略的动作损失训练记忆 tokenizer，再微调策略以进行长期控制。",
+      "contributions": [
+        "原生历史 token 压缩。",
+        "动作监督的两阶段对齐。",
+        "记忆效率及闭环操作。"
+      ],
+      "relation": "固定预算历史 token→动作已有。高效不等于保存了全部功能细节，是否丢失小部位需独立比较，不能预设其失败。",
+      "sections": "§3–4、附录 C",
+      "code": "https://github.com/OpenDriveLab/NativeMEM",
+      "code_status": "README 给 tokenizer 与任务 checkpoint 路径；未验证二进制下载和运行。"
+    },
+    {
+      "id": 50,
+      "name": "EvoMem-VLA",
+      "title": "EvoMem-VLA: State-Evolution Memory for Long-Horizon Robot Manipulation",
+      "authors": "Yuheng Na 等",
+      "year": "2026-10 预印本",
+      "url": "https://arxiv.org/html/2610.05418",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "历史帧及有向帧对|条件 delta token|状态演化记忆与可选子任务|动作块",
+      "abstract": "通过有序帧对编码交互前后的变化，保留状态演化证据，再由共享视觉语言骨干与动作头生成控制。",
+      "contributions": [
+        "有方向的变化 token。",
+        "历史状态证据保留。",
+        "记忆基准和真实机器人。"
+      ],
+      "relation": "记住发生了什么变化已有直接先例。部分子任务路由不是最终只输出文本；仍需同观察历史置换等更强因果测试。",
+      "sections": "§3.2–3.4、§4",
+      "code_status": "本轮未确认完整官方代码/权重；不据此断言未公开。"
+    },
+    {
+      "id": 51,
+      "name": "MEM",
+      "title": "MEM: Multi-Scale Embodied Memory for Vision Language Action Models",
+      "authors": "Marcel Torne 等",
+      "year": "2026-03 预印本",
+      "url": "https://arxiv.org/html/2603.03596",
+      "level": "A",
+      "group": "memory",
+      "pipeline": "短历史视频 / 状态 / 指令|视频编码的短期记忆|语言事件摘要与子任务|连续动作块",
+      "abstract": "结合视频短期记忆和文本长期摘要，让机器人策略在多阶段操作中利用不同时间尺度的事件与观察。",
+      "contributions": [
+        "混合模态多尺度记忆。",
+        "长任务语义进度。",
+        "机器人长期操作与上下文适应。"
+      ],
+      "relation": "长任务视频+文本 memory 已有。任务级语言摘要与可回溯的精细功能证据不同，但是否影响成功必须测试。",
+      "sections": "§III–IV",
+      "code_status": "完整代码与权重本轮未验证。"
+    },
+    {
+      "id": 52,
+      "name": "SpatialVLA",
+      "title": "SpatialVLA: Exploring Spatial Representations for Visual-Language-Action Model",
+      "authors": "Delin Qu 等",
+      "year": "2025；作者标 RSS 2025",
+      "url": "https://arxiv.org/html/2501.15830",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "RGB / 语言|估计深度与 Ego3D 位置编码|空间特征和自适应动作网格|机器人动作块",
+      "abstract": "通过估计几何、三维位置编码和动作空间离散化增强视觉语言动作表示，并研究新机器人和任务适配。",
+      "contributions": [
+        "空间感知表示。",
+        "自适应动作网格。",
+        "仿真和真实控制迁移。"
+      ],
+      "relation": "RGB 驱动的几何动作对齐已有；估计深度与实测深度设置分开，不是长期环境 memory。",
+      "sections": "方法、实验及附录 D",
+      "code": "https://github.com/SpatialVLA",
+      "code_status": "官方组织有代码/model zoo；未逐个下载 checkpoint。"
+    },
+    {
+      "id": 53,
+      "name": "3D-VLA",
+      "title": "3D-VLA: A 3D Vision-Language-Action Generative World Model",
+      "authors": "Haoyu Zhen 等",
+      "year": "ICML 2024",
+      "url": "https://arxiv.org/html/2403.09631",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "图像 / 点云 / 语言|3D 交互 token|目标图像与点云生成|动作预测",
+      "abstract": "把三维理解、目标生成和动作预测结合，构建具身指令数据以训练三维视觉语言动作模型。",
+      "contributions": [
+        "三维具身指令数据。",
+        "交互 token 与几何理解。",
+        "目标视觉与点云生成。"
+      ],
+      "relation": "原文 §5.3 RLBench 动作实验为 open-loop，不应把它当作已经验证的真实闭环控制。",
+      "sections": "§3–5",
+      "code": "https://github.com/UMass-Embodied-AGI/3D-VLA",
+      "code_status": "预训练与部分生成权重可见；完整动作 checkpoint 和闭环复现未验证。"
+    },
+    {
+      "id": 54,
+      "name": "GeomVLA",
+      "title": "GeomVLA: Unifying Scene, Motion, and Action in 3D",
+      "authors": "Ziyin Xiong 等",
+      "year": "CoRL 2026 接收；2026-09 首发",
+      "url": "https://arxiv.org/html/2609.13812",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "多视图 RGB / 深度 / 标定|机器人坐标 3D 特征|场景运动 token|flow 动作预测",
+      "abstract": "将场景、运动和动作置于统一几何空间，使用点轨迹监督及几何条件动作去噪进行机器人控制。",
+      "contributions": [
+        "统一三维场景与动作。",
+        "视觉轨迹中间监督。",
+        "连续动作与真实双臂实验。"
+      ],
+      "relation": "不是纯 RGB 推理；依赖深度和标定。两阶段训练不意味着无需机器人动作标签。",
+      "sections": "§3.4、§4及附录",
+      "code": "https://github.com/ziyin-xiong/GeomVLA",
+      "code_status": "本轮项目指向的代码页面返回404；不得写成已验证开源可跑。"
+    },
+    {
+      "id": 55,
+      "name": "AffordanceVLA",
+      "title": "AffordanceVLA: A Vision-Language-Action Model Empowering Action Generation through Affordance-Aware Understanding",
+      "authors": "Qize Yu 等",
+      "year": "2026-06 预印本；核查 v2",
+      "url": "https://arxiv.org/html/2606.06155",
+      "level": "A",
+      "group": "geometry",
+      "pipeline": "RGB / 语言|Which2Act / Where2Act / How2Act|多层功能表示|动作专家与闭环控制",
+      "abstract": "以对象选择、二维交互位置及三维形状布局等分层表示连接视觉语言理解和机器人动作，利用多阶段数据训练。",
+      "contributions": [
+        "多层 affordance 条件。",
+        "自动化中间标注。",
+        "多阶段动作适配。"
+      ],
+      "relation": "与 Kong 等 AffordVLA 是不同论文。功能表征接 action 已做；大规模 grounding 与机器人数据是额外监督。",
+      "sections": "§3–4、附录 G–I",
+      "code": "https://github.com/Skywalker-yqz/AffordanceVLA",
+      "code_status": "官方代码入口存在；完整可用权重未验证。"
+    },
+    {
+      "id": 56,
+      "name": "AffordanceWAM",
+      "title": "AffordanceWAM: Affordance-Aware Joint World-Action Modeling for Robot Manipulation",
+      "authors": "Jiadi You 等",
+      "year": "2026-09 预印本；核查 v3 摘要",
+      "url": "https://arxiv.org/abs/2609.22332",
+      "level": "B",
+      "group": "video",
+      "pipeline": "人和机器人视频|未来 RGB / affordance 标量与热图|联合 world-action expert|连续机器人动作",
+      "abstract": "将未来视觉、时空功能表征及连续动作共同建模，用人类视频提供世界与功能监督，用机器人轨迹提供动作监督。",
+      "contributions": [
+        "功能感知 world-action 模型。",
+        "人视频与机器人监督分工。",
+        "仿真及真实操作评测。"
+      ],
+      "relation": "直接削弱‘未来视频＋affordance＋action’的组合创新；摘要级核查不足以断言它没有记忆或某种能力。",
+      "code_status": "摘要提供项目/代码链接；本轮未验证完整实现与权重。"
+    },
+    {
+      "id": 57,
+      "name": "MIKASA-Robo-VLA",
+      "title": "MIKASA-Robo-VLA: Benchmarking Memory in VLA Models for Long-Horizon Manipulation",
+      "authors": "Egor Cherepanov 等",
+      "year": "2026-09 首发；arXiv 2610 号",
+      "url": "https://arxiv.org/abs/2610.00604",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "语言条件机器人任务|隐藏关键信息和 reactive 控制|oracle 动作轨迹|记忆相关闭环评估",
+      "abstract": "构建带语言的记忆操作任务与对照，发布机器人专家轨迹，研究关键线索消失后策略能否依据历史行动。",
+      "contributions": [
+        "90 个任务及 reactive 控制。",
+        "可测的信息间隔。",
+        "22,500 条机器人轨迹。"
+      ],
+      "relation": "优先 pilot 候选；MIKASA-Robo-VLA 90任务版与旧 MIKASA-Robo 32任务版不可混称。并非每个已发 baseline 覆盖全部90任务。",
+      "code": "https://mikasarobo.github.io/",
+      "code_status": "官方说明有 RLDS / LeRobot v3；未下载或运行。"
+    },
+    {
+      "id": 58,
+      "name": "Open X-Embodiment",
+      "title": "Open X-Embodiment: Robotic Learning Datasets and RT-X Models",
+      "authors": "Open X-Embodiment Collaboration",
+      "year": "2023 首发；ICRA 2024",
+      "url": "https://arxiv.org/abs/2310.08864",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "多机构机器人轨迹|RLDS episode / step 整理|跨机器人混合训练|RT-X 与迁移评估",
+      "abstract": "汇集多机器人操作数据并研究跨本体学习，提供统一数据格式和示例通用策略。",
+      "contributions": [
+        "多本体数据协作。",
+        "统一存储与加载格式。",
+        "跨机器人迁移证据。"
+      ],
+      "relation": "格式统一不意味着动作坐标、单位、频率和相机全部统一；需选具体子集，不建议首轮全量重训。",
+      "code": "https://github.com/google-deepmind/open_x_embodiment",
+      "code_status": "官方数据格式和入口已查；子集许可与下载未逐项验证。"
+    },
+    {
+      "id": 59,
+      "name": "DROID",
+      "title": "DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset",
+      "authors": "Alexander Khazatsky 等",
+      "year": "2024 首发；本轮亦查官方 schema",
+      "url": "https://arxiv.org/abs/2403.12945",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "真实机器人多场景示范|多相机 / 状态 / 动作|数据整理与语言|策略训练和泛化",
+      "abstract": "采集真实环境中的多样机器人操作轨迹，用于研究策略在场景、任务和物体变化中的泛化。",
+      "contributions": [
+        "真实环境数据多样性。",
+        "视觉与机器人动作同步。",
+        "开放策略学习资源。"
+      ],
+      "relation": "可用于后续真实域适配，非现成功能记忆标签。官方动作维数描述存在需 inspect 样本确认的细节，不能直接按文字猜接口。",
+      "code": "https://droid-dataset.github.io/droid/the-droid-dataset",
+      "code_status": "官方 schema 已查；未下载 TB 级数据或核对样本。"
+    },
+    {
+      "id": 60,
+      "name": "BridgeData V2",
+      "title": "BridgeData V2: A Dataset for Robot Learning at Scale",
+      "authors": "Homer Walke 等",
+      "year": "2023 首发 / 2024 修订",
+      "url": "https://arxiv.org/abs/2308.12952",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "低成本机器人多环境示范|图像 / 状态 / 动作 / 任务|多任务策略学习|跨场景迁移",
+      "abstract": "提供多环境机器人操作轨迹，支持语言或目标图像条件的学习，并研究数据与技能多样性对泛化的作用。",
+      "contributions": [
+        "多环境动作演示。",
+        "多种任务条件接口。",
+        "数据规模与泛化分析。"
+      ],
+      "relation": "是机器人 video-action 数据而非纯人类视频；WidowX 动作接口需与目标策略和仿真一致。",
+      "code": "https://rail-berkeley.github.io/bridgedata/",
+      "code_status": "原始项目链接；具体数据版本、许可与下载未验证。"
+    },
+    {
+      "id": 61,
+      "name": "LIBERO",
+      "title": "LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning",
+      "authors": "Bo Liu 等",
+      "year": "2023",
+      "url": "https://arxiv.org/abs/2306.03310",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "语言条件仿真任务|专家图像状态动作演示|策略适配|多任务闭环评价",
+      "abstract": "组织语言条件机器人操作任务，评价空间、对象、目标及长任务上的知识迁移。",
+      "contributions": [
+        "多维任务集合。",
+        "专家示范与策略评测。",
+        "终身学习与迁移研究。"
+      ],
+      "relation": "适合打通 VLA 闭环，但 Long 不自动是记忆依赖。改变遮挡协议通常需重新采集对应历史演示。",
+      "code": "https://github.com/Lifelong-Robot-Learning/LIBERO",
+      "code_status": "官方环境与演示入口可见；未安装。"
+    },
+    {
+      "id": 62,
+      "name": "CALVIN",
+      "title": "CALVIN: A Benchmark for Language-Conditioned Policy Learning for Long-Horizon Robot Manipulation Tasks",
+      "authors": "Oier Mees 等",
+      "year": "2021 首发；2022 发表信息见官方库",
+      "url": "https://arxiv.org/abs/2112.03227",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "机器人 play 视频与状态动作|语言标注|连续子任务策略|未见环境长序列评价",
+      "abstract": "提供长时程语言条件操作平台，研究从视觉和语言学习可组合技能及新环境泛化。",
+      "contributions": [
+        "连续 play 与语言学习。",
+        "长序列技能组合。",
+        "跨环境测试。"
+      ],
+      "relation": "适合后续长序列验证；并非每项标准任务必须依赖历史。完整 ABC→D 数据和多模型实验存储开销较大。",
+      "code": "https://github.com/mees/calvin",
+      "code_status": "官方库及数据说明可见；未下载或运行。"
+    },
+    {
+      "id": 63,
+      "name": "LIBERO-Plus",
+      "title": "LIBERO-Plus: A Progressive Robustness Benchmark for Visual-Language-Action Models",
+      "authors": "Senyu Fei 等",
+      "year": "CVPR 2026",
+      "url": "https://openaccess.thecvf.com/content/CVPR2026/html/Fei_LIBERO-Plus_A_Progressive_Robustness_Benchmark_for_Visual-Language-Action_Models_CVPR_2026_paper.html",
+      "level": "B",
+      "group": "dataset",
+      "pipeline": "既有 VLA 与 LIBERO|视角 / 布局 / 语言等扰动|闭环测试|细粒度鲁棒性分析",
+      "abstract": "在多个受控扰动维度评价视觉语言动作模型，检验原始基准高分在环境变化下是否保持。",
+      "contributions": [
+        "自动化多维扰动。",
+        "细粒度失效分析。",
+        "高分与稳健性的区分。"
+      ],
+      "relation": "可加到 LIBERO 路线作鲁棒性外测，不直接证明记忆作用；不能把脆弱性当成已证实训练泄漏。",
+      "code": "https://github.com/sylvestf/LIBERO-plus",
+      "code_status": "官方库存在；未核查版本与安装。"
+    },
+    {
+      "id": 64,
+      "name": "VERA",
+      "title": "Turning Video Models into Generalist Robot Policies",
+      "authors": "Sizhe Lester Li 等",
+      "year": "2026-05 预印本",
+      "url": "https://arxiv.org/abs/2605.27817",
+      "level": "B",
+      "group": "video",
+      "pipeline": "视频世界模型给视觉计划|本体专用 Jacobian IDM|计划转动作块|执行再观察和重规划",
+      "abstract": "研究保持视频规划器与动作解码分离，通过面向机器人本体的逆动力学模型，把视觉计划转为闭环动作。",
+      "contributions": [
+        "模块化视频计划与动作映射。",
+        "Jacobian 结构的 IDM。",
+        "多本体仿真和真实实验。"
+      ],
+      "relation": "重要替代路线。视频规划部分不读动作标签不等于整个系统无需动作数据；IDM 仍用该机器人自交互 video-action 数据。",
+      "code": "https://vera.csail.mit.edu/",
+      "code_status": "已读摘要与方法概况；完整实现/权重未验证。"
+    },
+    {
+      "id": 65,
+      "name": "MoGAP",
+      "title": "Adapting Video Models for Robot Control via Motion-guided Asymmetric Prediction",
+      "authors": "Taeyoung Kim 等",
+      "year": "2026-10-27 预印本",
+      "url": "https://arxiv.org/abs/2610.36624",
+      "level": "B",
+      "group": "video",
+      "pipeline": "带动作机器人训练视频|视频中提取运动线索|训练专用非对称视觉预测|共享 world-action 策略",
+      "abstract": "在视频动作模型训练中给动态区域更多预测监督，研究视觉训练目标如何更好服务动作控制。",
+      "contributions": [
+        "运动聚焦辅助预测。",
+        "不新增外部教师模态。",
+        "跨 WAM 骨干实验。"
+      ],
+      "relation": "最新训练目标参考，未全文核查；局部/交互相关视觉监督本身并非空白，原文作者的提升不自动迁移到记忆课题。",
+      "code_status": "项目入口在原文；本轮未验证完整代码/权重。"
+    },
+    {
+      "id": 66,
+      "name": "3DS-VLA",
+      "title": "3DS-VLA: A 3D Spatial-Aware Vision Language Action Model for Robust Multi-Task Manipulation",
+      "authors": "Xiaoqi Li 等",
+      "year": "CoRL 2025",
+      "url": "https://proceedings.mlr.press/v305/li25g.html",
+      "level": "B",
+      "group": "geometry",
+      "pipeline": "视觉语言输入|2D 到 3D 空间对齐|功能相关 3D 关键点序列约束|机器人末端姿态动作",
+      "abstract": "通过二维三维位置对齐和功能相关关键点的顺序空间约束，把空间理解连接到机器人末端动作，并报告多任务及跨本体操作实验。",
+      "contributions": [
+        "二维三维空间对齐。",
+        "功能关键点顺序空间约束。",
+        "多任务及机器人操作评价。"
+      ],
+      "relation": "比一般三维理解更直接涉及功能几何到动作；本轮只核查官方摘要，不据此推断长期 memory、RGB-only 或遮挡历史能力。",
+      "code_status": "推理具体模态、完整代码/权重及可运行性未验证。"
+    }
+  ],
+  "official_implementation_references": [
+    {
+      "name": "openpi",
+      "url": "https://github.com/Physical-Intelligence/openpi",
+      "status": "README & checkpoint paths inspected; not executed"
+    },
+    {
+      "name": "Isaac-GR00T",
+      "url": "https://github.com/NVIDIA/Isaac-GR00T",
+      "status": "2026-11-02 inspected main identifies N1.7; release state not a new paper or independently reproduced benchmark"
+    }
+  ],
+  "limitations": [
+    "No exhaustive screening counts",
+    "A means method/experiment sections inspected, not full appendix forensic review",
+    "Some A entries use prior source reading as explicitly marked",
+    "No code/model/data downloaded or executed",
+    "No universal SOTA ranking",
+    "Resource and publication statuses tied to accessed source; not absence claims"
+  ],
+  "branch_queries": {
+    "memory": [
+      "2025 2026 memory VLA robot manipulation history long horizon MemoryVLA MEM-VLA arxiv",
+      "robot VLA memory history spatial geometric action policy occlusion memory benchmark arxiv 2026",
+      "history aware visuomotor policy point tracking 2026 memory benchmark robot manipulation"
+    ],
+    "video": [
+      "Being-H0 video robot action VLA paper training",
+      "VIPA VLA video prediction action model history robotic manipulation",
+      "VPP2 video prediction policy 2 arxiv 2610.10270 code robot actions video",
+      "Being H0 vision language action pretraining human videos arxiv",
+      "VIPA-VLA spatial aware visual physical alignment github dataset robot action inference",
+      "Cosmos Policy github GPU training real robot model weights",
+      "UniVLA learning to act anywhere latent action github pretraining inference robot"
+    ],
+    "geometry": [
+      "SpatialVLA Exploring Spatial Representations Visual Language Action model training data depth actions code",
+      "3D VLA A 3D Vision Language Action Generative World Model methodology 3d action input dataset",
+      "GeoVLA geometry aware vision language action models robot 3d input depth actions",
+      "Affordance conditioned VLA spatial grounding robot action model AffordVLA paper",
+      "AffordVLA Kong Su Yu Dong 2605.17517 github code weights",
+      "AffordanceVLA 2606.06155 github code model training gpu",
+      "GeomVLA Xiong 2026 github code weights",
+      "3D-VLA Zhen 2024 ICML github model code checkpoint"
+    ],
+    "data": [
+      "MIKASA-Robo-VLA 22500 oracle trajectories absent cue RLDS",
+      "RoboMME VideoUnmaskSwap action proprioception data",
+      "LIBERO-Plus 7 perturbations",
+      "DROID RLDS dataset action_dict schema",
+      "SimplerEnv WidowX action control frequency"
+    ]
+  },
+  "failed_search_tools": [
+    {
+      "tool": "Hugging Face paper_search",
+      "status": "UNAVAILABLE / tool not returned by tools/list; no research claims based on its result"
+    }
+  ]
+}

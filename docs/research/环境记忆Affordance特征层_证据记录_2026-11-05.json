@@ -1,0 +1,170 @@
+{
+  "date": "2026-11-05",
+  "review_type": "针对环境记忆 affordance 特征层的定向范围核查；非穷尽式系统综述",
+  "question": "怎样将二维物体 affordance 学习表征关联三维环境、形成记忆特征层，并融合到视觉 tokens；物体级数据如何支持场景级学习？",
+  "scope": {
+    "date_range": "2017—2026-11-05；重点2023—2026",
+    "languages": [
+      "English"
+    ],
+    "primary_sources_only": true,
+    "inclusion": [
+      "二维到三维密集特征融合或蒸馏",
+      "场景级功能或affordance监督",
+      "环境约束下的交互结果学习",
+      "可供特征接口参考的affordance模型"
+    ],
+    "exclusion": [
+      "无原始来源支持的性能评论",
+      "将部件定位等同物理可行性",
+      "与三维视觉交互无关的研究"
+    ],
+    "deduplication": "按arXiv ID和规范标题合并会议、项目及预印本入口；不统计搜索引擎未公开的结果总量"
+  },
+  "search_log": [
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "ConceptFusion open set multimodal 3D mapping features pixel aligned 2023"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "OpenScene 3D scene understanding open vocabularies 2D 3D distillation CVPR2023"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "SceneFun3D fine grained functionality 3D indoor scenes dataset affordance"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "TASA task aware 3D affordance segmentation 2511.11702"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "AFUN Towards an Affordance Foundation Model Functionality Understanding 2026 arxiv"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "scene affordance features neural field environment 3D affordance memory affordance features 2025 2026"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "LERF Language Embedded Radiance Fields 2023 feature field official"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "Where2Act scene interaction geometry shape affordance pushing pulling 2021"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "\"Learning Environment-Aware Affordance\" 3D articulated objects"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "\"affordance\" \"feature field\" scene 3D map memory"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "\"AFFORDMEM\" 2605.11616"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "\"IAAO: Interactive Affordance Learning\" arxiv"
+    },
+    {
+      "date": "2026-11-05",
+      "database": "web discovery across arXiv / official proceedings / author project pages",
+      "query": "\"Fun3DU\" understanding 3D scenes affordance 2025"
+    }
+  ],
+  "sources": [
+    {
+      "title": "ConceptFusion: Open-set Multimodal 3D Mapping",
+      "id": "2302.07241",
+      "url": "https://arxiv.org/html/2302.07241",
+      "reading": "全文方法 §IV-A/B；协作核查",
+      "supports": "像素特征与三维点关联及加权融合；不额外训练基础视觉编码器",
+      "limit": "非环境条件化动作成功模型"
+    },
+    {
+      "title": "OpenScene: 3D Scene Understanding with Open Vocabularies",
+      "id": "2211.15654",
+      "url": "https://arxiv.org/html/2211.15654",
+      "reading": "全文 §3.1–3.3；CVF PDF获取403后改用arXiv全文",
+      "supports": "多视角二维特征融合与三维网络蒸馏是分开的步骤",
+      "limit": "不直接证明三维物理交互可行性"
+    },
+    {
+      "title": "LERF: Language Embedded Radiance Fields",
+      "id": "2303.09553",
+      "url": "https://arxiv.org/html/2303.09553",
+      "reading": "全文方法 §3.1–3.4；协作核查",
+      "supports": "连续场通过渲染监督对齐二维语言特征",
+      "limit": "场景优化的语言场不等同通用动态交互记忆"
+    },
+    {
+      "title": "Task-Aware 3D Affordance Segmentation via 2D Guidance and Geometric Refinement",
+      "id": "2511.11702",
+      "url": "https://arxiv.org/html/2511.11702",
+      "reading": "Method及场景任务说明",
+      "status": "2025首发预印本；本次不确定最新会议状态",
+      "supports": "二维任务引导和三维几何细化已有直接先例",
+      "limit": "任务区域定位，不是任意动作执行成功"
+    },
+    {
+      "title": "SceneFun3D: Fine-Grained Functionality and Affordance Understanding in 3D Scenes",
+      "url": "https://scenefun3d.github.io/index.html",
+      "annotations": "https://scenefun3d.github.io/documentation/dataset/annotations/",
+      "reading": "官方项目与标注格式文档",
+      "status": "CVPR2024",
+      "supports": "真实室内场景功能部件mask、语言任务及运动参数",
+      "limit": "不包含完整机器人碰撞、可达性和实际交互成功监督"
+    },
+    {
+      "title": "Learning Environment-Aware Affordance for 3D Articulated Object Manipulation under Occlusions",
+      "id": "2309.07510",
+      "url": "https://papers.neurips.cc/paper_files/paper/2023/file/bf78fc727cf882df66e6dbc826161e86-Paper-Conference.pdf",
+      "reading": "摘要、方法§4.4、实验§5.1；协作核对§3",
+      "status": "NeurIPS2023",
+      "supports": "物体、场景、机器人条件共同决定点级预测；仿真成功且不碰障碍物作为标签",
+      "limit": "关节物体与特定推拉任务；不扩大至通用真实机器人验证"
+    },
+    {
+      "title": "AFUN: Towards an Affordance Foundation Model for Functionality Understanding",
+      "id": "2606.02551",
+      "url": "https://arxiv.org/html/2606.02551",
+      "project": "https://www.zhaoningwang.com/AFUN/",
+      "reading": "全文§3–4及附录A/B相关段落",
+      "status": "2026预印本",
+      "supports": "异构数据转换为功能mask与物体运动监督；可训练接口连接冻结骨干",
+      "limit": "不是时序环境记忆；尚未实测数据、模型、环境适配"
+    },
+    {
+      "title": "IAAO: Interactive Affordance Learning for Articulated Objects in 3D Environments",
+      "id": "2504.06827",
+      "url": "https://arxiv.org/abs/2504.06827",
+      "reading": "摘要及CVF原文检索内容；完整PDF获取403，未全文系统阅读",
+      "status": "CVPR2025",
+      "supports": "三维Gaussian特征/标签场、跨状态关联和部件运动的相近研究",
+      "limit": "仅作近邻提醒，不作性能和复现判断"
+    }
+  ],
+  "caveats": [
+    "未下载数据或复现",
+    "未确认模型在现有GPU可运行",
+    "额外搜索发现不等同已纳入全文审阅",
+    "独立架构建议不自动替换Pipeline v3或项目总控",
+    "一条错误ID打开落到声子晶体论文，按标题不相关排除，未作为证据"
+  ]
+}

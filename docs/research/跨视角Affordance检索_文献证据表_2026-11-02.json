@@ -1,0 +1,393 @@
+{
+  "date": "2026-11-02",
+  "review_type": "targeted scoping review",
+  "searches": [
+    "affordance RAG memory view image retrieval mobile manipulation",
+    "affordance guided keyframe retrieval cross view video memory",
+    "functional region visibility keyframe selection affordance",
+    "affordance 3d memory retrieval instance selection",
+    "Ego4D VQ2D visual query localization object retrieval recurrent memory",
+    "EAGLE episodic appearance geometry memory visual query localization",
+    "Ego4D VQ3D video object retrieval 3d keyframes",
+    "3D Mem snapshot scene memory retrieval 2025",
+    "functional keyframe selection affordance information view selection robotics",
+    "task aware keyframe selection video memory retrieval affordance",
+    "2026 affordance memory cross view keyframe retrieval",
+    "2026 video memory functional object retrieval affordance benchmark",
+    "\"Adaptive Keyframe Sampling for Long Video Understanding\" arxiv",
+    "\"Fun3DU\" functional understanding scenes video",
+    "\"TASA\" \"affordance\" 2026",
+    "\"EAGLE\" \"Episodic Appearance\" arxiv"
+  ],
+  "selected": [
+    {
+      "id": 3,
+      "name": "AROS",
+      "url": "https://doi.org/10.3389/frobt.2023.1076780",
+      "level": "A：既有 §3–4 阅读，本轮保留基础关系"
+    },
+    {
+      "id": 4,
+      "name": "O³Afford",
+      "url": "https://arxiv.org/html/2509.06233",
+      "level": "A：既有 §3–5 阅读"
+    },
+    {
+      "id": 11,
+      "name": "AFFORDMEM",
+      "url": "https://arxiv.org/html/2605.11616",
+      "level": "A：本轮 §3–4"
+    },
+    {
+      "id": 12,
+      "name": "Learning Affordance Grounding From Exocentric Images",
+      "url": "https://openaccess.thecvf.com/content/CVPR2022/papers/Luo_Learning_Affordance_Grounding_From_Exocentric_Images_CVPR_2022_paper.pdf",
+      "level": "B：摘要与方法概况"
+    },
+    {
+      "id": 13,
+      "name": "STaR",
+      "url": "https://arxiv.org/html/2602.09255",
+      "level": "A：本轮 §IV–VI",
+      "code": "https://github.com/TRAILab/STaR"
+    },
+    {
+      "id": 14,
+      "name": "Affordance RAG",
+      "title": "Affordance RAG: Hierarchical Multimodal Retrieval with Affordance-Aware Embodied Memory for Mobile Manipulation",
+      "authors": "Ryosuke Korekata 等",
+      "year": "2025 首发 / IEEE RA-L 2026",
+      "url": "https://arxiv.org/html/2512.18987",
+      "level": "A：§III–VI 方法及实验核查",
+      "pipeline": "预探索环境 RGB 图像|区域 / 视图 / 实例 / affordance 层次记忆|语言条件层次检索与 affordance 排序|目标物与容器的图像排名",
+      "abstract": "以环境预探索图像为记忆，为自然语言移动操作指令检索目标和容器视图。作者将区域语义、图像特征、实例描述与 pick/place 功能信息组合起来。",
+      "contributions": [
+        "层次化 affordance 环境记忆。",
+        "联合目标物和容器图像检索。",
+        "WholeHouse-MM 及真实机器人评测。"
+      ],
+      "relation": "是最直接的重复风险。§V-B 离线评测排除了最终 ASR，真实任务包含用户选择；不能把其检索收益全归于 ASR，也不能把任务形式当新。",
+      "doi": "10.1109/LRA.2026.3653281",
+      "publication_source": "https://keio.elsevierpure.com/en/publications/affordance-rag-hierarchical-multimodal-retrieval-with-affordance-/"
+    },
+    {
+      "id": 15,
+      "name": "Actron3D",
+      "title": "Actron3D: Learning Actionable Neural Functions from Videos for Transferable Robotic Manipulation",
+      "authors": "Anran Zhang 等",
+      "year": "2025 首发 / ICRA 2026",
+      "url": "https://arxiv.org/html/2510.12971",
+      "level": "A：§III-C/D、§IV",
+      "pipeline": "单目 RGB 人类示范|几何 / 视觉 / 接触 / 动作流 neural function|检索与接触可见性相关视角对齐|操作迁移",
+      "abstract": "把人类示范视频中的几何、接触和动作信息蒸馏为连续物体空间函数，检索并优化迁移到目标。部署阶段使用 RGB-D 观测。",
+      "contributions": [
+        "连续多模态 neural affordance function。",
+        "检索后进行几何、视觉与接触对齐。",
+        "仿真和真实操作评测。"
+      ],
+      "relation": "接触区相关视角排序已有，但其目标是合成视角对齐和操作迁移；不同于历史环境证据检索。RGB-only 示范不代表部署 RGB-only；公开实现尚未确认为完整可用。"
+    },
+    {
+      "id": 16,
+      "name": "TASA",
+      "title": "Task-Aware 3D Affordance Segmentation via 2D Guidance and Geometric Refinement",
+      "authors": "Lian He 等",
+      "year": "2025 首发预印本",
+      "url": "https://arxiv.org/html/2511.11702",
+      "level": "A：Method、Ablation",
+      "pipeline": "任务与多视角图像 / 高精度点云|功能概念引导帧选择|2D 可操作点与验证|3D 几何精化",
+      "abstract": "从指令提取功能概念，利用任务与功能线索选择相关图像，再借助二维预测和三维几何细化功能区域。作者在 SceneFun3D 上评估分割及效率。",
+      "contributions": [
+        "Affordance-Weighted Frame Selection。",
+        "可操作点验证。",
+        "三维区域精化和选帧消融。"
+      ],
+      "relation": "直接削弱“affordance 引导关键帧”单独创新。当前 HTML Eq.(4) 分子分母同和，需核对实现/更正，不能照抄该式号称复现。"
+    },
+    {
+      "id": 17,
+      "name": "Fun3DU",
+      "title": "Functionality Understanding and Segmentation in 3D Scenes",
+      "authors": "Jaime Corsetti 等",
+      "year": "CVPR 2025；2024 首发",
+      "url": "https://arxiv.org/abs/2411.16310",
+      "level": "B：摘要/方法概况",
+      "pipeline": "任务语言|推理需定位的功能部件|多视角分割|几何提升与 3D 聚合",
+      "abstract": "用预训练语言和视觉模型，从任务推断需要操作的部件，再跨多视图定位并提升到三维场景。工作在 SceneFun3D 上研究功能理解与分割。",
+      "contributions": [
+        "场景级任务功能理解。",
+        "多视角功能定位与几何聚合。",
+        "无需任务专门微调的管线。"
+      ],
+      "relation": "重要 grounding 基线；可用几何条件与视频 RGB 设定须区分，分割分数不是历史证据检索分数。"
+    },
+    {
+      "id": 18,
+      "name": "3D-Mem",
+      "title": "3D-Mem: 3D Scene Memory for Embodied Exploration and Reasoning",
+      "authors": "Yuncong Yang 等",
+      "year": "2024 首发 / 2025 版本",
+      "url": "https://arxiv.org/html/2411.17735",
+      "code": "https://github.com/UMass-Embodied-AGI/3D-Mem",
+      "level": "A：§3–4",
+      "pipeline": "RGB-D 与相机位姿|对象融合与共可视 snapshot|增量记忆及检索|EQA / 探索 / 导航",
+      "abstract": "以多视角 memory snapshots 保留场景视觉细节，结合 frontier snapshots 与增量检索，使具身系统在已探索和未探索区域之间决策。",
+      "contributions": [
+        "多视图快照式场景记忆。",
+        "共可视组织与增量维护。",
+        "具身问答和导航评测。"
+      ],
+      "relation": "视角保存和去冗余已有；原方法依赖 RGB-D＋位姿，RGB-only 比较需明确适配。"
+    },
+    {
+      "id": 19,
+      "name": "SpatialMem",
+      "title": "SpatialMem: Metric-Aligned Long-Horizon Video Memory for Language Grounding and QA",
+      "authors": "Xinyi Zheng 等",
+      "year": "2026，核查 v4",
+      "url": "https://arxiv.org/html/2601.14895v4",
+      "level": "A：§3–5",
+      "pipeline": "第一人称 RGB 视频|估计几何与度量对齐|结构锚点—对象记忆及证据链接|空间查询 / 物体与证据检索",
+      "abstract": "从 RGB 视频构建尺度对齐的层次三维记忆，将对象、结构锚点、描述与原观察证据关联，用于空间查询及问答。",
+      "contributions": [
+        "RGB 驱动的空间层次记忆。",
+        "持久对象和原始观察证据绑定。",
+        "公开数据上的检索/问答分析。"
+      ],
+      "relation": "视频—记忆—实例—证据组合已有。当前评测是离线静态场景；同 8 帧 OpenEQA 不可说普遍优于均匀采样。"
+    },
+    {
+      "id": 20,
+      "name": "Memory Over Maps",
+      "title": "Memory Over Maps: 3D Object Localization Without Reconstruction",
+      "authors": "Rui Zhou 等",
+      "year": "2026；官方仓库标 IROS 2026",
+      "url": "https://arxiv.org/html/2603.20530",
+      "code": "https://github.com/RuiZhou-cn/memory-over-maps",
+      "level": "A：§III–IV",
+      "pipeline": "posed RGB-D|轻量关键帧记忆|embedding 检索与 VLM 重排|按需 3D 定位 / 导航",
+      "abstract": "仅存带位姿的 RGB-D 关键帧，通过检索和 VLM 重排选择相关视图，再按需进行深度反投影及多视图定位，减少全局建图负担。",
+      "contributions": [
+        "无需全局重建的对象定位。",
+        "两阶段候选视图检索。",
+        "定位、图像检索和导航评测。"
+      ],
+      "relation": "官方 demo 已有功能性查询。真实部位证据质量是否受控量化仍需核查，不能声称此前没有功能检索。"
+    },
+    {
+      "id": 21,
+      "name": "ReMEmbR",
+      "title": "ReMEmbR: Building and Reasoning Over Long-Horizon Spatio-Temporal Memory for Robot Navigation",
+      "authors": "Abrar Anwar 等",
+      "year": "2024 首发",
+      "url": "https://arxiv.org/html/2409.13682",
+      "code": "https://github.com/NVIDIA-AI-IOT/remembr",
+      "level": "A：§III–VIII",
+      "pipeline": "历史视频与定位时间|视频描述与向量库|LLM 多步检索|空间 / 时间问答及导航目标",
+      "abstract": "将长期机器人观察、时间与空间线索组织为可检索记忆，让系统通过多步查询回答过去何时何地发生了什么，并生成导航目标。",
+      "contributions": [
+        "时空 RAG 记忆框架。",
+        "NaVQA 任务。",
+        "机器人部署展示。"
+      ],
+      "relation": "caption memory 强对照；不应默认它建立精细物体表面或必然返回全部原始证据帧。"
+    },
+    {
+      "id": 22,
+      "name": "R4DSG",
+      "title": "R4DSG: Relative 4D Scene Graph Memory for Object-Centric Question Answering in Long Egocentric Video",
+      "authors": "Ke Ma 等",
+      "year": "2026 预印本 / ACM MM 2026 信息见原文",
+      "url": "https://arxiv.org/html/2608.11017",
+      "level": "A：§3–5",
+      "pipeline": "第一人称 RGB 长视频|相对对象关系与保守关联|窗口级记忆压缩|检索与对象 / 时间 QA",
+      "abstract": "将长视频中的对象身份和空间变化组织为相对四维图记忆，通过分段、关联和压缩支持对象及时间相关问答。",
+      "contributions": [
+        "相对空间与时间组织。",
+        "对象关联和可查询记忆。",
+        "记忆压缩粒度的实验。"
+      ],
+      "relation": "RGB 长视频对象记忆与压缩不是空白；功能部位的独立证据标签仍需专门评估。"
+    },
+    {
+      "id": 23,
+      "name": "EAGLE",
+      "title": "EAGLE: Episodic Appearance- and Geometry-aware Memory for Unified 2D-3D Visual Query Localization in Egocentric Vision",
+      "authors": "Yifei Cao 等",
+      "year": "AAAI 2026；2025 首发",
+      "url": "https://arxiv.org/abs/2511.08007",
+      "level": "B：原始摘要",
+      "pipeline": "视觉 query 与历史视频|外观记忆分割＋几何记忆跟踪|2D 目标轨迹|3D 定位",
+      "abstract": "以外观和几何感知记忆共同支持第一人称视频视觉查询定位，并把二维结果与几何模型结合以定位三维目标。",
+      "contributions": [
+        "外观与几何记忆协同。",
+        "目标分割与追踪。",
+        "统一 2D/3D 视觉查询评测。"
+      ],
+      "relation": "适合身份回忆基线；视觉实例 query 不等于功能 query，也不应把所有 3D 输入假设视为 RGB-only。"
+    },
+    {
+      "id": 24,
+      "name": "AKS",
+      "title": "Adaptive Keyframe Sampling for Long Video Understanding",
+      "authors": "Xi Tang 等",
+      "year": "CVPR 2025",
+      "url": "https://arxiv.org/html/2502.21271",
+      "code": "https://github.com/ncTimTang/AKS",
+      "level": "A：§3–4",
+      "pipeline": "视频与已知问题|相关性与视频覆盖打分|固定 token 预算选帧|视频问答",
+      "abstract": "在视觉 token 预算固定时，将 query relevance 与视频覆盖结合，选择比均匀采样更有用的关键帧供视频理解模型使用。",
+      "contributions": [
+        "选帧作为独立可插拔组件。",
+        "相关性与覆盖联合目标。",
+        "长视频问答消融。"
+      ],
+      "relation": "必须比较的一般选帧思路；query 后选帧不同于 query 未知时有界写入，但二者都已有研究基础。"
+    },
+    {
+      "id": 25,
+      "name": "TASKER",
+      "title": "Bridging VideoQA and Video-Guided Agentic Tasks via Generalized Keyframe Extraction",
+      "authors": "Sunqi Fan 等",
+      "year": "ECCV 2026，依原文 Comments",
+      "url": "https://arxiv.org/abs/2606.29445",
+      "level": "B：摘要",
+      "pipeline": "视频与任务|任务相关性＋场景动态|关键帧抽取|VideoQA / 视频教程 GUI 任务",
+      "abstract": "研究关键帧对于视频问答及从教程学习下游任务的作用，通过任务和场景信息选择有用帧，并提出 GUI 教程评测。",
+      "contributions": [
+        "任务与场景联合选帧。",
+        "VideoQA 与 agentic 任务联系。",
+        "视频教程 GUI benchmark。"
+      ],
+      "relation": "一般任务条件选帧基线；GUI 任务结果不是环境功能检索的直接证据。"
+    },
+    {
+      "id": 26,
+      "name": "ACE-NBV",
+      "title": "Affordance-Driven Next-Best-View Planning for Robotic Grasping",
+      "authors": "Xuechao Zhang 等",
+      "year": "CoRL 2023",
+      "url": "https://proceedings.mlr.press/v229/zhang23i.html",
+      "level": "B：摘要/项目概况",
+      "pipeline": "当前场景观察|预测未观察视角的抓取质量|选择下一视角|新增观察与抓取",
+      "abstract": "在遮挡条件下通过预测不同新视角的抓取 affordance，选择更有利于找到可行抓取的下一观察位置。",
+      "contributions": [
+        "功能质量引导视角决策。",
+        "利用新视角预测处理遮挡。",
+        "仿真和真实抓取评测。"
+      ],
+      "relation": "证明 affordance 引导视角选择已有；它主动采新数据，不能与被动历史检索混报成本。"
+    },
+    {
+      "id": 27,
+      "name": "MIFAG",
+      "title": "Learning 2D Invariant Affordance Knowledge for 3D Affordance Grounding",
+      "authors": "Xianqiang Gao 等",
+      "year": "AAAI 2025；2024 首发",
+      "url": "https://arxiv.org/abs/2408.13024",
+      "level": "B：摘要",
+      "pipeline": "多个同功能人—物交互图|不变 affordance 字典|与点云自适应融合|3D 功能区域",
+      "abstract": "从同类 affordance 的多张交互图像提取共同功能知识，形成字典并与点云融合，以减少单图几何差异造成的泛化困难。",
+      "contributions": [
+        "多图不变功能知识。",
+        "字典与点云融合。",
+        "MIPA benchmark。"
+      ],
+      "relation": "功能不变特征已有，且与实例身份不相同；不能凭功能相似性直接合并环境对象。"
+    },
+    {
+      "id": 28,
+      "name": "ConceptGraphs",
+      "title": "ConceptGraphs: Open-Vocabulary 3D Scene Graphs for Perception and Planning",
+      "authors": "Qiao Gu 等",
+      "year": "ICRA 2024",
+      "url": "https://concept-graphs.github.io/",
+      "level": "B：作者项目页",
+      "pipeline": "多视角视觉观测|2D 基础模型与 3D 关联|开放词汇对象关系图|查询与规划",
+      "abstract": "通过二维基础模型及多视角三维融合建立紧凑开放词汇场景图，用语义和空间关系支持感知及语言指定的任务规划。",
+      "contributions": [
+        "开放词汇对象级三维关系图。",
+        "融合视觉与空间关系。",
+        "语言任务规划应用。"
+      ],
+      "relation": "对象级跨视角关联的重要基础；运行所需几何输入需依原实现条件比较。"
+    },
+    {
+      "id": 29,
+      "name": "Ego-Topo",
+      "title": "EGO-TOPO: Environment Affordances from Egocentric Video",
+      "authors": "Tushar Nagarajan 等",
+      "year": "CVPR 2020",
+      "url": "https://arxiv.org/abs/2001.04583",
+      "level": "B：摘要",
+      "pipeline": "第一人称活动视频|空间交互区域 / 拓扑组织|区域功能表示|活动预测",
+      "abstract": "将第一人称活动与持久环境联系起来，组织空间交互区域及其支持的活动，并研究跨环境功能关联和动作预测。",
+      "contributions": [
+        "区域级环境 affordance。",
+        "第一人称空间拓扑组织。",
+        "活动预测评测。"
+      ],
+      "relation": "从视频建立功能性环境理解已有历史，不应把整个动机作为首次贡献。"
+    },
+    {
+      "id": 30,
+      "name": "VRB",
+      "title": "Affordances from Human Videos as a Versatile Representation for Robotics",
+      "authors": "Shikhar Bahl 等",
+      "year": "CVPR 2023",
+      "url": "https://arxiv.org/abs/2304.08488",
+      "level": "B：摘要",
+      "pipeline": "互联网人类交互视频|学习交互位置与方式|视觉 affordance|辅助不同机器人学习范式",
+      "abstract": "利用人类视频训练场景中心的视觉 affordance 模型，预测交互位置与方式，并研究其在不同机器人学习范式中的作用。",
+      "contributions": [
+        "人类视频中的行为 affordance。",
+        "多种机器人学习接口。",
+        "真实环境实验。"
+      ],
+      "relation": "可作功能先验来源，学习一般知识不同于保存当前场景的历史证据；视频先验不保证机器人可执行。"
+    },
+    {
+      "id": 31,
+      "name": "I3DM",
+      "title": "I3DM: Implicit 3D-aware Memory Retrieval and Injection for Consistent Video Scene Generation",
+      "authors": "Jia Li 等",
+      "year": "2026 预印本",
+      "url": "https://arxiv.org/abs/2603.23413",
+      "level": "B：摘要",
+      "pipeline": "历史视角与目标视角|隐式 3D 相关性检索|内容对齐与可靠区域注入|一致视频生成",
+      "abstract": "使用预训练新视角模型的三维相关特征检索并对齐历史观察，以改善生成视频再次访问同一环境时的一致性。",
+      "contributions": [
+        "隐式 3D 相关记忆检索。",
+        "历史内容对齐注入。",
+        "重访生成一致性评测。"
+      ],
+      "relation": "仅作为视角相关特征参考。生成像素是推断内容，不能充当真实历史环境证据。"
+    }
+  ],
+  "counts": {
+    "selected_unique_studies": 23,
+    "new_archive_entries": 18,
+    "method_and_experiment_sections_A": 13,
+    "abstract_or_project_level_B": 10
+  },
+  "limits": [
+    "No exhaustive hit count or PRISMA flow claimed",
+    "No code execution, data downloads, benchmark reproduction",
+    "Prior work absence not established by search",
+    "Training and inference modalities recorded separately"
+  ],
+  "protocol": {
+    "scope": "video environment memory, affordance grounding and object/evidence-view retrieval",
+    "year_window": "2019-2026-11-02; earlier foundations included when relevant",
+    "languages": "English primary research, Chinese synthesis",
+    "include": "Original method/data sources directly relevant to retrieval, memory, functional regions, multi-view evidence or evaluation",
+    "exclude": "Secondary-only summaries, unrelated VLA leaderboard work, generation-only papers except explicitly marked methodological reference",
+    "dedup": "canonical title and arXiv/DOI identity, paper/project/version treated as one study"
+  },
+  "bibliographic_queries": [
+    "\"Affordance RAG\" \"2706\" IEEE",
+    "\"Affordance RAG\" \"10.1109\""
+  ],
+  "query_log": "跨视角Affordance检索_检索与证据记录_2026-11-02.md",
+  "search_note": "The searches field contains 16 main thematic queries; branch queries and 2 publication-status queries are preserved in the linked Markdown log. This is not a complete search-result export."
+}
