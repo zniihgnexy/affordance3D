@@ -1,0 +1,19 @@
+# Python environment (conda env "affordance3d", see requirements.txt)
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.virtual_documents/
+
+# Local datasets, third-party checkouts and experiment outputs are not versioned.
+# Leading slashes keep these from matching the tracked docs/outputs/ folder.
+/data/
+/third_party/
+/runs/
+
+# Report media: videos are regenerated when the report runs; official preview images
+# are fetched with scripts/download_report_images.sh (third-party, not redistributed here).
+/report/assets/
+
+.DS_Store

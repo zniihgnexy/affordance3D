@@ -1,0 +1,44 @@
+# Local Mac (Apple Silicon) environment for the E0/E1 prototype and the step-by-step demo.
+#
+# Create with Anaconda (Python from conda-forge, everything else from pip):
+#   conda create -n affordance3d -c conda-forge --override-channels python=3.12 -y
+#   conda activate affordance3d
+#   python -m pip install -r requirements.txt
+#
+# Direct dependencies are pinned to the versions verified on M1 / macOS 26 (2026-11-06).
+# Not for Isambard-AI (Linux aarch64 + CUDA): that machine needs its own environment.
+
+# E1: frozen DINOv2 ViT-S/14 patch features (PyTorch MPS backend, standard attention)
+torch==2.15.0
+torchvision==0.29.2
+transformers==5.22.1
+safetensors==0.8.0
+
+# E0: RGB-D, camera poses and point clouds
+numpy==2.5.4
+scipy==1.18.1
+pandas==3.1.1
+open3d==0.20.0
+plyfile==1.1.5
+trimesh==5.2.0
+opencv-python==5.0.0.93
+imageio==2.38.1
+pillow==11.3.0
+
+# SceneFun3D toolkit (third_party/scenefun3d): downloader and examples
+moviepy==2.2.1
+tqdm==4.70.1
+tyro==1.0.17
+viser==1.1.1
+pyviz3d==0.4.0  # 0.5.x requires numpy<2
+
+# Visualisation and the step-by-step notebook
+matplotlib==3.11.2
+plotly==7.1.0
+nbformat==5.11.1
+jupyterlab==4.6.6
+ipykernel==7.4.0
+ipywidgets==8.1.9
+
+# Tests
+pytest==9.2.0
