@@ -24,4 +24,8 @@
 2. [Pipeline、数据与仿真英文指南](research/Pipeline_Datasets_and_Simulation_Guide_2026-11-05.md)：资源链接、图像和各自能验证的能力。
 3. [Mac → Isambard-AI快速验证计划](research/环境记忆Affordance层_快速验证实验计划_Mac_Isambard_2026-11-05.md)：E0对齐、E1读取、E2受控训练，E3环境变化后续验证。
 
+**实验运行记录：**
+
+- [2026-11-06 E0 · SceneFun3D 场景 421069](research/实验记录_E0_SceneFun3D_421069_2026-11-06.md)：数据链路与空间投影检查（完整数据，20 帧），三项自动检查通过；记录了 `sky_direction` 不适用于 hires 帧等发现。
+
 上述研究内容已与项目工作区中的对应资料核对；仓库内的文档及提交历史用于后续追溯。文献档案保留P01–P116，11月5日新增专题核查另见[证据记录](research/环境记忆Affordance特征层_证据记录_2026-11-05.json)。当前实验文档仍为计划；运行和结果应另行记录，不把计划视为完成。
