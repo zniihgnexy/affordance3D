@@ -18,6 +18,7 @@
 | 2026-11-10 | S1 第 1–5 步（oracle 版）：只用视频、LiDAR／单目深度和 ARKit 位姿得到每个部件的接触点、支撑面法向和站立点；SMPL-X 人形贴在视频帧上并在扫描里检查。用 LiDAR 时接触点中位误差 2.8 cm；7 类动作的人形，手或脚到真值部件中位 5.5 cm | [S1-01](../../notebooks/mem/S1_01_video_inputs_to_actionable_affordance.ipynb)、[S1-02](../../notebooks/mem/S1_02_humanoid_approach.ipynb)；[讨论稿](mem分支_问题定义与讨论稿_2026-11-10.md) 第 16 节 |
 | 2026-11-10 | 整条 pipeline 的英文演示 notebook（仿照 11 月 9 日的组会报告）：输入 → 逐帧标签 → 记忆条目 → 查询 → 人形走近并操作（含短视频）→ 对照扫描打分；标明哪些环节已是真实计算、哪些仍用标注（ORACLE）。用于在开始训练前逐步讨论 | [演示 notebook](../../report/2026-11-10_mem_pipeline_demo.ipynb) |
 | 2026-11-10 | 仓库拆分：VLA 方向迁到独立仓库 `affordance-vla`；`mem` 并入本仓库的 `main`，本仓库此后只做记忆方向 | 本文件 |
+| 2026-11-10 | 工作环境迁到实验室 A6000 服务器：代码在 home 下的仓库，数据、运行结果、模型缓存和 conda 环境在数据盘；数据由服务器从原始站点重新下载，与原 Mac 上的副本核对一致（24,892 个文件，关键文件校验和相同） | `scripts/remote/` |
 
 ## 文件
 
@@ -26,6 +27,12 @@
 | [问题定义与讨论稿](mem分支_问题定义与讨论稿_2026-11-10.md) | 问题拆解、查询类型与对照设计、假设、记忆结构；第 11 节起为各轮讨论决定、设计 v0.2 和 S1 步骤 |
 | [pipeline 演示 notebook](../../report/2026-11-10_mem_pipeline_demo.ipynb) | 英文、以图和视频为主：在场景 421069 上一步步走完整条 pipeline；代码在 `affordance3d/mem/pipeline.py`，绘图在 `report/mem_demo_helpers.py` |
 | [文献、数据与仿真调研](mem分支_文献数据仿真调研_2026-11-10.md) | 相近记忆系统、交互作为构建信号、带人体动作的三维场景数据、问答基准、仿真平台与人形交互合成、许可；每条附核实链接 |
+
+## 运行环境（2026-11-10 起）
+
+- **位置：** 实验室 A6000 服务器。代码只放在 home 下的仓库里；`data`、`runs`、`third_party`、`report/assets` 是指向数据盘的链接，模型缓存和 conda 环境也在数据盘。
+- **使用：** `source scripts/remote/env.sh` 激活环境；首次安装用 `bash scripts/remote/setup.sh`，公开数据用 `bash scripts/remote/fetch_data.sh`。SMPL-X 需要本人注册后自行放入 `data/body_models/smplx/`。
+- **GPU：** 代码默认不使用 CUDA；只有队列作业设置 `AFFORDANCE3D_DEVICE=cuda` 时才用 GPU。
 
 ## 阶段
 

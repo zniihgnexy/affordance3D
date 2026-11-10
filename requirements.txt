@@ -6,6 +6,9 @@
 #   python -m pip install -r requirements.txt
 #
 # Direct dependencies are pinned to the versions verified on M1 / macOS 26 (2026-11-06).
+# The same pins install on the lab's A6000 server (Ubuntu 22.04, x86-64; 2026-11-10) with
+#   bash scripts/remote/setup.sh
+# which puts the environment on the data disk (see scripts/remote/env.sh).
 # Not for Isambard-AI (Linux aarch64 + CUDA): that machine needs its own environment.
 
 # E1: frozen DINOv2 ViT-S/14 patch features (PyTorch MPS backend, standard attention)
