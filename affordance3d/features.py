@@ -10,6 +10,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from affordance3d.device import default_device
+
 DINO_ID = "facebook/dinov2-small"  # ViT-S/14, Apache-2.0
 DINO_REVISION = "ed25f3a31f01632728cabb09d1542f84ab7b0056"
 PATCH_SIZE = 14
@@ -67,13 +69,12 @@ class DinoV2Extractor:
     """Frozen DINOv2 ViT-S/14 run one frame at a time (batch=1), on MPS when available."""
 
     def __init__(self, input_hw: tuple[int, int] = DEFAULT_INPUT_HW, device: str | None = None) -> None:
-        import torch
         from transformers import AutoModel
 
         if input_hw[0] % PATCH_SIZE or input_hw[1] % PATCH_SIZE:
             raise ValueError(f"input size {input_hw} must be a multiple of {PATCH_SIZE}")
         self.input_hw = input_hw
-        self.device = device or ("mps" if torch.backends.mps.is_available() else "cpu")
+        self.device = device or default_device()
         self._model = AutoModel.from_pretrained(DINO_ID, revision=DINO_REVISION).eval().to(self.device)
 
     @property

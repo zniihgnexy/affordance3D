@@ -1,4 +1,4 @@
-"""Monocular metric depth on the Mac (MPS) and depth error metrics.
+"""Monocular metric depth (Apple GPU or CPU by default, see affordance3d.device) and depth error metrics.
 
 Weights download from the Hugging Face hub into the user's cache, not into the repository.
 Licences differ by checkpoint (Depth Anything V2 Small: Apache-2.0; Base/Large: CC BY-NC 4.0;
@@ -8,6 +8,8 @@ Depth Pro: Apple's research licence); the mem branch only uses them for research
 from __future__ import annotations
 
 import numpy as np
+
+from affordance3d.device import default_device
 
 DELTA1 = 1.25
 
@@ -38,12 +40,12 @@ def with_true_focal(depth: np.ndarray, predicted_focal: float, true_focal: float
 class MonoDepth:
     """A Hugging Face depth-estimation checkpoint; `predict` returns metres at the image size."""
 
-    def __init__(self, model_id: str, device: str = "mps") -> None:
+    def __init__(self, model_id: str, device: str | None = None) -> None:
         import torch
         from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 
         self.model_id = model_id
-        self.device = device
+        self.device = device or default_device()
         self._torch = torch
         self.processor = AutoImageProcessor.from_pretrained(model_id)
         self.model = AutoModelForDepthEstimation.from_pretrained(model_id).to(device).eval()
