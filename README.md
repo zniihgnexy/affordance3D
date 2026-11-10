@@ -14,6 +14,10 @@ This repository preserves the research background, proposed pipeline and experim
 
 The project scope records the confirmed 3 November Pipeline v3 and its earlier emphasis on demonstration search. Read it alongside the 6 November handoff, which records the later environment-centred clarification for the initial prototype; the handoff does not itself amend the project scope.
 
+## Current direction: memory (since 10 November 2026)
+
+This repository now carries the memory direction: an environment memory built from video that stores, for each functional part, how to act on it and where it was seen, shown by a humanoid that walks up to the part and uses it. Start with the [mem notes](docs/mem/README.md) and the [pipeline demo notebook](report/2026-11-10_mem_pipeline_demo.ipynb); the code is in `affordance3d/mem/` and the step notebooks in `notebooks/mem/`. The VLA direction continues in a separate repository, `affordance-vla`. Documents dated 9 November or earlier are the shared background of both directions.
+
 ## Local prototype (Mac)
 
 - **Environment:** [`requirements.txt`](requirements.txt), installed with conda + pip (commands at the top of the file); check it with `python scripts/check_env.py`.
