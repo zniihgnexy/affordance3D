@@ -5,6 +5,10 @@ Example (from the repository root, environment activated):
 
 Default assets are the E0/E1 set from the quick-validation plan: laser scan, crop mask,
 annotations, descriptions, hires RGB, hires depth, hires intrinsics and hires poses.
+The mem branch's video-first inputs add the ARKit assets from the ARKitScenes server:
+    python scripts/download_scenefun3d.py --visit 421069 --video 42444490 \
+        --assets lowres_depth lowres_wide_intrinsics confidence lowres_poses transform
+(--arkit-fold is the video's ARKitScenes fold in third_party/scenefun3d/benchmark_file_lists/arkitscenes/metadata.csv.)
 Check sizes first (each scene is roughly 0.3-1.4 GB compressed) against the local budget.
 """
 
@@ -25,8 +29,10 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=REPO_ROOT / "data" / "scenefun3d")
     parser.add_argument("--split", default="train", choices=["train", "test"], help="server folder: train for train/val scenes")
     parser.add_argument("--assets", nargs="+", default=list(DEFAULT_ASSETS))
+    parser.add_argument("--arkit-fold", default="Training", choices=["Training", "Validation"],
+                        help="ARKitScenes fold of the video, for the lowres/confidence assets")
     args = parser.parse_args()
-    download_scene(args.root, args.visit, args.video, tuple(args.assets), args.split)
+    download_scene(args.root, args.visit, args.video, tuple(args.assets), args.split, args.arkit_fold)
 
 
 if __name__ == "__main__":

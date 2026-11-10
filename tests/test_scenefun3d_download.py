@@ -1,6 +1,6 @@
 import pytest
 
-from affordance3d.scenefun3d_download import asset_files, fill_range, plan_ranges, remaining_range
+from affordance3d.scenefun3d_download import asset_files, asset_url, fill_range, plan_ranges, remaining_range
 
 
 def test_a_partly_received_range_resumes_after_its_last_byte() -> None:
@@ -73,3 +73,26 @@ def test_unknown_assets_are_rejected() -> None:
 def test_ranges_continue_from_the_bytes_already_present() -> None:
     assert plan_ranges(have=10, total=35, chunk=10) == [(10, 19), (20, 29), (30, 34)]
     assert plan_ranges(have=35, total=35, chunk=10) == []
+
+
+def test_lowres_assets_come_from_arkitscenes_but_land_in_the_scenefun3d_layout() -> None:
+    (depth,) = asset_files("421069", "42444490", "lowres_depth")
+    assert depth.server == "arkitscenes"
+    assert depth.remote == "42444490/lowres_depth.zip"  # ARKitScenes raw layout has no visit folder
+    assert depth.local == "421069/42444490/lowres_depth.zip"
+    assert depth.is_zip
+
+
+def test_lowres_poses_keep_the_official_local_rename() -> None:
+    (poses,) = asset_files("421069", "42444490", "lowres_poses")
+    assert (poses.server, poses.remote, poses.local) == ("arkitscenes", "42444490/lowres_wide.traj",
+                                                         "421069/42444490/lowres_poses.traj")
+
+
+def test_urls_use_the_scenefun3d_split_or_the_arkitscenes_fold() -> None:
+    (scan,) = asset_files("421069", "42444490", "laser_scan_5mm")
+    (depth,) = asset_files("421069", "42444490", "lowres_depth")
+    assert asset_url(scan, split="train", arkit_fold="Training") == \
+        "https://cvg-data.inf.ethz.ch/scenefun3d/v1/train/421069/421069_laser_scan.ply"
+    assert asset_url(depth, split="train", arkit_fold="Validation") == \
+        "https://docs-assets.developer.apple.com/ml-research/datasets/arkitscenes/v1/raw/Validation/42444490/lowres_depth.zip"

@@ -1,7 +1,9 @@
 """SceneFun3D asset downloader that copes with the server slowing long-lived connections.
 
 Same URLs and local layout as the official toolkit downloader
-(third_party/scenefun3d/data_downloader), but each file is fetched in fixed-size byte
+(third_party/scenefun3d/data_downloader): SceneFun3D assets come from the SceneFun3D server,
+the low-resolution ARKit assets (iPad LiDAR depth, ARKit poses) from the ARKitScenes server.
+Each file is fetched in fixed-size byte
 ranges over fresh connections (a few at a time), resumed from any partial `.tmp`,
 size-checked, and zips are CRC-tested (`unzip -t`) before being extracted and deleted.
 """
@@ -18,6 +20,7 @@ from functools import partial
 from pathlib import Path
 
 BASE_URL = "https://cvg-data.inf.ethz.ch/scenefun3d/v1"
+ARKITSCENES_URL = "https://docs-assets.developer.apple.com/ml-research/datasets/arkitscenes/v1"
 CHUNK_BYTES = 8 * 2**20
 WORKERS = 4  # concurrent connections, similar to common download managers
 ATTEMPT_TIMEOUT_S = 120  # a stalled connection is dropped; bytes already received are kept
@@ -34,15 +37,17 @@ VISIT_FILES = {
     "motions": "{visit}_motions.json",
 }
 VIDEO_ZIPS = ("hires_wide", "hires_depth", "hires_wide_intrinsics")
+ARKIT_ZIPS = ("lowres_wide", "lowres_depth", "lowres_wide_intrinsics", "confidence")  # ARKitScenes raw assets
 DEFAULT_ASSETS = ("laser_scan_5mm", "crop_mask", "annotations", "descriptions",
                   "hires_wide", "hires_wide_intrinsics", "hires_depth", "hires_poses")
 
 
 @dataclass(frozen=True)
 class AssetFile:
-    remote: str  # path below <BASE_URL>/<split>/
+    remote: str  # path below <BASE_URL>/<split>/, or below <ARKITSCENES_URL>/raw/<fold>/ for ARKit assets
     local: str  # path below the local data root
     is_zip: bool
+    server: str = "scenefun3d"  # or "arkitscenes"
 
 
 def asset_files(visit: str, video: str, asset: str) -> list[AssetFile]:
@@ -53,12 +58,23 @@ def asset_files(visit: str, video: str, asset: str) -> list[AssetFile]:
     if asset in VIDEO_ZIPS:
         path = f"{visit}/{video}/{asset}.zip"
         return [AssetFile(path, path, True)]
+    if asset in ARKIT_ZIPS:
+        return [AssetFile(f"{video}/{asset}.zip", f"{visit}/{video}/{asset}.zip", True, "arkitscenes")]
+    if asset == "lowres_poses":
+        return [AssetFile(f"{video}/lowres_wide.traj", f"{visit}/{video}/lowres_poses.traj", False, "arkitscenes")]
     if asset == "hires_poses":
         path = f"{visit}/{video}/hires_poses.traj"
         return [AssetFile(path, path, False)]
     if asset == "transform":
         return [AssetFile(f"{visit}/{video}/{video}_refined_transform.npy", f"{visit}/{video}/{video}_transform.npy", False)]
     raise ValueError(f"unsupported asset {asset!r}")
+
+
+def asset_url(item: AssetFile, split: str, arkit_fold: str) -> str:
+    """SceneFun3D assets live under the scene split (train/test), ARKit assets under the ARKitScenes fold."""
+    if item.server == "arkitscenes":
+        return f"{ARKITSCENES_URL}/raw/{arkit_fold}/{item.remote}"
+    return f"{BASE_URL}/{split}/{item.remote}"
 
 
 def plan_ranges(have: int, total: int, chunk: int) -> list[tuple[int, int]]:
@@ -143,7 +159,7 @@ def extract_zip(zip_path: Path) -> None:
 
 
 def download_scene(root: Path, visit: str, video: str, assets: tuple[str, ...] = DEFAULT_ASSETS,
-                   split: str = "train") -> None:
+                   split: str = "train", arkit_fold: str = "Training") -> None:
     for asset in assets:
         for item in asset_files(visit, video, asset):
             local = root / item.local
@@ -152,7 +168,7 @@ def download_scene(root: Path, visit: str, video: str, assets: tuple[str, ...] =
                 print(f"exists: {item.local}", flush=True)
                 continue
             if not local.exists():
-                download_file(f"{BASE_URL}/{split}/{item.remote}", local)
+                download_file(asset_url(item, split, arkit_fold), local)
             if item.is_zip:
                 extract_zip(local)
             print(f"done: {item.local}", flush=True)
