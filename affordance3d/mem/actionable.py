@@ -11,6 +11,8 @@ from dataclasses import dataclass
 import numpy as np
 
 STAND_DISTANCE_M = 0.5  # horizontal distance from the contact point to the body centre
+FOOT_STAND_DISTANCE_M = 0.45  # foot actions (pedals): a little closer, and the legs may reach under the object
+FOOT_BODY_RADIUS_M = 0.15
 BODY_RADIUS_M = 0.2  # body cylinder used for the free-space check
 BODY_MIN_HEIGHT_M = 0.15  # ignore floor noise and low clutter below the shins
 BODY_MAX_HEIGHT_M = 1.8
@@ -18,7 +20,7 @@ MIN_HORIZONTAL = 0.3  # below this, the normal is treated as vertical (part on a
 FLOOR_BAND = 0.2  # fraction of lowest points searched for the floor
 FLOOR_BIN_M = 0.02
 ALTERNATIVE_ANGLES_DEG = (0.0, 30.0, -30.0, 60.0, -60.0)
-ALTERNATIVE_EXTRA_M = (0.0, 0.15)
+ALTERNATIVE_EXTRA_M = (0.0, 0.15, 0.3, 0.45)  # step back first (e.g. reaching over a counter), then turn
 
 
 @dataclass(frozen=True)
@@ -68,7 +70,8 @@ def _rotate_about(vector: np.ndarray, up: np.ndarray, degrees: float) -> np.ndar
 
 
 def plan_stand(contact: np.ndarray, normal: np.ndarray, up: np.ndarray, floor_z: float, viewer: np.ndarray,
-               occupied: np.ndarray, distance: float = STAND_DISTANCE_M, max_points: int = 0) -> Stand:
+               occupied: np.ndarray, distance: float = STAND_DISTANCE_M, max_points: int = 0,
+               radius: float = BODY_RADIUS_M) -> Stand:
     """Stand on the floor in front of the part; if blocked, try turned or farther positions."""
     away = _horizontal(normal, up)
     if np.linalg.norm(away) < MIN_HORIZONTAL:  # part faces up/down: approach from where it was seen
@@ -80,7 +83,7 @@ def plan_stand(contact: np.ndarray, normal: np.ndarray, up: np.ndarray, floor_z:
         direction = _rotate_about(away, up, degrees)
         for extra in ALTERNATIVE_EXTRA_M:
             position = base + (distance + extra) * direction
-            free = is_free(position, occupied, up, max_points)
+            free = is_free(position, occupied, up, max_points, radius)
             stand = Stand(position, -direction, free, moved=bool(degrees or extra))
             if free:
                 return stand
