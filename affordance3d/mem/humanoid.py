@@ -57,6 +57,9 @@ class PosedHumanoid:
     posture: str  # "standing" or "squatting"
     target: np.ndarray
     reach_error_m: float  # distance left between the palm/foot and the target after IK
+    global_orient: np.ndarray  # (3,) axis-angle, canonical body frame -> world
+    body_pose: np.ndarray  # (21, 3) axis-angle after IK
+    transl: np.ndarray  # (3,)
 
 
 def canonical_to_world(facing: np.ndarray, up: np.ndarray) -> np.ndarray:
@@ -124,4 +127,53 @@ def pose_humanoid(model: BodyModel, contact: np.ndarray, normal: np.ndarray, sta
         body[indices] = body[indices] + delta
         vertices, joints = forward(model, full_pose(model, orient, body), betas, transl)
         error = float(torch.linalg.norm(_effector(joints, effector) - goal))
-    return PosedHumanoid(vertices.numpy(), joints.numpy(), effector, posture, target, error)
+    return PosedHumanoid(vertices.numpy(), joints.numpy(), effector, posture, target, error,
+                         orient.numpy(), body.numpy(), transl.numpy())
+
+
+STRIDE_M = 1.3  # one full gait cycle (two steps)
+HIP_SWING, KNEE_BEND, ARM_SWING = 0.35, 0.6, 0.25
+
+
+def _walking_pose(phase: float) -> np.ndarray:
+    """Arms down plus a simple gait at `phase` (radians): hips swing in opposition, the forward knee bends."""
+    swing = np.sin(phase)
+    return base_posture(None, squat=False) + _body({
+        "left_hip": (-HIP_SWING * swing, 0, 0), "right_hip": (HIP_SWING * swing, 0, 0),
+        "left_knee": (KNEE_BEND * max(swing, 0.0), 0, 0), "right_knee": (KNEE_BEND * max(-swing, 0.0), 0, 0),
+        "left_shoulder": (0, -ARM_SWING * swing, 0), "right_shoulder": (0, -ARM_SWING * swing, 0)})
+
+
+def _posed_vertices(model: BodyModel, orient: np.ndarray, body: np.ndarray, transl: np.ndarray | None,
+                    betas: torch.Tensor | None) -> tuple[np.ndarray, np.ndarray]:
+    with torch.no_grad():
+        pose = full_pose(model, torch.tensor(orient, dtype=torch.float32), torch.tensor(body, dtype=torch.float32))
+        offset = None if transl is None else torch.tensor(transl, dtype=torch.float32)
+        vertices, joints = forward(model, pose, betas, offset)
+    return vertices.numpy(), joints.numpy()
+
+
+def approach_frames(model: BodyModel, human: PosedHumanoid, stand: np.ndarray, start: np.ndarray, floor_z: float,
+                    up: np.ndarray, n_walk: int = 18, n_reach: int = 12,
+                    betas: torch.Tensor | None = None) -> list[np.ndarray]:
+    """Vertices of a short approach: walk from `start` to the stand point facing the part, then reach.
+
+    Kinematic only: a simple gait while the pelvis moves along a straight line (feet may slide),
+    then the pose blends linearly from the walking pose into the IK pose. The last frame is `human`.
+    """
+    frames = []
+    travel = (stand - start) - ((stand - start) @ up) * up
+    distance = float(np.linalg.norm(travel))
+    for s in np.linspace(0.0, 1.0, n_walk, endpoint=False):
+        body = _walking_pose(2 * np.pi * s * distance / STRIDE_M)
+        vertices, joints = _posed_vertices(model, human.global_orient, body, None, betas)
+        point = stand - (1.0 - s) * travel
+        frames.append(vertices + feet_on_floor(vertices, joints[0], point, floor_z, up))
+    walk_end = _walking_pose(2 * np.pi * distance / STRIDE_M)
+    vertices, joints = _posed_vertices(model, human.global_orient, walk_end, None, betas)
+    walk_transl = feet_on_floor(vertices, joints[0], stand, floor_z, up)
+    for s in np.linspace(0.0, 1.0, n_reach)[1:]:
+        body = (1.0 - s) * walk_end + s * human.body_pose
+        transl = (1.0 - s) * walk_transl + s * human.transl
+        frames.append(_posed_vertices(model, human.global_orient, body, transl, betas)[0])
+    return frames

@@ -49,7 +49,7 @@ class MonoDepth:
         self.model = AutoModelForDepthEstimation.from_pretrained(model_id).to(device).eval()
 
     def predict(self, rgb: np.ndarray, focal_px: float) -> np.ndarray:
-        inputs = self.processor(images=rgb, return_tensors="pt").to(self.device)
+        inputs = self.processor(images=np.ascontiguousarray(rgb).copy(), return_tensors="pt").to(self.device)
         with self._torch.no_grad():
             outputs = self.model(**inputs)
         result = self.processor.post_process_depth_estimation(outputs, target_sizes=[rgb.shape[:2]])[0]
