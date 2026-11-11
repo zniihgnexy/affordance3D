@@ -14,6 +14,7 @@ if [ "$#" -gt 0 ]; then NOTEBOOKS=("$@"); else NOTEBOOKS=(
   notebooks/mem/S1_01_video_inputs_to_actionable_affordance.ipynb
   notebooks/mem/S1_02_humanoid_approach.ipynb
   report/2026-11-10_mem_pipeline_demo.ipynb
+  notebooks/mem/pipeline_examples.ipynb  # needs the models from scripts/remote/fetch_models.py; ~15 min extra on a first run
 ); fi
 failed=0
 for notebook in "${NOTEBOOKS[@]}"; do

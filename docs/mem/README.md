@@ -22,12 +22,14 @@
 | 2026-11-11 | 流程细化开始：把演示 notebook 的六步展开为 13 个环节，列出每个环节现在的做法和要讨论的点，作为第三轮讨论的议程；每个环节的想法、要求、现在的做法和缺口整理在 pipeline notebook 里，项目负责人直接在其中写更新，之后逐个讨论、逐个试 | [讨论稿](mem分支_问题定义与讨论稿_2026-11-10.md) 第 17 节；[pipeline notebook](../../notebooks/mem/pipeline.ipynb) |
 | 2026-11-11 | 总览调整提案：记忆加入时间和实际发生的动作（观察层、部件层、事件层），明确"不做稠密重建、三维从证据帧现算"；补充三组相关研究（免重建的三维理解、带时间和事件的第一视角记忆、可执行 affordance 与交互检测）；新增环节 14（交互检测）、15（事件与状态时间线）。均为提案，待项目负责人确认 | [pipeline notebook](../../notebooks/mem/pipeline.ipynb) 的"总览的调整"一节 |
 | 2026-11-11 | 第三轮讨论：需求理解确认（记忆带时间并记录实际发生的动作；用 affordance map 和单帧深度代替重建）；接受"不做稠密重建"的说法；精度分两个阶段（先找到并走到跟前，再碰到）；阶段改为方案 B（S1 做完重建对照后，先用一段 HD-EPIC 视频做事件层的最小版本）；存储倾向 implicit（隐式）的形式，具体形式未定。补充一组关于隐式记忆存储形式的参考文章 | [讨论稿](mem分支_问题定义与讨论稿_2026-11-10.md) 第 18 节；[pipeline notebook](../../notebooks/mem/pipeline.ipynb) 的"记忆的存储形式"一节 |
+| 2026-11-11 | 第四轮讨论：存储形式定为 L2（每个关键帧的图，加部件 token 和薄的显式索引）；接触点、法向、站立点读取时现算；检索先用 affordance token 和传统语义找关键帧，再交给视觉语言模型；两种特征都存。据此改写了 pipeline 文档的总览和 15 个环节，并在场景 421069 上给每个环节做了一个带图的示例（只用 CPU，没有训练；affordance map 和部件运动仍是 ORACLE） | [讨论稿](mem分支_问题定义与讨论稿_2026-11-10.md) 第 19 节；[pipeline notebook](../../notebooks/mem/pipeline.ipynb)；[示例 notebook](../../notebooks/mem/pipeline_examples.ipynb) |
 
 ## 文件
 
 | 文件 | 内容 |
 | --- | --- |
-| [pipeline 工作 notebook](../../notebooks/mem/pipeline.ipynb) | 只有文字：13 个环节各自的想法、要求、现在的做法和缺口；项目负责人直接在里面写更新，逐环节的讨论以它为准 |
+| [pipeline 工作 notebook](../../notebooks/mem/pipeline.ipynb) | 只有文字：当前流程（L2 记忆）的总览，15 个环节各自的想法、要求、现在的做法、示例里看到的和缺口；项目负责人直接在里面写更新，逐环节的讨论以它为准 |
+| [pipeline 示例 notebook](../../notebooks/mem/pipeline_examples.ipynb) | 中文说明、以图为主：按同样的环节编号，在场景 421069 上给每个环节一个真实数据的示例（关键帧、深度、位姿、affordance map、部件 token、跨帧关联、检索、视觉语言模型、现算几何、人形、评测）；代码在 `affordance3d/mem/tokens.py`、`search.py`、`encoders.py`，绘图在 `report/mem_steps_helpers.py` |
 | [问题定义与讨论稿](mem分支_问题定义与讨论稿_2026-11-10.md) | 问题拆解、查询类型与对照设计、假设、记忆结构；第 11 节起为各轮讨论决定、设计 v0.2 和 S1 步骤 |
 | [pipeline 演示 notebook](../../report/2026-11-10_mem_pipeline_demo.ipynb) | 英文、以图和视频为主：在场景 421069 上一步步走完整条 pipeline；代码在 `affordance3d/mem/pipeline.py`，绘图在 `report/mem_demo_helpers.py` |
 | [文献、数据与仿真调研](mem分支_文献数据仿真调研_2026-11-10.md) | 相近记忆系统、交互作为构建信号、带人体动作的三维场景数据、问答基准、仿真平台与人形交互合成、许可；每条附核实链接 |
@@ -42,7 +44,7 @@
 
 | 阶段 | 数据 | 检验 | 状态 |
 | --- | --- | --- | --- |
-| S1 | SceneFun3D 静态视频 | 可执行 affordance 记忆、任务检索、人形展示（H1，并给 H3 提供基线） | 进行中：第 1–5 步 oracle 版完成；正在逐个环节细化（讨论稿第 17、18 节）；存储形式定了之后做重建对照试验 |
+| S1 | SceneFun3D 静态视频 | 可执行 affordance 记忆、任务检索、人形展示（H1，并给 H3 提供基线） | 进行中：第 1–5 步 oracle 版完成；记忆改为 L2 形式，每个环节有了示例（讨论稿第 17–19 节）；下一步是重建对照试验 |
 | S2 | FunGraph3D（走动视频 + 交互视频） | 交互能否帮助找到小部件（H3） | 未开始 |
 | S3 | HD-EPIC 一个厨房 | 动作事件结构能否帮助检索（H2） | 未开始；按第三轮决定，S1 的重建对照之后先用一段视频做事件层的最小版本，其余部分仍在 S2 之后 |
 
