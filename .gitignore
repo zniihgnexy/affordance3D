@@ -13,8 +13,9 @@ __pycache__/
 /third_party
 /runs
 
-# Report media: videos are regenerated when the report runs; official preview images
-# are fetched with scripts/download_report_images.sh (third-party, not redistributed here).
-/report/assets
+# Report media: the videos made by the report notebooks are tracked in report/assets, so that a clone
+# has them for presentations. The official preview images are fetched with
+# scripts/download_report_images.sh (third-party, not redistributed here).
+/report/assets/external
 
 .DS_Store

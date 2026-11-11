@@ -6,9 +6,10 @@ NAS="${AFFORDANCE3D_NAS:-/mnt/nas/$USER/affordance3D}"
 ENV="${AFFORDANCE3D_ENV:-/mnt/nas/$USER/envs/affordance3d}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
-mkdir -p "$NAS"/{data/body_models/smplx,runs,report_assets,third_party,hf_cache,pip_cache,mpl_cache,logs}
+mkdir -p "$NAS"/{data/body_models/smplx,runs,report_assets/external,third_party,hf_cache,pip_cache,mpl_cache,logs}
+mkdir -p "$ROOT/report/assets"  # the report videos live in the clone (tracked); only the preview images are linked
 chmod 700 "$NAS/data/body_models"  # SMPL-X is licensed to the account holder only
-for pair in data:data runs:runs third_party:third_party report/assets:report_assets; do
+for pair in data:data runs:runs third_party:third_party report/assets/external:report_assets/external; do
   link="$ROOT/${pair%%:*}"
   [ -e "$link" ] || ln -s "$NAS/${pair##*:}" "$link"
 done

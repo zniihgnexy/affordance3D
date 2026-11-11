@@ -36,7 +36,7 @@
 
 ## 运行环境（2026-11-10 起）
 
-- **位置：** 实验室 A6000 服务器。代码只放在 home 下的仓库里；`data`、`runs`、`third_party`、`report/assets` 是指向数据盘的链接，模型缓存和 conda 环境也在数据盘。
+- **位置：** 实验室 A6000 服务器。代码只放在 home 下的仓库里；`data`、`runs`、`third_party` 是指向数据盘的链接，模型缓存和 conda 环境也在数据盘。报告 notebook 生成的视频放在 `report/assets`，由 git 跟踪，拉取仓库即可得到；其中的 `external`（各数据集官方示意图）不进 git，用 `scripts/download_report_images.sh` 下载。
 - **使用：** `source scripts/remote/env.sh` 激活环境；首次安装用 `bash scripts/remote/setup.sh`，公开数据用 `bash scripts/remote/fetch_data.sh`。SMPL-X 需要本人注册后自行放入 `data/body_models/smplx/`。
 - **GPU：** 代码默认不使用 CUDA；只有队列作业设置 `AFFORDANCE3D_DEVICE=cuda` 时才用 GPU。
 
