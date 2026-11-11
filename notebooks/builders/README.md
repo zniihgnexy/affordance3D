@@ -16,4 +16,6 @@ jupyter nbconvert --to notebook --execute --inplace report/2026-11-10_mem_pipeli
 | `build_mem_s1_02.py` | `notebooks/mem/S1_02_humanoid_approach.ipynb` |
 | `build_mem_demo.py` | `report/2026-11-10_mem_pipeline_demo.ipynb` |
 
+`notebooks/mem/pipeline.ipynb` has no builder: it is a text-only working document that is edited by hand (one cell per pipeline block plus a notes cell for the project lead), so never regenerate it.
+
 `bash scripts/run_notebooks.sh` executes every committed notebook into `runs/notebook_check/` without touching the committed copies; use it to confirm a machine is set up.
