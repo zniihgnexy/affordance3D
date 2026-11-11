@@ -28,9 +28,10 @@ from affordance3d.mem.depth_models import MonoDepth, depth_errors
 from affordance3d.mem.humanoid import PosedHumanoid, approach_frames, pose_humanoid
 from affordance3d.mem.labels import BACKGROUND, projected_axis
 from affordance3d.mem.render import look_at, overlay_body, rasterize, splat, to_camera
+from affordance3d.mem.tokens import ACTIONS as ACTION_NAMES
 from affordance3d.scenefun3d import evenly_spaced
 
-ACTIONS = ["rotate", "key_press", "tip_push", "hook_pull", "pinch_pull", "hook_turn", "foot_push", "plug_in", "unplug"]
+ACTIONS = list(ACTION_NAMES)
 ACTION_COLOUR = dict(zip(ACTIONS, plt.get_cmap("tab10").colors))
 ON_PART_M = 0.03
 GT_UP = np.array([0.0, 0.0, 1.0])
@@ -281,13 +282,20 @@ class Shot:
 def make_shots(scene: P.Scene, memory: P.Memory, model: BodyModel, queries: Sequence[str], mono_id: str,
                cache_dir: Path, stride: int = 3, min_in_view: int = 2) -> list[Shot]:
     """Pose a humanoid for each query and pick, from the whole video, the frame that shows it best (inputs only)."""
-    candidates = scene.vid.rgb_times[::stride]
-    chosen = []
+    pairs = []
     for query in queries:
         found = P.retrieve(memory.entries, scene.tasks, query)
-        if not found:
-            continue
-        entry = max(found, key=lambda e: e.pixels)
+        if found:
+            pairs.append((query, max(found, key=lambda e: e.pixels)))
+    return shots_for(scene, pairs, memory.floor, model, mono_id, cache_dir, stride, min_in_view)
+
+
+def shots_for(scene: P.Scene, pairs: Sequence[tuple[str, P.MemoryEntry]], floor: float, model: BodyModel, mono_id: str,
+              cache_dir: Path, stride: int = 3, min_in_view: int = 2) -> list[Shot]:
+    """A humanoid for each (query, entry) pair, in the video frame that shows it best (inputs only)."""
+    candidates = scene.vid.rgb_times[::stride]
+    chosen = []
+    for query, entry in pairs:
         scores = {t: P.display_score(scene, entry, t) for t in candidates}
         best = max(scores, key=lambda t: scores[t][0])
         if scores[best][1] >= min_in_view:
@@ -296,7 +304,7 @@ def make_shots(scene: P.Scene, memory: P.Memory, model: BodyModel, queries: Sequ
     shots = []
     for (query, entry, t, in_view), depth in zip(chosen, depths):
         human = pose_humanoid(model, entry.contact, entry.normal, entry.stand.position, entry.stand.facing,
-                              memory.floor, scene.up, entry.action)
+                              floor, scene.up, entry.action)
         shots.append(Shot(query, entry, human, t, P.input_frame(scene, t, depth), in_view))
     return shots
 
@@ -369,7 +377,8 @@ def _mark(image: np.ndarray, scene: P.Scene, entry: P.MemoryEntry, intrinsics: n
 
 def humanoid_figure(scene: P.Scene, shots: Sequence[Shot], model: BodyModel, view: ScanView) -> plt.Figure:
     """Final pose of every shot: pasted into the video frame (top) and checked inside the laser scan (bottom)."""
-    fig, axes = plt.subplots(2, len(shots), figsize=(3.6 * len(shots), 7.9), gridspec_kw={"height_ratios": [1.65, 1]})
+    fig, axes = plt.subplots(2, len(shots), figsize=(3.6 * len(shots), 7.9), gridspec_kw={"height_ratios": [1.65, 1]},
+                             squeeze=False)
     for column, shot in enumerate(shots):
         frame = shot.frame
         top = _body_layer(shot.human.vertices, model, frame.rgb, frame.depth_m, frame.intrinsics, frame.cam_to_world, 0.05)

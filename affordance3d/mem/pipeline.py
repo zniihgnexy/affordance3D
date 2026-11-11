@@ -151,14 +151,16 @@ class Memory:
     occupied: np.ndarray  # observed points, voxel-downsampled
 
 
-def _voxels(points: np.ndarray, size: float = VOXEL_M) -> np.ndarray:
+def voxel_points(points: np.ndarray, size: float = VOXEL_M) -> np.ndarray:
+    """One point per occupied voxel."""
     import open3d as o3d
 
     cloud = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(points))
     return np.asarray(cloud.voxel_down_sample(size).points)
 
 
-def _contact_and_normal(frame: Frame, labels: np.ndarray, part: int) -> tuple[tuple[int, int], np.ndarray, np.ndarray] | None:
+def contact_and_normal(frame: Frame, labels: np.ndarray, part: int) -> tuple[tuple[int, int], np.ndarray, np.ndarray] | None:
+    """Contact pixel, contact point and surrounding surface normal of the pixels labelled `part`, from one frame."""
     rows_cols = np.argwhere(labels == part)
     centre = np.median(rows_cols, axis=0)
     v, u = rows_cols[np.argmin(np.linalg.norm(rows_cols - centre, axis=1))]
@@ -182,14 +184,14 @@ def build_memory(scene: Scene, keyframes: Sequence[str], frames: Sequence[Frame]
                  labels: Sequence[np.ndarray]) -> Memory:
     """Write one entry per functional part seen in at least MIN_PART_PIXELS pixels of some keyframe."""
     observed = np.concatenate([backproject(f, stride=OBSERVED_STRIDE_PX)[0] for f in frames])
-    floor, occupied = floor_height(observed @ scene.up), _voxels(observed)
+    floor, occupied = floor_height(observed @ scene.up), voxel_points(observed)
     counts = np.array([[(lab == p).sum() for lab in labels] for p in range(len(scene.elements))])
     entries = []
     for part, element in enumerate(scene.elements):
         if counts[part].max() < MIN_PART_PIXELS:
             continue
         best = int(np.argmax(counts[part]))
-        found = _contact_and_normal(frames[best], labels[best], part)
+        found = contact_and_normal(frames[best], labels[best], part)
         if found is None:
             continue
         pixel, contact, normal = found
