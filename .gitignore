@@ -19,3 +19,6 @@ __pycache__/
 /report/assets/external
 
 .DS_Store
+
+# research-helm: notes used to distil working habits quote the project lead verbatim; they stay local
+/helm/distill/
