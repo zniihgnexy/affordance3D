@@ -461,12 +461,18 @@ def marked_keyframes(frames: Sequence[Frame], memory: T.L2Memory, keyframe_ids: 
 
     `chosen` and `right` only colour the display copy (the model's pick, the true part); the model sees neither.
     """
+    return mark_boxes(frames, [(token.region.keyframe, token.region.box) for token in memory.tokens], keyframe_ids, chosen, right)
+
+
+def mark_boxes(frames: Sequence[Frame], regions: Sequence[tuple[int, Box]], keyframe_ids: Sequence[int],
+               chosen: int | None = None, right: Sequence[int] = ()) -> tuple[list[np.ndarray], list[int]]:
+    """Copies of the keyframes with the given (keyframe, box) regions numbered 1, 2, ...; and the region behind each number."""
     images, tokens = [], []
     for k in keyframe_ids:
         image = frames[k].rgb.copy()
-        here = [i for i, token in enumerate(memory.tokens) if token.region.keyframe == k]
+        here = [i for i, (keyframe, _) in enumerate(regions) if keyframe == k]
         boxes = [(b[0] - BOX_PAD_PX, b[1] - BOX_PAD_PX, b[2] + BOX_PAD_PX, b[3] + BOX_PAD_PX)
-                 for b in (memory.tokens[i].region.box for i in here)]
+                 for b in (regions[i][1] for i in here)]
         taken = list(boxes)
         for index, box in zip(here, boxes):
             tokens.append(index)

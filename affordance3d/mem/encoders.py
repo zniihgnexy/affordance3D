@@ -39,6 +39,15 @@ def _pooled(output: object) -> np.ndarray:
     return l2_normalize(tensor.detach().float().cpu().numpy())
 
 
+def _gpu_precision(device: str) -> dict:
+    """Half precision on a GPU (a 4B model then needs about 9 GB instead of 17); full precision on the CPU."""
+    if not device.startswith("cuda"):
+        return {}
+    import torch
+
+    return {"torch_dtype": torch.bfloat16}
+
+
 class ImageTextEncoder:
     """SigLIP 2: unit-length vectors for images and for texts in one shared space."""
 
@@ -81,7 +90,7 @@ class VisionLanguageModel:
         source = model_source(VLM_ID, VLM_REVISION)
         self.device = device or default_device()
         self._processor = AutoProcessor.from_pretrained(**source)
-        self._model = AutoModelForImageTextToText.from_pretrained(**source).eval().to(self.device)
+        self._model = AutoModelForImageTextToText.from_pretrained(**source, **_gpu_precision(self.device)).eval().to(self.device)
 
     def ask(self, images: Sequence[np.ndarray], prompt: str, max_new_tokens: int = 16) -> str:
         import torch

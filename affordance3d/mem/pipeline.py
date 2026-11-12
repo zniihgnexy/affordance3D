@@ -38,6 +38,7 @@ from affordance3d.scenefun3d import (
     load_frames,
     read_annotations,
     read_laser_scan,
+    read_pincam,
 )
 
 PIXEL_STEP = 2
@@ -93,8 +94,11 @@ def input_camera(scene: Scene, t: str, pixel_step: int = PIXEL_STEP) -> tuple[np
     return intrinsics, scene.arkit_to_faro @ scene.vid.arkit_pose(t)
 
 
-def working_hw(pixel_step: int = PIXEL_STEP) -> tuple[int, int]:
-    return 1920 // pixel_step, 1440 // pixel_step
+def frame_hw(scene: Scene, t: str, pixel_step: int = PIXEL_STEP) -> tuple[int, int]:
+    """Working image size (rows, columns) of frame `t`; videos are stored upright as 1440x1920 or 1920x1440."""
+    name = f"{scene.vid.folder.name}_{t}.pincam"
+    width, height = read_pincam(scene.vid.folder / "hires_wide_intrinsics" / name)[1]
+    return height // pixel_step, width // pixel_step
 
 
 def input_frame(scene: Scene, t: str, depth: np.ndarray, pixel_step: int = PIXEL_STEP) -> Frame:
@@ -109,7 +113,7 @@ def gt_frames(scene: Scene, times: Sequence[str], pixel_step: int = PIXEL_STEP) 
 
 
 def lidar_depth(scene: Scene, t: str, pixel_step: int = PIXEL_STEP) -> np.ndarray:
-    return scene.vid.lidar_depth(t, working_hw(pixel_step))
+    return scene.vid.lidar_depth(t, frame_hw(scene, t, pixel_step))
 
 
 def lidar_scaled(depth: np.ndarray, lidar: np.ndarray) -> np.ndarray:
@@ -219,7 +223,7 @@ def retrieve(entries: Sequence[MemoryEntry], tasks: Sequence[tuple[str, Sequence
 def display_score(scene: Scene, entry: MemoryEntry, t: str, pixel_step: int = PIXEL_STEP) -> tuple[float, int]:
     """How well frame `t` shows the part and the person standing at it (inputs only); -1 if the part is hidden."""
     intrinsics, pose = input_camera(scene, t, pixel_step)
-    frame = Frame(0, np.zeros((1, 1, 3), np.uint8), np.zeros(working_hw(pixel_step), np.float32), intrinsics, pose)
+    frame = Frame(0, np.zeros((1, 1, 3), np.uint8), np.zeros(frame_hw(scene, t, pixel_step), np.float32), intrinsics, pose)
     body = entry.stand.position + np.outer([0.1, 0.9, 1.6], scene.up)
     uv, z, inside = project(np.vstack([entry.contact, body]), frame)
     if not inside[0]:
