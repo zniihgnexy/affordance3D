@@ -16,6 +16,8 @@ sys.path.insert(0, str(REPO_ROOT))
 from affordance3d.mem import phase1_stats as A
 
 ON_PART_CM = 3.0
+READING = ("P4 affordance regions", "P3 generic regions")  # P4 first: the paired difference is P4 minus P3
+MORE_BUDGETS = (2.0, 4.0, 8.0)
 
 
 def triple(values: tuple[float, float, float]) -> dict:
@@ -36,20 +38,97 @@ def at_budget_one(results: list[dict], key: str) -> dict:
     return rows
 
 
-def reading(results: list[dict]) -> dict:
+def more_budget(results: list[dict]) -> dict:
+    """P4 at budget 1 against the other policies given more tokens. Not part of the G1 rule: a check that the gap at
+    budget 1 is not owed to keyframes that random draws leave without any token."""
     rows = {}
-    for name in ("P4 affordance regions", "P3 generic regions"):
+    for other in (A.P3, A.P2):
+        for budget in MORE_BUDGETS:
+            difference = A.affordance_against(results, other, budget)
+            if difference is not None:
+                rows[f"P4 at 1x minus {other} at {budget:g}x"] = triple(difference)
+    grids = {run["policy"]: run["tokens"] for r in results for run in r["search"] if run["policy"].startswith(A.P1)}
+    for grid in sorted(grids, key=grids.get):
+        difference = A.affordance_against(results, grid, None)
+        if difference is not None:
+            budget = np.median([run["budget"] for r in results for run in r["search"] if run["policy"] == grid])
+            rows[f"P4 at 1x minus {grid} (about {budget:.1f}x)"] = triple(difference)
+    return rows
+
+
+def against_whole(results: list[dict]) -> dict:
+    """What tokens add to whole keyframes, paired on the same tasks (not part of the G1 rule). The affordance tokens at
+    a quarter and a half of their number stand for an affordance map that misses parts."""
+    whole = [A.scene_rates(r, A.P0) for r in results]
+    arms = [(f"{A.P3} at {budget:g}x", A.P3, budget) for budget in (1.0, 4.0, 8.0)]
+    arms += [(f"{A.P2} at {budget:g}x", A.P2, budget) for budget in (1.0, 8.0)]
+    arms += [("P1 uniform grid 2x1", "P1 uniform grid 2x1", None), (f"{A.P4} at 0.25x", A.P4, 0.25), (f"{A.P4} at 0.5x", A.P4, 0.5)]
+    rows = {}
+    for label, policy, budget in arms:
+        rates = [A.scene_rates(r, policy, budget) for r in results]
+        if all(rate is not None for rate in (*whole, *rates)):
+            rows[f"{label} minus P0"] = triple(A.paired_difference(rates, whole))
+    return rows
+
+
+def seed_spread(results: list[dict]) -> dict:
+    """Budget 1: the pooled rate of every random seed, lowest and highest (P3's draws overlap between seeds)."""
+    spread = {}
+    for policy in (A.P2, A.P3):
+        seeds = sorted({run["seed"] for r in results for run in r["search"] if run["policy"].startswith(policy) and run["budget"] == 1.0})
+        rates = [A.pooled([np.array(run["hit1"], dtype=float) for r in results for run in r["search"]
+                           if run["policy"].startswith(policy) and run["budget"] == 1.0 and run["seed"] == seed]) for seed in seeds]
+        if rates:
+            spread[policy] = {"seeds": len(rates), "lowest": min(rates), "highest": max(rates)}
+    return spread
+
+
+def geometry_paired(results: list[dict], resamples: int = A.RESAMPLES) -> dict:
+    """Fused cloud against one keyframe on the parts both can read: median of (fused minus single-frame) error in cm,
+    with a 95% interval from resampling scenes, and how often the single keyframe is the closer one."""
+    rows, rng = {}, np.random.default_rng(0)
+    for voxel in results[0]["geometry"]["fused"]:
+        per_scene = [np.array([fused - single for fused, single in zip(r["geometry"]["fused"][voxel]["contact_cm"],
+                                                                        r["geometry"]["single_frame"]["contact_cm"]) if fused is not None])
+                     for r in results]
+        per_scene = [scene for scene in per_scene if len(scene)]
+        draws = [np.median(np.concatenate([per_scene[i] for i in rng.integers(len(per_scene), size=len(per_scene))]))
+                 for _ in range(resamples)]
+        pooled = np.concatenate(per_scene)
+        rows[f"fused {voxel} m"] = {"parts": len(pooled), "median_difference_cm": float(np.median(pooled)),
+                                    "low": float(np.percentile(draws, 2.5)), "high": float(np.percentile(draws, 97.5)),
+                                    "single_frame_closer": float(np.mean(pooled > 0)),
+                                    "read_ms_per_part": float(np.mean([r["geometry"]["fused"][voxel]["read_ms_per_part"] for r in results]))}
+    return rows
+
+
+def reading(results: list[dict]) -> dict:
+    rows, per_policy = {}, {}
+    for name in READING:
         per_scene = [np.array(r["reading"][name]["right_part"], dtype=float) for r in results if name in r.get("reading", {})]
         if len(per_scene) == len(results):
+            seconds = [s for r in results for s in r["reading"][name]["seconds"]]
             rows[name] = triple(A.bootstrap(per_scene))
-            rows[name]["seconds_per_query"] = float(np.median(np.concatenate(
-                [r["reading"][name]["seconds"] for r in results if r["reading"][name]["seconds"]])))
+            rows[name]["seconds_per_query"] = float(np.median(seconds)) if seconds else float("nan")
+            per_policy[name] = per_scene
+    if len(per_policy) == 2:
+        rows["P4 minus P3"] = triple(A.paired_difference(*per_policy.values()))
     return rows
+
+
+def missing(results: list[dict]) -> dict:
+    """Scenes that lack a policy at budget 1 or a model reading: such a policy is left out of the summary."""
+    gaps = {name: [r["visit"] for r in results if A.scene_rates(r, name, None if name == A.P0 else 1.0) is None]
+            for name in (A.P0, A.P2, A.P3, A.P4)}
+    gaps.update({f"reading, {name}": [r["visit"] for r in results if name not in r.get("reading", {})] for name in READING})
+    return {name: visits for name, visits in gaps.items() if visits}
 
 
 def geometry(results: list[dict]) -> dict:
     def stats(errors: list[float | None]) -> dict:
         found = np.array([e for e in errors if e is not None], dtype=float)
+        if not len(found):
+            return {"parts": len(errors), "read": 0, "median_cm": float("nan"), "within_3cm": float("nan"), "within_3cm_of_all": 0.0}
         return {"parts": len(errors), "read": len(found), "median_cm": float(np.median(found)),
                 "within_3cm": float(np.mean(found <= ON_PART_CM)), "within_3cm_of_all": float(np.sum(found <= ON_PART_CM) / len(errors))}
 
@@ -67,16 +146,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--runs", type=Path, default=REPO_ROOT / "runs" / "mem_phase1")
     args = parser.parse_args()
-    results = [json.loads(path.read_text()) for path in sorted(args.runs.glob("*.json")) if path.name != "summary.json"]
+    everything = A.load_results(args.runs)
+    results = A.scored(everything)  # a scene without an answerable task has nothing to score
     if not results:
         raise SystemExit(f"no scene results in {args.runs}")
-    summary = {"scenes": len(results), "tasks": int(sum(r["tasks"]["answerable"] for r in results)),
-               "tasks_all": int(sum(r["tasks"]["all"] for r in results)), "keyframes": results[0]["keyframes"],
+    summary = {"scenes": len(results), "visits": [r["visit"] for r in results], "scenes_run": len(everything),
+               "scenes_without_tasks": [r["visit"] for r in everything if not r["tasks"]["answerable"]], "missing": missing(results),
+               "keyframes_without_lidar": {r["visit"]: r["keyframes_without_lidar"] for r in everything if r.get("keyframes_without_lidar")},
+               "tasks": int(sum(r["tasks"]["answerable"] for r in results)),
+               "tasks_all": int(sum(r["tasks"]["all"] for r in everything)), "keyframes": results[0]["keyframes"],
                "first_keyframe_right": at_budget_one(results, "hit1"), "right_keyframe_in_top3": at_budget_one(results, "hit3"),
                "curves": {name: A.curve(results, name) for name in (A.P1, A.P2, A.P3, A.P4)},
+               "affordance_at_one_against_more": more_budget(results), "others_against_whole": against_whole(results),
+               "seed_spread": seed_spread(results), "geometry_paired": geometry_paired(results),
                "reading": reading(results), "geometry": geometry(results),
-               "parts_seen": {kind: int(sum(r["parts_seen"][kind] for r in results)) for kind in results[0]["parts_seen"]},
-               "parts": int(sum(r["parts"] for r in results)),
+               "parts_seen": {kind: int(sum(r["parts_seen"][kind] for r in everything)) for kind in results[0]["parts_seen"]},
+               "parts": int(sum(r["parts"] for r in everything)),
                "memory": {key: int(sum(r["memory"][key] for r in results)) for key in ("tokens", "parts", "true_parts_with_token", "mixed_regions")},
                "storage_bytes_per_scene": {key: float(np.mean([r["storage"][key] for r in results])) for key in results[0]["storage"]},
                "write_s_per_scene": float(np.mean([r["write_s"] for r in results]))}
@@ -90,7 +175,9 @@ def main() -> None:
     for name, row in first.items():
         print(f"  first keyframe right, {name}: {row['rate']:+.3f} [{row['low']:+.3f}, {row['high']:+.3f}]")
     for name, row in read.items():
-        print(f"  model picks the right part, {name}: {row['rate']:.3f} [{row['low']:.3f}, {row['high']:.3f}]")
+        print(f"  model picks the right part, {name}: {row['rate']:+.3f} [{row['low']:+.3f}, {row['high']:+.3f}]")
+    for name, visits in summary["missing"].items():
+        print(f"  WARNING: {name} is missing in {len(visits)} scenes and is left out: {' '.join(visits)}")
     print("  G1:", summary["g1"])
 
 

@@ -5,13 +5,29 @@ Tasks of one scene share its keyframes and its memory, so the scene is the unit 
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
 RESAMPLES = 2000
 INTERVAL = (2.5, 97.5)
 P0, P1, P2, P3, P4 = "P0", "P1", "P2", "P3", "P4"
+
+
+def result_files(folder: Path) -> list[Path]:
+    """The per-scene result files of a run folder, named <visit>.json; the summary and the answer caches are other files."""
+    return sorted(path for path in folder.glob("*.json") if path.stem.isdigit())
+
+
+def load_results(folder: Path) -> list[dict]:
+    return [json.loads(path.read_text()) for path in result_files(folder)]
+
+
+def scored(results: Sequence[dict]) -> list[dict]:
+    """The scenes that can be scored: at least one task whose part is visible in a keyframe."""
+    return [result for result in results if result["tasks"]["answerable"]]
 
 
 def scene_rates(result: dict, policy: str, budget: float | None = None, key: str = "hit1") -> np.ndarray | None:
@@ -40,6 +56,16 @@ def paired_difference(first: Sequence[np.ndarray], second: Sequence[np.ndarray],
     return bootstrap(difference, resamples, seed)
 
 
+def affordance_against(results: Sequence[dict], other: str, budget: float | None, key: str = "hit1") -> tuple[float, float, float] | None:
+    """Paired difference of P4 at budget 1 and `other` (a policy name or its prefix) at `budget` (None: the one budget
+    it ran at), on the same tasks; None unless both were run in every scene."""
+    ours = [scene_rates(result, P4, 1.0, key) for result in results]
+    theirs = [scene_rates(result, other, budget, key) for result in results]
+    if any(rates is None for rates in (*ours, *theirs)):
+        return None
+    return paired_difference(ours, theirs)
+
+
 def curve(results: Sequence[dict], policy: str, key: str = "hit1") -> list[dict]:
     """Points of one policy's rate-against-budget curve: runs are grouped by policy name and nominal budget."""
     groups: dict[tuple[str, float], dict[int, list]] = {}
@@ -59,9 +85,11 @@ def curve(results: Sequence[dict], policy: str, key: str = "hit1") -> list[dict]
     return sorted(points, key=lambda point: point["budget"])
 
 
-def g1_verdict(against_generic: tuple[float, float, float] | None, against_random: tuple[float, float, float],
+def g1_verdict(against_generic: tuple[float, float, float] | None, against_random: tuple[float, float, float] | None,
                reading_affordance: float | None, reading_generic: float | None) -> str:
     """The pre-registered rule of the discussion draft, section 21.6 (each difference is mean, low, high at budget 1)."""
+    if against_random is None:
+        return "undetermined: the random-places policy has not been run in every scene"
     if against_random[1] <= 0:
         return "not passed: affordance regions are not better than random places"
     if against_generic is None or reading_affordance is None or reading_generic is None:

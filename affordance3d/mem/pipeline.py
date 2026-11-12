@@ -45,6 +45,7 @@ PIXEL_STEP = 2
 LABEL_DEPTH_TOL_M = 0.05
 MIN_PART_PIXELS = 10
 NORMAL_WINDOW_PX = 24
+MIN_NORMAL_POINTS = 3  # fewer points do not define a plane
 OBSERVED_STRIDE_PX = 8
 VOXEL_M = 0.05
 VISIBLE_DEPTH_M = 0.15
@@ -116,12 +117,29 @@ def lidar_depth(scene: Scene, t: str, pixel_step: int = PIXEL_STEP) -> np.ndarra
     return scene.vid.lidar_depth(t, frame_hw(scene, t, pixel_step))
 
 
+def lidar_scale(depth: np.ndarray, lidar: np.ndarray) -> float | None:
+    """Median LiDAR / prediction ratio of one frame; None when no pixel has both (the device can mark a whole frame unreliable)."""
+    both = (lidar > 0) & (depth > 0)
+    return float(np.median(lidar[both] / depth[both])) if both.any() else None
+
+
 def lidar_scaled(depth: np.ndarray, lidar: np.ndarray) -> np.ndarray:
     """Monocular depth rescaled by the median LiDAR / prediction ratio of the same frame (an input)."""
-    both = (lidar > 0) & (depth > 0)
-    if not both.any():
+    scale = lidar_scale(depth, lidar)
+    if scale is None:
         raise ValueError("no pixel has both LiDAR and predicted depth")
-    return depth * float(np.median(lidar[both] / depth[both]))
+    return depth * scale
+
+
+def lidar_scaled_together(depths: Sequence[np.ndarray], lidars: Sequence[np.ndarray]) -> list[np.ndarray]:
+    """The frames of one video, each rescaled by its own LiDAR; a frame without a usable LiDAR pixel takes the
+    median scale of the other frames (the scale of a monocular model drifts little within one video)."""
+    scales = [lidar_scale(depth, lidar) for depth, lidar in zip(depths, lidars, strict=True)]
+    known = [scale for scale in scales if scale is not None]
+    if not known:
+        raise ValueError("no frame has a pixel with both LiDAR and predicted depth")
+    shared = float(np.median(known))
+    return [depth * (shared if scale is None else scale) for depth, scale in zip(depths, scales)]
 
 
 def label_maps(scene: Scene, frames: Sequence[Frame]) -> list[np.ndarray]:
@@ -164,7 +182,11 @@ def voxel_points(points: np.ndarray, size: float = VOXEL_M) -> np.ndarray:
 
 
 def contact_and_normal(frame: Frame, labels: np.ndarray, part: int) -> tuple[tuple[int, int], np.ndarray, np.ndarray] | None:
-    """Contact pixel, contact point and surrounding surface normal of the pixels labelled `part`, from one frame."""
+    """Contact pixel, contact point and surrounding surface normal of the pixels labelled `part`, from one frame.
+
+    The normal is that of the surface around the part (a handle sticks out of it). A part that fills the whole
+    window around its contact pixel has no surroundings there: then the window's own surface is used.
+    """
     rows_cols = np.argwhere(labels == part)
     centre = np.median(rows_cols, axis=0)
     v, u = rows_cols[np.argmin(np.linalg.norm(rows_cols - centre, axis=1))]
@@ -177,7 +199,10 @@ def contact_and_normal(frame: Frame, labels: np.ndarray, part: int) -> tuple[tup
     top, left = max(v - NORMAL_WINDOW_PX, 0), max(u - NORMAL_WINDOW_PX, 0)
     window = frame.depth_m[top:v + NORMAL_WINDOW_PX, left:u + NORMAL_WINDOW_PX]
     off_part = labels[top:v + NORMAL_WINDOW_PX, left:u + NORMAL_WINDOW_PX] != part
-    ys, xs = np.nonzero((window > 0) & off_part)
+    around = (window > 0) & off_part
+    ys, xs = np.nonzero(around if around.sum() >= MIN_NORMAL_POINTS else window > 0)
+    if len(xs) < MIN_NORMAL_POINTS:
+        return None
     pixels = np.stack([xs + left, ys + top], axis=1)
     rays = np.linalg.inv(frame.intrinsics) @ np.vstack([pixels.T, np.ones(len(pixels))])
     neighbourhood = transform_points(frame.cam_to_world, (rays * window[ys, xs]).T)

@@ -50,7 +50,10 @@ def pick_keyframes(scene: P.Scene, n: int) -> list[str]:
 
 
 def scaled_mono_depths(scene: P.Scene, times: Sequence[str], model_id: str, cache_dir: Path) -> list[np.ndarray]:
-    """Monocular depth at the working resolution, rescaled per frame by the device's LiDAR (cached on disk)."""
+    """Monocular depth at the working resolution, rescaled per frame by the device's LiDAR (cached on disk).
+
+    A frame in which the device marks no LiDAR pixel as reliable takes the median scale of the other frames.
+    """
     cache_dir.mkdir(parents=True, exist_ok=True)
     missing = [t for t in times if not (cache_dir / f"{t}.npy").exists()]
     if missing:
@@ -59,7 +62,8 @@ def scaled_mono_depths(scene: P.Scene, times: Sequence[str], model_id: str, cach
             depth = model.predict(iio.imread(scene.vid.rgb_path(t)), focal_px=float(scene.vid.intrinsics(t)[0, 0]))
             np.save(cache_dir / f"{t}.npy", depth[::P.PIXEL_STEP, ::P.PIXEL_STEP].astype(np.float16))
         del model
-    return [P.lidar_scaled(np.load(cache_dir / f"{t}.npy").astype(np.float32), P.lidar_depth(scene, t)) for t in times]
+    return P.lidar_scaled_together([np.load(cache_dir / f"{t}.npy").astype(np.float32) for t in times],
+                                   [P.lidar_depth(scene, t) for t in times])
 
 
 def inputs_figure(scene: P.Scene, t: str, mono: np.ndarray, gt_frame: Frame) -> plt.Figure:

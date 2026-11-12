@@ -214,12 +214,14 @@ def main() -> None:
     times = keyframes.scene_keyframes(scene, args.keyframes, N_KEYFRAMES)
     mono = scaled_mono_depths(scene, times, MONO_ID, args.out / "mono" / video)
     frames = [P.input_frame(scene, t, d) for t, d in zip(times, mono)]
+    no_lidar = [k for k, t in enumerate(times) if not (P.lidar_depth(scene, t) > 0).any()]  # depth scale from the other keyframes
     labels = P.label_maps(scene, P.gt_frames(scene, times))  # ORACLE with part ids: scoring only
     actions = part_actions_of(scene)
     action_maps = [T.action_map(lab, actions) for lab in labels]
     image_hw = frames[0].image_hw
     result = {"visit": args.visit, "video": video, "keyframes": args.keyframes, "n_keyframes": len(times), "image_hw": list(image_hw),
-              "parts": len(scene.elements), "parts_seen": {args.keyframes: parts_seen(labels, len(scene.elements))}}
+              "parts": len(scene.elements), "parts_seen": {args.keyframes: parts_seen(labels, len(scene.elements))},
+              "keyframes_without_lidar": no_lidar}
     other = "uniform" if args.keyframes == "steady" else "steady"
     other_times = keyframes.scene_keyframes(scene, other, N_KEYFRAMES)
     result["parts_seen"][other] = parts_seen(P.label_maps(scene, P.gt_frames(scene, other_times)), len(scene.elements))

@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -38,6 +41,20 @@ def test_paired_difference_compares_the_same_tasks() -> None:
         A.paired_difference(better, worse[:1])
 
 
+def test_affordance_against_compares_budget_one_with_another_policy_at_its_budget() -> None:
+    scenes = [{"search": [_run("P4 affordance regions", 1.0, [1, 1]), _run("P4 affordance regions", 0.5, [0, 0]),
+                          _run("P3 generic regions", 8.0, [1, 0]), _run("P1 uniform grid 3x3", 6.2, [0, 0])]},
+              {"search": [_run("P4 affordance regions", 1.0, [1, 0]), _run("P3 generic regions", 8.0, [0, 0]),
+                          _run("P1 uniform grid 3x3", 5.9, [1, 0])]}]
+
+    generic = A.affordance_against(scenes, A.P3, 8.0)
+    grid = A.affordance_against(scenes, "P1 uniform grid 3x3", None)
+
+    assert generic[0] == pytest.approx(0.5)  # 3 of 4 against 1 of 4
+    assert grid[0] == pytest.approx(0.5) and A.affordance_against(scenes, A.P3, 2.0) is None  # not run at that budget
+    assert A.affordance_against(scenes, A.P2, 8.0) is None
+
+
 def test_curve_groups_grids_by_shape_and_other_policies_by_budget() -> None:
     scenes = [{"search": [_run("P1 uniform grid 1x1", 0.6, [1, 0], tokens=40), _run("P1 uniform grid 2x1", 1.3, [1, 1], tokens=80),
                           _run("P4 affordance regions", 1.0, [1, 1], tokens=60)]},
@@ -57,6 +74,23 @@ def test_curve_groups_grids_by_shape_and_other_policies_by_budget() -> None:
     ((0.10, 0.02, 0.2), (0.2, 0.1, 0.3), (0.4, 0.5), "partly passed"),
     ((0.10, 0.02, 0.2), (0.05, -0.1, 0.2), (0.6, 0.5), "not passed"),
     (None, (0.2, 0.1, 0.3), (None, None), "undetermined"),
+    ((0.10, 0.02, 0.2), None, (0.6, 0.5), "undetermined"),
 ])
 def test_g1_verdict_follows_the_rule_written_before_the_experiment(generic, random, reading, expected: str) -> None:
     assert A.g1_verdict(generic, random, *reading).startswith(expected)
+
+
+def test_result_files_are_the_scene_files_only(tmp_path: Path) -> None:
+    for name in ("421254.json", "420683.json", "summary.json", "vlm_answers_421254.json", "notes.txt"):
+        (tmp_path / name).write_text(json.dumps({"visit": name.split(".")[0], "tasks": {"answerable": 1}}))
+
+    files = A.result_files(tmp_path)
+
+    assert [path.name for path in files] == ["420683.json", "421254.json"]
+    assert [result["visit"] for result in A.load_results(tmp_path)] == ["420683", "421254"]
+
+
+def test_scored_drops_scenes_without_an_answerable_task() -> None:
+    results = [{"visit": "1", "tasks": {"all": 4, "answerable": 0}}, {"visit": "2", "tasks": {"all": 4, "answerable": 3}}]
+
+    assert [result["visit"] for result in A.scored(results)] == ["2"]
