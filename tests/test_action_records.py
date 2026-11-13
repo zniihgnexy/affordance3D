@@ -10,10 +10,11 @@ from tests.conftest import TEST_HW, frame_from_depth
 FRAME = frame_from_depth(np.full(TEST_HW, 2.0))
 
 
-def _motion(kind: str, motion_dir: list[float], origin: list[float], centre: list[float], orient: str = "outwards") -> A.PartMotion:
+def _motion(kind: str, motion_dir: list[float], origin: list[float], centre: list[float], orient: str = "outwards",
+            reading: str = "viewer") -> A.PartMotion:
     scan = np.array([origin, centre], dtype=float)
     entry = {"motion_type": kind, "motion_dir": motion_dir, "motion_origin_idx": 0, "motion_viz_orient": orient}
-    return A.part_motion(entry, scan[1:], scan)
+    return A.part_motion(entry, scan[1:], scan, reading)
 
 
 def _labels(blocks: dict[int, tuple[int, int, int, int]]) -> np.ndarray:
@@ -40,6 +41,30 @@ def test_a_button_pushed_inwards_moves_away_from_the_camera_and_a_drawer_comes_t
 
     assert A.push_or_pull(button, FRAME) == "push" and A.push_or_pull(drawer, FRAME) == "pull"
     assert np.allclose(button.anchor, [0, 0, 2]) and button.axis_distance_m == 0.0 and not button.hinged
+
+
+def test_the_documentation_reading_keeps_motion_dir_for_every_translation_and_axis() -> None:
+    viewer = _motion("trans", [0, 0, -1], [0, 0, 2], [0, 0, 2], orient="inwards")
+    docs = _motion("trans", [0, 0, -1], [0, 0, 2], [0, 0, 2], orient="inwards", reading="docs")
+    knob = _motion("rot", [0, 0, -2], [0, 0, 2], [0, 0, 2], orient="inwards", reading="docs")
+
+    assert np.allclose(viewer.direction, [0, 0, 1]) and np.allclose(docs.direction, [0, 0, -1])
+    assert np.allclose(knob.direction, [0, 0, -1]) and A.push_or_pull(docs, FRAME) == "pull"
+    with pytest.raises(ValueError):
+        _motion("trans", [0, 0, -1], [0, 0, 2], [0, 0, 2], reading="sideways")
+
+
+def test_a_record_in_a_frame_that_hides_every_part_keeps_the_part_it_is_given() -> None:
+    drawer = _motion("trans", [0.6, 0, -0.8], [0, 0, 2], [0, 0, 2])
+
+    hidden = A.record_in("open it", (3, 5), ("a", "b"), ("pinch_pull", "hook_turn"), (drawer, None), _labels({}), FRAME,
+                         shown_if_hidden=1)
+    seen = A.record_in("open it", (3, 5), ("a", "b"), ("pinch_pull", "hook_turn"), (drawer, None), _labels({3: (0, 3, 0, 3)}), FRAME,
+                       shown_if_hidden=1)
+
+    assert hidden.shown == 1 and hidden.views[0].pixels == 0 and hidden.views[0].contact is None
+    assert hidden.views[0].sense == "pull" and hidden.views[0].arrow is not None  # the 3D motion still projects
+    assert seen.shown == 0 and seen.views[0].pixels == 9
 
 
 def test_projected_direction_is_long_across_the_view_and_short_along_it() -> None:

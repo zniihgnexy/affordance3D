@@ -5,9 +5,11 @@ direction, for a rotation the axis and its origin; and, in the keyframe that sho
 contact pixel, projected direction, push or pull, axis class and hinge side. A scorer compares a predicted record with
 the true one, field by field.
 
-Sign convention (official viewer, third_party/scenefun3d/examples/show_annotations.py): a translation marked `inwards`
-is drawn from its origin along -motion_dir, one marked `outwards` along +motion_dir; a rotation is drawn as an unsigned
-axis through its origin. Whether the sign of a rotation axis says which way the part opens is not documented.
+Sign of a translation, two readings. "viewer" (the C-0 plan, from third_party/scenefun3d/examples/show_annotations.py):
+a translation marked `inwards` moves along -motion_dir, one marked `outwards` along +motion_dir. "docs" (the SceneFun3D
+documentation, adopted for C-1's extra after C-0 found the viewer reading wrong for pushed parts): motion_dir is the way
+the part moves; the viewer only draws an `inwards` line outside the surface. A rotation is an unsigned axis through its
+origin either way; whether the axis sign says which way the part opens is not documented.
 
 Everything here (part ids, motions, laser scan, registered cameras) is ground truth: scoring only, never an input.
 """
@@ -29,6 +31,7 @@ ON_PART_M = 0.1  # an axis closer than this to the part's centre turns the part 
 SIDE_STEP_M = 0.05  # short step from the part's centre towards its hinge, projected to read the side
 ANGLE_EPS_DEG = 1e-9
 KINDS = ("trans", "rot")
+READINGS = ("viewer", "docs")
 ON_PART = "on the part"
 MIRROR = {"left": "right", "right": "left", "top": "bottom", "bottom": "top", ON_PART: "left"}
 AXIS_CLASSES = ("across the image", "up and down the image", "towards the camera")
@@ -94,12 +97,16 @@ def axis_foot(origin: np.ndarray, direction: np.ndarray, point: np.ndarray) -> n
     return origin + float((point - origin) @ direction) * direction
 
 
-def part_motion(motion: dict, part_points: np.ndarray, scan_xyz: np.ndarray) -> PartMotion:
-    """One entry of `<visit>_motions.json` as a PartMotion; `part_points` are the part's scan points."""
+def part_motion(motion: dict, part_points: np.ndarray, scan_xyz: np.ndarray, reading: str = "viewer") -> PartMotion:
+    """One entry of `<visit>_motions.json` as a PartMotion; `part_points` are the part's scan points; `reading` is how a
+    translation's sign is read (see the module docstring)."""
     kind = motion["motion_type"]
     if kind not in KINDS:
         raise ValueError(f"unknown motion_type {kind!r}")
-    direction = signed_direction(motion["motion_dir"], motion["motion_viz_orient"]) if kind == "trans" else unit(motion["motion_dir"])
+    if reading not in READINGS:
+        raise ValueError(f"unknown reading {reading!r}")
+    viewer_sign = kind == "trans" and reading == "viewer"
+    direction = signed_direction(motion["motion_dir"], motion["motion_viz_orient"]) if viewer_sign else unit(motion["motion_dir"])
     return PartMotion(kind, direction, np.asarray(scan_xyz[motion["motion_origin_idx"]], dtype=np.float64),
                       part_points.mean(axis=0), motion["motion_viz_orient"])
 
@@ -221,9 +228,17 @@ def build_record(task: str, parts: Sequence[int], annot_ids: Sequence[str], labe
     if not counts.size or counts.sum(axis=1).max() == 0:
         return None
     keyframe = int(np.argmax(counts.sum(axis=1)))
-    views = tuple(part_view(label_maps[keyframe], p, m, frames[keyframe]) for p, m in zip(parts, motions, strict=True))
-    return ActionRecord(task, tuple(parts), tuple(annot_ids), tuple(labels), tuple(motions), keyframe,
-                        int(np.argmax(counts[keyframe])), views)
+    return record_in(task, parts, annot_ids, labels, motions, label_maps[keyframe], frames[keyframe], keyframe=keyframe)
+
+
+def record_in(task: str, parts: Sequence[int], annot_ids: Sequence[str], labels: Sequence[str], motions: Sequence[PartMotion | None],
+              label_map: np.ndarray, frame: Frame, keyframe: int = 0, shown_if_hidden: int = 0) -> ActionRecord:
+    """The record of one task as seen in one given frame (an arm's frame in C-1). The shown part is the one with most
+    pixels there; when the frame shows none of the parts, `shown_if_hidden` (e.g. the part C-0 showed)."""
+    views = tuple(part_view(label_map, p, m, frame) for p, m in zip(parts, motions, strict=True))
+    pixels = [view.pixels for view in views]
+    shown = int(np.argmax(pixels)) if max(pixels, default=0) > 0 else shown_if_hidden
+    return ActionRecord(task, tuple(parts), tuple(annot_ids), tuple(labels), tuple(motions), keyframe, shown, views)
 
 
 # ---------------------------------------------------------------- scoring a prediction against the record
