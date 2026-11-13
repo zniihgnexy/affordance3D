@@ -6,8 +6,13 @@
 
 Rates are pooled over tasks with 95% intervals from resampling scenes; arms are compared on the same tasks. The reading:
 
+    the memory's value on C   M minus M4 in joint success, read as in section 24.3: "close" when the interval's lower end
+                          is below 5 points, "undetermined" when that is only because the interval is wide (the difference
+                          itself above 10 points), otherwise "behind" (section 25.5, "C-1 的修正"; M4 uses the same
+                          annotated boxes as M, on keyframes chosen without the memory)
     C stands on its own   M minus V in joint success has its interval's lower end >= 10 points, and, on the tasks where
-                          both put the point on the part, M minus V in direction (3D line error <= 20 degrees) is >= 5 points
+                          both put the point on the part, M minus V in direction (3D line error <= 20 degrees) is >= 5 points;
+                          M minus V includes the annotation's share (M's point and label come from the annotation)
     C merges into A       on those tasks, V is within 5 points of M in direction (M minus V < 5 points)
     direction from geometry   G is close to M in joint success (round-7 rule: the lower end of M minus G below 5 points)
 
@@ -29,7 +34,9 @@ sys.path.insert(0, str(REPO_ROOT))
 from affordance3d.mem import phase1_stats as A  # noqa: E402
 
 NAMES = {"V": "V: plain Qwen3-VL on c3's frame", "G": "G: V's point and label, direction by the depth rule",
-         "M": "M: P4's frame and region, the same rule (ORACLE)", "O": "O: the ground truth (scorer check)",
+         "M": "M: P4's frame and region, the same rule (ORACLE)",
+         "M4": "M4: c4's choice (annotated boxes on keyframes chosen by meaning, no memory), the same rule (ORACLE)",
+         "O": "O: the ground truth (scorer check)",
          "V'": "V' on the C-0 keyframe", "G'": "G' on the C-0 keyframe", "M'": "M' on the C-0 keyframe (ORACLE)"}
 PRIMARY = ("contact", "label", "type", "line_ok", "axis_class", "hinge_side", "joint")
 FLOOR = ("vertical_axis_class", "vertical_line_ok")
@@ -37,6 +44,11 @@ EXTRA = ("sense",)
 ANGLES = ("line_deg", "line_2d_deg", "signed_deg")
 READ_FIELDS = ("point", "label", "type", "arrow", "hinge_side", "direction")
 ALONE_POINTS, DIRECTION_POINTS = 0.10, 0.05  # section 25.5 (from the feasibility record, sections 5 and 6)
+MEMORY_VALUE = {  # section 24.3's reading of P4 minus c4, applied to M minus M4 (section 25.5, "C-1 的修正")
+    "close": "close: with the same annotated boxes, the memory's choice of frame and region adds little on C",
+    "behind": "M4 behind M: the memory's choice adds something on C (an upper bound: both use the annotated boxes)",
+    "undetermined": "undetermined: the interval is too wide to call it close"}
+WITH_ANNOTATION = "includes the annotation's share: M's point and label come from the annotation; the memory's own value is M minus M4"
 
 
 def triple(values: tuple[float, float, float]) -> dict:
@@ -97,10 +109,16 @@ def arm_summary(records: list[dict], arm: str) -> dict:
 def verdicts(records: list[dict], arms: list[str]) -> dict:
     """The reading of section 25.5, where the arms it needs are present."""
     out: dict = {}
+    if {"M", "M4"} <= set(arms):
+        value = paired(records, "M", "M4", "joint")
+        verdict = None if value is None else A.closeness((value["rate"], value["low"], value["high"]))
+        out["memory_value_M_minus_M4_joint"] = value
+        out["memory_value_verdict"], out["memory_value_reading"] = verdict, MEMORY_VALUE.get(verdict)
     if {"M", "V"} <= set(arms):
         joint = paired(records, "M", "V", "joint")
         direction = paired(records, "M", "V", "line_ok", both_on_part("M", "V"))
-        out["M_minus_V_joint"], out["M_minus_V_direction_both_on_part"] = joint, direction
+        out["M_minus_V_joint_with_annotation"], out["M_minus_V_direction_both_on_part_with_annotation"] = joint, direction
+        out["M_minus_V_note"] = WITH_ANNOTATION
         alone = joint is not None and direction is not None and joint["low"] >= ALONE_POINTS and direction["rate"] >= DIRECTION_POINTS
         merges = direction is not None and direction["rate"] < DIRECTION_POINTS
         out["C_stands_alone"], out["C_merges_into_A"] = bool(alone), bool(merges)
@@ -130,7 +148,7 @@ def summarise(records: list[dict]) -> dict:
     if {"M'", "V'"} <= set(arms):
         summary["diagnostic"] = {"M'_minus_V'_joint": paired(records, "M'", "V'", "joint"),
                                  "M'_minus_G'_joint": paired(records, "M'", "G'", "joint")}
-    regions = [entry.get("region_exact") for record in records for arm in ("M", "M'") if arm in record["arms"]
+    regions = [entry.get("region_exact") for record in records for arm in ("M", "M4", "M'") if arm in record["arms"]
                for entry in record["arms"][arm] if entry.get("region_exact") is not None]
     summary["memory_region_label_exact"] = float(np.mean(regions)) if regions else None
     return summary

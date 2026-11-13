@@ -21,6 +21,11 @@ def test_c1_takes_the_c0_tasks_with_every_motion_and_keeps_their_place_among_the
         run.c1_tasks(rows, "1", ["a", "c"])
 
 
+def test_each_model_reads_its_own_choices_of_frame_and_region() -> None:
+    assert run.control_file(Path("runs"), "421254", "4b") == Path("runs/controls/421254.json")
+    assert run.control_file(Path("runs"), "421254", "8b") == Path("runs/controls_8b/421254.json")
+
+
 def test_the_answer_key_changes_with_the_question_and_the_model() -> None:
     key = run.answer_key("action", "prompt", ["1.0"], [], "rev")
 

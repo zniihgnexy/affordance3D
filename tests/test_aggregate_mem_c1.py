@@ -31,7 +31,8 @@ def test_the_memory_far_ahead_of_the_plain_model_in_direction_makes_c_stand_alon
     summary = agg.summarise(records)
 
     readings = summary["readings"]
-    assert readings["M_minus_V_joint"]["rate"] == pytest.approx(1.0) and readings["M_minus_V_joint"]["low"] == pytest.approx(1.0)
+    joint = readings["M_minus_V_joint_with_annotation"]
+    assert joint["rate"] == pytest.approx(1.0) and joint["low"] == pytest.approx(1.0) and "annotation" in readings["M_minus_V_note"]
     assert readings["C_stands_alone"] and not readings["C_merges_into_A"]
     assert readings["G_vs_M"] == "close" and readings["direction_from_geometry"]
     assert summary["scorer_check"]["holds"] and summary["arms"]["V"]["joint"]["rate"] == 0.0
@@ -47,11 +48,23 @@ def test_a_plain_model_as_good_as_the_memory_merges_c_into_a() -> None:
     assert readings["G_vs_M"] == "behind" and not readings["direction_from_geometry"]
 
 
+def test_the_memory_value_is_m_minus_m4_read_as_in_section_24_3() -> None:
+    good = [_score() for _ in range(4)]
+    half = [_score(), _score(), _score(contact=False), _score(contact=False)]
+
+    same = agg.summarise(_records({"M": good, "M4": good}))["readings"]
+    ahead = agg.summarise(_records({"M": good, "M4": half}))["readings"]
+
+    assert same["memory_value_verdict"] == "close" and same["memory_value_M_minus_M4_joint"]["rate"] == 0.0
+    assert ahead["memory_value_verdict"] == "behind" and ahead["memory_value_M_minus_M4_joint"]["rate"] == pytest.approx(0.5)
+    assert ahead["memory_value_reading"].startswith("M4 behind M") and "C_stands_alone" not in ahead
+
+
 def test_direction_is_compared_only_where_both_points_are_on_the_part() -> None:
     m = [_score(), _score(), _score(contact=False), _score(contact=False)]
     v = [_score(line_ok=False), _score(), _score(contact=False, line_ok=False), _score(line_ok=False)]
 
-    direction = agg.summarise(_records({"V": v, "M": m}))["readings"]["M_minus_V_direction_both_on_part"]
+    direction = agg.summarise(_records({"V": v, "M": m}))["readings"]["M_minus_V_direction_both_on_part_with_annotation"]
 
     assert direction["n"] == 6 and direction["rate"] == pytest.approx(0.5)  # 2 tasks per scene, M right on both, V on one
 

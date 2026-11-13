@@ -1,22 +1,25 @@
 """C-1 (discussion draft, section 25.5): beyond where the part is, can the memory say how to act on it? One scene per call.
 
     python scripts/run_mem_c1.py --visit 421254                    # every arm with Qwen3-VL-4B (GPU: through the queue)
-    python scripts/run_mem_c1.py --visit 421254 --model 8b         # V and V' again with Qwen3-VL-8B (M' keeps the 4B choice)
-    python scripts/run_mem_c1.py --visit 421254 --no-vlm --out runs/mem_c1/preview   # CPU only: M and O
+    python scripts/run_mem_c1.py --visit 421254 --model 8b         # every arm with Qwen3-VL-8B (after the 4B run)
+    python scripts/run_mem_c1.py --visit 421254 --no-vlm --out runs/mem_c1/preview   # CPU only: M, M4 and O
 
-Tasks: those of C-0 whose every target part has a motion (runs/mem_c0/records.json, 380 over the 30 scenes). Each arm
+Tasks: those of C-0 whose every target part has a motion (runs/mem_c0/records.json, 380 over the 30 scenes). Every
+choice a model made comes from that model's own control records (controls/ for 4B, controls_8b/ for 8B). Each arm
 answers in one frame, and is scored in that frame (affordance3d.mem.action_arms.score_arm):
 
-    V   Qwen3-VL sees the frame c3 chose (controls, 4B) and the task; JSON: point, label, push/pull/rotate, arrow end, hinge side
+    V   Qwen3-VL sees the frame c3 chose and the task; JSON: point, label, push/pull/rotate, arrow end, hinge side
     G   V's point and label; the direction from the depth map's normal at the point, by a rule on the label
-    M   the frame and region p4n chose (controls, 4B): region centre, the region's annotated label, G's rule (ORACLE)
+    M   the frame and region p4n chose: region centre, the region's annotated label, G's rule (ORACLE)
+    M4  the same from c4's choice: the annotated boxes on keyframes chosen by meaning alone, without the memory (ORACLE);
+        M minus M4 is the memory's own value on C (section 25.5, "C-1 的修正")
     O   the ground truth in the C-0 keyframe (the scorer must give it 100%)
     V', G', M'  the same in the C-0 keyframe (the steady keyframe where the target parts show most), which takes the
-                choice of the frame out; M' lets the 4B model pick one of P4's numbered regions of that keyframe, as p4n does
+                choice of the frame out; M' lets the model pick one of P4's numbered regions of that keyframe, as p4n does
 
 Depth: monocular depth rescaled by the device's LiDAR, cached as in phase 1 (runs/mem_phase1/mono/<video>/); the frames
 c3 chose are mostly not cached yet, so a V run computes them first (the depth model then needs the GPU as well).
-Writes runs/mem_c1/<model>/<visit>.json; the model's answers are cached in runs/mem_c1/<model>/answers_<visit>.json.
+Writes <out>/<model>/<visit>.json; the model's answers are cached in <out>/<model>/answers_<visit>.json (out: runs/mem_c1).
 Ground truth (part ids, motions, laser scan, registered cameras) is used for scoring only.
 """
 
@@ -55,8 +58,8 @@ MONO_ID = "depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf"  # as phase 
 C1_VERSION = "c1-v1"  # part of the answer cache key: change it when a prompt or an image changes
 ANSWER_TOKENS = {"json": 256, "number": 8}
 MAX_MARKS = 40  # as p4n
-VLM_ARMS = ("V", "G", "V'", "G'", "M'")
-ANSWERS_HINGE = {"V": True, "V'": True, "O": True}  # G and M (and their primes) give no hinge side
+CONTROL_FOLDERS = {"4b": "controls", "8b": "controls_8b"}  # each model's own choices (c3, p4n, c4)
+ANSWERS_HINGE = {"V": True, "V'": True, "O": True}  # G, M, M4 (and the primes) give no hinge side
 
 
 @dataclass(frozen=True)
@@ -119,11 +122,19 @@ def ask_action(reader: H.CachedReader, revision: str, task: str, t: str, sets: d
     return reply, C.answer_prediction(C.parse_action_answer(reply["answer"]), sets[t].inputs)
 
 
-def memory_prediction(box: list[int], t: str, row: dict, sets: dict[str, FrameSet], actions: list[int],
+def region_prediction(box: list[int], t: str, sets: dict[str, FrameSet], actions: list[int],
                       up: np.ndarray) -> tuple[A.Prediction, bool]:
-    """M (or M'): the region's centre and its annotated label (ORACLE), the motion by G's rule."""
+    """M, M4, M': an annotated region's centre and its annotated label (ORACLE), the motion by G's rule."""
     label, exact = C.region_label(sets[t].labels, actions, sets[t].inputs.depth_m, tuple(box))
     return C.rule_prediction(G.box_centre(tuple(box)), label, sets[t].inputs, up), exact
+
+
+def chosen_region_row(arm: str, choice: dict, row: dict, motions: dict, sets: dict[str, FrameSet], actions: list[int],
+                      up: np.ndarray) -> dict:
+    """M or M4: the frame and box a control arm chose (p4n or c4), scored like any other arm."""
+    frame = choice["frame"]
+    prediction, exact = region_prediction(choice["box"], frame, sets, actions, up) if frame else (None, None)
+    return arm_row(arm, frame, prediction, row, motions, sets, up, [], region_exact=exact)
 
 
 def pick_region(reader: H.CachedReader, revision: str, task: str, t: str, boxes: list[tuple[int, ...]],
@@ -140,17 +151,25 @@ def pick_region(reader: H.CachedReader, revision: str, task: str, t: str, boxes:
     return reply, None if mark is None else kept[marks[mark - 1]]
 
 
-def readers(out: Path, visit: str, model: str) -> tuple[H.CachedReader, H.CachedReader]:
-    """The reader for V and V' (this model) and the one for M' (always the 4B model; an 8B run reuses its answers)."""
-    model_id, revision = VLMS[model]
-    own = H.CachedReader(out / model / f"answers_{visit}.json", lambda: VisionLanguageModel(model_id=model_id, revision=revision))
-    if model == "4b":
-        return own, own
+def model_rows(reader: H.CachedReader, revision: str, row: dict, c3_frame: str | None, keyframe_boxes: list[tuple[int, ...]],
+               motions: dict, sets: dict[str, FrameSet], actions: list[int], up: np.ndarray) -> dict[str, dict]:
+    """The arms that ask the model: V and G on c3's frame, V', G' and M' on the C-0 keyframe."""
+    k, out = row["keyframe"], {}
+    for arm, frame in (("V", c3_frame), ("V'", k)):
+        reply, v_pred = ask_action(reader, revision, row["task"], frame, sets) if frame else ({"answer": "", "seconds": 0.0}, None)
+        out[arm] = arm_row(arm, frame, v_pred, row, motions, sets, up, [reply])
+        g_pred = None if v_pred is None else C.rule_prediction(v_pred.point, v_pred.label, sets[frame].inputs, up)
+        out["G" + arm[1:]] = arm_row("G" + arm[1:], frame, g_pred, row, motions, sets, up, [])
+    reply, box = pick_region(reader, revision, row["task"], k, keyframe_boxes, sets)
+    prediction, exact = region_prediction(list(box), k, sets, actions, up) if box else (None, None)
+    out["M'"] = arm_row("M'", k if box else None, prediction, row, motions, sets, up, [reply] if reply else [],
+                        region_exact=exact, marks=len(keyframe_boxes[:MAX_MARKS]))
+    return out
 
-    def no_model() -> None:
-        raise SystemExit(f"{visit}: M' needs the 4B answers; run --model 4b first")
 
-    return own, H.CachedReader(out / "4b" / f"answers_{visit}.json", no_model)
+def control_file(runs: Path, visit: str, model: str) -> Path:
+    """The control records holding this model's own choices of frame and region."""
+    return runs / CONTROL_FOLDERS[model] / f"{visit}.json"
 
 
 def main() -> None:
@@ -160,54 +179,42 @@ def main() -> None:
     parser.add_argument("--runs", type=Path, default=REPO_ROOT / "runs" / "mem_phase1", help="phase-1 results and controls")
     parser.add_argument("--c0", type=Path, default=REPO_ROOT / "runs" / "mem_c0" / "records.json")
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "runs" / "mem_c1")
-    parser.add_argument("--no-vlm", action="store_true", help="only the arms without a model (M, O): runs on the CPU")
+    parser.add_argument("--no-vlm", action="store_true", help="only the arms without a model (M, M4, O): runs on the CPU")
     args = parser.parse_args()
     started = time.time()
     result = json.loads((args.runs / f"{args.visit}.json").read_text())
-    controls = json.loads((args.runs / "controls" / f"{args.visit}.json").read_text())  # 4B: c3's and p4n's choices
+    controls = json.loads(control_file(args.runs, args.visit, args.model).read_text())  # this model's c3, p4n and c4
     tasks = c1_tasks(json.loads(args.c0.read_text()), args.visit, controls["tasks"])
     scene = P.load_scene(REPO_ROOT / "data" / "scenefun3d", args.visit, result["video"])
     steady = keyframes.scene_keyframes(scene, "steady", result["n_keyframes"])
-    c3, p4n = controls["arms"]["c3"], controls["arms"]["p4n"]
-    times = {row["keyframe"] for _, row in tasks} | {p4n[i]["frame"] for i, _ in tasks if p4n[i]["frame"]}
+    chosen = {arm: controls["arms"][arm] for arm in ("c3", "p4n", "c4")}
+    times = {row["keyframe"] for _, row in tasks} | {chosen[a][i]["frame"] for a in ("p4n", "c4") for i, _ in tasks if chosen[a][i]["frame"]}
     if not args.no_vlm:
-        times |= {c3[i]["frame"] for i, _ in tasks if c3[i]["frame"]}
+        times |= {chosen["c3"][i]["frame"] for i, _ in tasks if chosen["c3"][i]["frame"]}
     sets = frame_sets(scene, times, args.runs / "mono" / result["video"])
     motions = {p: A.part_motion(scene.motions[e.annot_id], scene.part_points(p), scene.scan_xyz, reading="docs")
                for p, e in enumerate(scene.elements) if e.annot_id in scene.motions}
     actions = C.part_actions([e.label for e in scene.elements])
     with np.load(args.runs / "diagnostics" / f"{args.visit}.npz") as saved:
-        p4_keyframe, p4_boxes = saved["keyframe/P4"], saved["boxes/P4"]
-    reader, reader_4b = (None, None) if args.no_vlm else readers(args.out, args.visit, args.model)
-    revision = VLMS[args.model][1]
+        p4_regions = [(steady[int(kf)], tuple(int(v) for v in box)) for kf, box in zip(saved["keyframe/P4"], saved["boxes/P4"])]
+    model_id, revision = VLMS[args.model]
+    reader = None if args.no_vlm else H.CachedReader(args.out / args.model / f"answers_{args.visit}.json",
+                                                     lambda: VisionLanguageModel(model_id=model_id, revision=revision))
     arms: dict[str, list[dict]] = {}
-
-    def add(arm: str, entry: dict) -> None:
-        arms.setdefault(arm, []).append(entry)
-
     for i, row in tasks:
         k = row["keyframe"]
-        truth = truth_in(row, motions, sets[k])
-        add("O", arm_row("O", k, A.truth_as_prediction(truth), row, motions, sets, scene.up, []))
-        m_frame = p4n[i]["frame"]
-        m_pred, m_exact = memory_prediction(p4n[i]["box"], m_frame, row, sets, actions, scene.up) if m_frame else (None, None)
-        add("M", arm_row("M", m_frame, m_pred, row, motions, sets, scene.up, [], region_exact=m_exact))
-        if args.no_vlm:
-            continue
-        for arm, frame in (("V", c3[i]["frame"]), ("V'", k)):
-            reply, v_pred = ask_action(reader, revision, row["task"], frame, sets) if frame else ({"answer": "", "seconds": 0.0}, None)
-            add(arm, arm_row(arm, frame, v_pred, row, motions, sets, scene.up, [reply]))
-            g_pred = None if v_pred is None else C.rule_prediction(v_pred.point, v_pred.label, sets[frame].inputs, scene.up)
-            add("G" + arm[1:], arm_row("G" + arm[1:], frame, g_pred, row, motions, sets, scene.up, []))
-        boxes = [tuple(int(v) for v in box) for box, kf in zip(p4_boxes, p4_keyframe) if steady[int(kf)] == k]
-        reply, box = pick_region(reader_4b, VLMS["4b"][1], row["task"], k, boxes, sets)
-        mp_pred, mp_exact = memory_prediction(list(box), k, row, sets, actions, scene.up) if box else (None, None)
-        add("M'", arm_row("M'", k if box else None, mp_pred, row, motions, sets, scene.up, [reply] if reply else [],
-                          region_exact=mp_exact, marks=len(boxes[:MAX_MARKS])))
+        entries = {"O": arm_row("O", k, A.truth_as_prediction(truth_in(row, motions, sets[k])), row, motions, sets, scene.up, []),
+                   "M": chosen_region_row("M", chosen["p4n"][i], row, motions, sets, actions, scene.up),
+                   "M4": chosen_region_row("M4", chosen["c4"][i], row, motions, sets, actions, scene.up)}
+        if not args.no_vlm:
+            entries |= model_rows(reader, revision, row, chosen["c3"][i]["frame"], [box for t, box in p4_regions if t == k],
+                                  motions, sets, actions, scene.up)
+        for arm, entry in entries.items():
+            arms.setdefault(arm, []).append(entry)
     record = {"visit": args.visit, "video": result["video"], "model": None if args.no_vlm else "@".join(VLMS[args.model]),
-              "c1_version": C1_VERSION, "tasks": [row["task"] for _, row in tasks], "arms": arms,
-              "total_s": round(time.time() - started, 1)}
-    folder = args.out if args.no_vlm else args.out / args.model
+              "choices_from": CONTROL_FOLDERS[args.model], "c1_version": C1_VERSION, "tasks": [row["task"] for _, row in tasks],
+              "arms": arms, "total_s": round(time.time() - started, 1)}
+    folder = args.out / args.model
     folder.mkdir(parents=True, exist_ok=True)
     (folder / f"{args.visit}.json").write_text(json.dumps(record, indent=1, ensure_ascii=False))
     joint = {arm: np.mean([entry["score"]["joint"] for entry in rows]) for arm, rows in arms.items()}
