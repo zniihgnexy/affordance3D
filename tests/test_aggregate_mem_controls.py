@@ -63,3 +63,21 @@ def test_arm_b_is_left_out_when_a_seed_is_missing() -> None:
     record = {"tasks": ["0"], "arms": {"p4n": [_row(True)], "b s0": [_row(True)]}}
 
     assert agg.with_seed_average(record) is record
+
+
+def test_round9_arms_are_read_by_their_fixed_rules_and_set_against_the_4b_model() -> None:
+    def record(p4: list[bool], c4: list[bool], c1s: list[bool], c2s: list[bool]) -> dict:
+        return {"visit": "1", "tasks": [str(i) for i in range(len(p4))],
+                "arms": {"p4n": [_row(h) for h in p4], "c4": [_row(h) for h in c4],
+                         "c1s": [_row(h) for h in c1s], "c2s": [_row(h) for h in c2s]}}
+
+    records = [record([True, True, False, False], [True, True, False, False], [False, False, False, False], [True, False, False, False])
+               for _ in range(5)]
+    smaller = [record([True, False, False, False], [False, False, False, False], [False] * 4, [False] * 4) for _ in range(5)]
+
+    summary = agg.summarise(records)
+
+    assert summary["against_p4"]["c4"]["verdict"] == "close" and "stop and discuss" in summary["against_p4"]["c4"]["reading"]
+    assert summary["choosing_keyframes_same_reading"]["rate"] == pytest.approx(0.25)
+    assert summary["choosing_keyframes_same_reading"]["verdict"] == "worth something"
+    assert agg.against_smaller(records, smaller)["p4n"]["rate"] == pytest.approx(0.25)

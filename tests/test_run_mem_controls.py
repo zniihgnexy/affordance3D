@@ -37,3 +37,22 @@ def test_p3_indices_repeats_the_draw_of_the_phase1_runner() -> None:
     policies.random_candidates(p4, len(p4), 5, image_hw, expected_rng)
     expected = policies.size_matched(pool, p4, len(p4), expected_rng)
     assert [pool[i] for i in indices] == expected and len(set(indices)) == len(p4)
+
+
+def test_annotated_on_keeps_the_regions_of_the_shown_keyframes_in_order_and_caps_them() -> None:
+    regions = [policies.Candidate(k, (k, 0, k + 1, 1), (0, 0, 0, 0)) for k in (0, 2, 2, 5, 7)]
+
+    assert [c.keyframe for c in run.annotated_on([2, 7], regions)] == [2, 2, 7]
+    many = [policies.Candidate(1, (i, 0, i + 1, 1), (0, 0, 0, 0)) for i in range(run.MAX_MARKS + 5)]
+    assert len(run.annotated_on([1], many)) == run.MAX_MARKS and run.annotated_on([1], many)[0].box == (0, 0, 1, 1)
+
+
+def test_best_keyframes_without_the_memory_ranks_by_whole_keyframe_meaning() -> None:
+    keyframes = np.eye(4)[:, :3] + 0.01
+    keyframes = keyframes / np.linalg.norm(keyframes, axis=1, keepdims=True)
+    query = np.array([0.0, 1.0, 0.2]) / np.linalg.norm([0.0, 1.0, 0.2])
+
+    assert run.best_keyframes(query, keyframes)[0] == 1
+    # a token on keyframe 3 that matches the query lifts it to the top once the memory is used
+    with_memory = run.best_keyframes(query, keyframes, np.array([query, -query]), np.array([3, 0]))
+    assert with_memory[0] == 3

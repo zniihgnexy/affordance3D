@@ -18,6 +18,14 @@ The second batch (section 24.7):
     d      every generic region written into the memory, read like p4n (the 40 best-scoring regions of the top keyframes)
     cplus  no memory: our 40 keyframes, shrunk; the model names one, then draws the box in it at full size (as c3)
 
+Round 9 (section 24.8), to measure what the memory itself is worth:
+
+    c4     the annotated regions of c1's three keyframes (chosen without the memory), numbered; the model picks one
+    c1s    c1's three keyframes read like c3 (shrunk: name one; then draw the box at full size)   [c1' in the draft]
+    c2s    P4's three keyframes read the same way                                                 [c2' in the draft]
+
+--model 8b runs Qwen3-VL-8B instead of the 4B model; its records and answers go to runs/mem_phase1/controls_8b/.
+
 b and d need the vectors of every generic region; they are encoded once per scene, together with every grid level (for
 control a, scored on the CPU by scripts/score_mem_control_a.py), and saved in runs/mem_phase1/controls/features_<visit>.npz.
 
@@ -51,19 +59,21 @@ from affordance3d.mem import keyframes, policies
 from affordance3d.mem import phase1_diagnostics as D
 from affordance3d.mem import pipeline as P
 from affordance3d.mem import search as S
-from affordance3d.mem.encoders import VLM_ID, VLM_REVISION, VisionLanguageModel
+from affordance3d.mem.encoders import VLMS, VisionLanguageModel
 from report import mem_phase1_helpers as R
 from report import mem_steps_helpers as H
 
-ARMS = ("p4n", "c1", "c2", "c3", "b", "d", "cplus")
+ARMS = ("p4n", "c1", "c2", "c3", "b", "d", "cplus", "c4", "c1s", "c2s")
+OUT_FOLDERS = {"4b": "controls", "8b": "controls_8b"}
 P3_SEEDS = (0, 1, 2, 3, 4)
 CONTROLS_VERSION = "controls-v3"  # v2: every prompt defines "the part"; v3: longer answers (pilot, 2026-11-13)  # part of the answer cache key: change it when a prompt or an image changes
 TOP_KEYFRAMES, MAX_MARKS, SHRINK = 3, 40, 2
 ANSWER_TOKENS = {"number": 8, "box": 160}  # some answers explain first, then give the box
 
 
-def answer_key(arm: str, prompt: str, frames: list[str], boxes: list) -> str:
-    payload = json.dumps([CONTROLS_VERSION, H.MARKS_VERSION, VLM_REVISION, arm, prompt, frames, boxes])
+def answer_key(arm: str, prompt: str, frames: list[str], boxes: list, revision: str = VLMS["4b"][1]) -> str:
+    """Cache key of one question; each model keeps its answers in its own folder, so the 4B revision stays in the key."""
+    payload = json.dumps([CONTROLS_VERSION, H.MARKS_VERSION, revision, arm, prompt, frames, boxes])
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
@@ -105,7 +115,12 @@ def numbered_choice(reader: H.CachedReader, task: str, query: np.ndarray, frames
     scores = S.score_keyframes(query, keyframe_vectors, vectors, [c.keyframe for c in candidates], [0] * len(candidates))
     top = [int(k) for k in scores.ranking()[:TOP_KEYFRAMES]]
     inside = sorted((i for i, c in enumerate(candidates) if c.keyframe in top), key=lambda i: -scores.token_scores[i])[:MAX_MARKS]
-    kept = [candidates[i] for i in sorted(inside)]
+    return numbered_reading(reader, arm, task, frames, times, top, [candidates[i] for i in sorted(inside)], labels, parts)
+
+
+def numbered_reading(reader: H.CachedReader, arm: str, task: str, frames: list, times: list[str], top: list[int],
+                     kept: list[policies.Candidate], labels: list[np.ndarray], parts: tuple[int, ...]) -> dict:
+    """The model sees the keyframes `top` with the regions `kept` numbered on them and picks one (neutral prompt)."""
     images, marks = H.mark_boxes(frames, [(c.keyframe, c.box) for c in kept], top)
     if not marks:
         return {**G.answer_record(G.Grounding(None, None), None, None, False, False, [], 0.0, len(top)), "frame_right": False,
@@ -124,7 +139,7 @@ def numbered_choice(reader: H.CachedReader, task: str, query: np.ndarray, frames
 
 def raw_video(reader: H.CachedReader, task: str, video: list, times: list[str], labels: list[np.ndarray], parts: tuple[int, ...],
               arm: str = "c3") -> dict:
-    """c3, cplus: the model sees 40 frames (shrunk), names one, then draws the box in it at full size."""
+    """c3, cplus, c1s, c2s: the model sees the frames (shrunk), names one, then draws the box in it at full size."""
     first = G.frame_prompt(task, len(video))
     pick = reader.ask(answer_key(f"{arm}-frame", first, times, []), [shrink(frame.rgb) for frame in video], first,
                       labels=G.image_labels(len(video), "Frame"), max_new_tokens=ANSWER_TOKENS["number"])
@@ -141,6 +156,21 @@ def raw_video(reader: H.CachedReader, task: str, video: list, times: list[str], 
     record = G.answer_record(G.Grounding(number, grounding.box), box, times[index], hit, hit_old, [pick["answer"], reply["answer"]],
                              pick["seconds"] + reply["seconds"], len(video) + 1)
     return {**record, "frame_right": shows}
+
+
+def best_keyframes(query: np.ndarray, keyframe_vectors: np.ndarray, vectors: np.ndarray | None = None,
+                   token_keyframes: np.ndarray | None = None) -> list[int]:
+    """The three best keyframes: by whole-keyframe meaning alone (no memory), or with the memory's tokens as in phase 1."""
+    if vectors is None:
+        vectors, token_keyframes = np.zeros((0, keyframe_vectors.shape[1])), np.zeros(0, dtype=np.int64)
+    scores = D.keyframe_scores(query, keyframe_vectors, vectors, token_keyframes)
+    return [int(k) for k in np.argsort(-scores, kind="stable")[:TOP_KEYFRAMES]]
+
+
+def annotated_on(shown: list[int], regions: list[policies.Candidate]) -> list[policies.Candidate]:
+    """c4: the annotated regions that lie on the keyframes `shown`, in keyframe order, at most MAX_MARKS (no ranking:
+    ranking them would use the memory)."""
+    return [c for c in regions if c.keyframe in set(shown)][:MAX_MARKS]
 
 
 def all_grids(n_keyframes: int, image_hw: tuple[int, int]) -> dict[str, list[policies.Candidate]]:
@@ -185,7 +215,9 @@ def main() -> None:
     parser.add_argument("--visit", required=True)
     parser.add_argument("--arms", default=",".join(ARMS))
     parser.add_argument("--runs", type=Path, default=REPO_ROOT / "runs" / "mem_phase1")
+    parser.add_argument("--model", choices=sorted(VLMS), default="4b")
     args = parser.parse_args()
+    model_id, revision = VLMS[args.model]
     arms = [arm for arm in args.arms.split(",") if arm]
     unknown = set(arms) - set(ARMS)
     if unknown:
@@ -204,14 +236,14 @@ def main() -> None:
         saved_p3 = {seed: (saved[f"boxes/P3 s{seed}"], saved[f"vectors/P3 s{seed}"]) for seed in P3_SEEDS if f"boxes/P3 s{seed}" in saved.files}
     p4 = [policies.Candidate(int(k), tuple(int(v) for v in box), (0, 0, 0, 0)) for k, box in zip(p4_keyframes, p4_boxes)]
     frames = rgb_frames(scene, steady)
-    out = args.runs / "controls"
-    reader = H.CachedReader(out / f"answers_{args.visit}.json", VisionLanguageModel)
+    out = args.runs / OUT_FOLDERS[args.model]
+    reader = H.CachedReader(out / f"answers_{args.visit}.json", lambda: VisionLanguageModel(model_id=model_id, revision=revision))
     record_file = out / f"{args.visit}.json"
     record = json.loads(record_file.read_text()) if record_file.exists() else {"visit": args.visit, "video": result["video"], "arms": {}}
     pool = generic = None
     if {"b", "d"} & set(arms):
         pool = R.generic_pool(args.runs / "regions" / f"{args.visit}.json", frames[0].image_hw)
-        generic = generic_features(out / f"features_{args.visit}.npz", frames, pool)
+        generic = generic_features(args.runs / "controls" / f"features_{args.visit}.npz", frames, pool)
         draws = {seed: p3_indices(p4, pool, len(frames), frames[0].image_hw, seed) for seed in P3_SEEDS}
         agreement = []
         for seed, (boxes, vectors) in saved_p3.items():
@@ -219,7 +251,7 @@ def main() -> None:
                 raise SystemExit(f"{args.visit}: P3 seed {seed} differs from the draw saved by the diagnostics")
             agreement.append(float(np.min(np.sum(generic["pool/vectors"][draws[seed]] * vectors, axis=1))))
         record["encoder_agreement"] = min(agreement) if agreement else None  # lowest cosine, this run's vectors against phase 1's
-    record.update({"model": f"{VLM_ID}@{VLM_REVISION}", "controls_version": CONTROLS_VERSION, "tasks": [task.text for task in tasks]})
+    record.update({"model": f"{model_id}@{revision}", "controls_version": CONTROLS_VERSION, "tasks": [task.text for task in tasks]})
     uniform = video = uniform_labels = None
     for arm in arms:
         if arm == "b":
@@ -234,7 +266,14 @@ def main() -> None:
             continue
         rows = []
         for task, query in zip(tasks, queries):
-            if arm == "d":
+            if arm == "c4":
+                shown = best_keyframes(query, keyframe_vectors)
+                rows.append(numbered_reading(reader, "c4", task.text, frames, steady, shown, annotated_on(shown, p4), labels, task.parts))
+            elif arm in ("c1s", "c2s"):
+                shown = best_keyframes(query, keyframe_vectors) if arm == "c1s" else best_keyframes(query, keyframe_vectors, p4_vectors, p4_keyframes)
+                rows.append(raw_video(reader, task.text, [frames[k] for k in shown], [steady[k] for k in shown],
+                                      [labels[k] for k in shown], task.parts, arm))
+            elif arm == "d":
                 rows.append(numbered_choice(reader, task.text, query, frames, steady, keyframe_vectors, pool, generic["pool/vectors"],
                                             labels, task.parts, "d"))
             elif arm == "cplus":
@@ -242,9 +281,7 @@ def main() -> None:
             elif arm == "p4n":
                 rows.append(numbered_choice(reader, task.text, query, frames, steady, keyframe_vectors, p4, p4_vectors, labels, task.parts))
             elif arm in ("c1", "c2"):
-                scores = (D.keyframe_scores(query, keyframe_vectors, np.zeros((0, keyframe_vectors.shape[1])), []) if arm == "c1"
-                          else D.keyframe_scores(query, keyframe_vectors, p4_vectors, p4_keyframes))
-                shown = [int(k) for k in np.argsort(-scores, kind="stable")[:TOP_KEYFRAMES]]
+                shown = best_keyframes(query, keyframe_vectors) if arm == "c1" else best_keyframes(query, keyframe_vectors, p4_vectors, p4_keyframes)
                 rows.append(free_box(reader, arm, task.text, frames, shown, steady, labels, task.parts))
             else:
                 if video is None:

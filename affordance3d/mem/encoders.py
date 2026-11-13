@@ -22,6 +22,9 @@ SIGLIP_REVISION = "f775b65a79762255128c981547af89addcfe0f88"
 SIGLIP_TEXT_TOKENS = 64
 VLM_ID = "Qwen/Qwen3-VL-4B-Instruct"  # Apache-2.0
 VLM_REVISION = "ebb281ec70b05090aa6165b016eac8ec08e71b17"
+VLM_8B_ID = "Qwen/Qwen3-VL-8B-Instruct"  # Apache-2.0; the default open model of 2026 papers (round 9, question 6a)
+VLM_8B_REVISION = "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b"
+VLMS = {"4b": (VLM_ID, VLM_REVISION), "8b": (VLM_8B_ID, VLM_8B_REVISION)}
 IMAGE_BATCH = 16
 
 
@@ -84,10 +87,10 @@ class ImageTextEncoder:
 class VisionLanguageModel:
     """A small open vision-language model that answers one question about a few images."""
 
-    def __init__(self, device: str | None = None) -> None:
+    def __init__(self, device: str | None = None, model_id: str = VLM_ID, revision: str = VLM_REVISION) -> None:
         from transformers import AutoModelForImageTextToText, AutoProcessor
 
-        source = model_source(VLM_ID, VLM_REVISION)
+        source = model_source(model_id, revision)
         self.device = device or default_device()
         self._processor = AutoProcessor.from_pretrained(**source)
         self._model = AutoModelForImageTextToText.from_pretrained(**source, **_gpu_precision(self.device)).eval().to(self.device)
