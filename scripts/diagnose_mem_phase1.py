@@ -143,6 +143,21 @@ def over_seeds(scene: dict, name: str, **settings: float) -> np.ndarray:
     return np.mean([hits(scene, f"{name} s{seed}", **settings) for seed in SEEDS], axis=0)
 
 
+def with_misses(scene: dict, share: float, empty_z: float = S.EMPTY_KEYFRAME_Z, seeds: int = 5) -> np.ndarray:
+    """P4 with only a random `share` of its tokens, as the run subsamples them (an affordance map that misses parts)."""
+    vectors, token_keyframe, out = scene["vectors/P4"], scene["keyframe/P4"], []
+    for seed in range(seeds):
+        keep = np.sort(np.random.default_rng(seed).permutation(len(vectors))[:max(1, round(share * len(vectors)))])
+        thinned = {**scene, "vectors/thinned": vectors[keep], "keyframe/thinned": token_keyframe[keep]}
+        out.append(hits(thinned, "thinned", empty_z=empty_z))
+    return np.mean(out, axis=0)
+
+
+def median_area(scene: dict, name: str) -> float:
+    boxes = scene[f"boxes/{name}"]
+    return float(np.median((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]))) if len(boxes) else float("nan")
+
+
 def covered(scene: dict, name: str) -> np.ndarray:
     """Per task: 1 when one of the boxes the model-reading step would show lies on the target part."""
     candidates, out = candidates_of(scene, name), []
@@ -208,9 +223,16 @@ def main() -> None:
             setting = {"weight": weight, "empty_z": empty_z}
             rows = {"P4": [hits(s, "P4", **setting) for s in scenes], "P1": [hits(s, "P1", **setting) for s in scenes],
                     "P3": [over_seeds(s, "P3", **setting) for s in scenes], "P2": [over_seeds(s, "P2", **setting) for s in scenes],
-                    "shortlist": [hits(s, None, shortlist=True, **setting) for s in scenes]}
+                    "shortlist": [hits(s, None, shortlist=True, **setting) for s in scenes],
+                    "P3 same keyframes": [over_seeds(s, "P3 same keyframes", **setting) for s in scenes],
+                    "P2 same keyframes": [over_seeds(s, "P2 same keyframes", **setting) for s in scenes]}
             sweep[f"weight {weight:g}, empty {empty_z:g}"] = rows
-    best = {name: max(sweep, key=lambda setting: A.pooled(sweep[setting][name])) for name in ("P4", "P1", "P2", "P3", "shortlist")}
+    swept = ("P4", "P1", "P2", "P3", "shortlist", "P3 same keyframes", "P2 same keyframes")
+    best = {name: max(sweep, key=lambda setting: A.pooled(sweep[setting][name])) for name in swept}
+    whole = arms["P0 whole keyframes"]
+    misses = {f"P4 with {share:g} of its tokens, empty {empty_z:g}": [with_misses(s, share, empty_z) for s in scenes]
+              for share in (0.25, 0.5) for empty_z in (S.EMPTY_KEYFRAME_Z, 0.0)}
+    stored = {share: A.pooled([A.scene_rates(result, A.P4, share) for result in results]) for share in (0.25, 0.5)}
     chance = np.array([D.chance_rates(right, np.isin(np.arange(len(s["keyframes"])), s["keyframe/P4"]))
                        for s in scenes for right in s["truth"]["relevant"]])
     empty_names = scenes[0]["truth"]["empty_keyframes"]
@@ -223,7 +245,17 @@ def main() -> None:
         "best_setting": best,
         "at_best_settings": {f"P4 (default) minus {name} at its best setting": triple(A.paired_difference(arms["P4 affordance regions"],
                                                                                                              sweep[best[name]][name]))
-                             for name in ("P1", "P2", "P3", "shortlist")},
+                             for name in swept[1:]},
+        "same_setting": {setting: {f"P4 minus {name}": triple(A.paired_difference(rows["P4"], rows[name]))
+                                   for name in ("P3", "P3 same keyframes")} for setting, rows in sweep.items()},
+        "misses": {name: {**triple(A.bootstrap(per_scene)), "minus P0": triple(A.paired_difference(per_scene, whole))}
+                   for name, per_scene in misses.items()},
+        "misses_repeat_the_run": {f"{share:g}": [stored[share], A.pooled(misses[f"P4 with {share:g} of its tokens, empty -3"])]
+                                  for share in (0.25, 0.5)},
+        "median_region_area_px": {name: float(np.median([median_area(s, key) for s in scenes]))
+                                  for name, key in (("P4", "P4"), ("P3 same keyframes", "P3 same keyframes s0"),
+                                                    ("P2 same keyframes", "P2 same keyframes s0"), ("P3", "P3 s0"))},
+        "area_ratio_same_keyframes_to_p4": float(np.median([median_area(s, "P3 same keyframes s0") / median_area(s, "P4") for s in scenes])),
         "chance": {"a random keyframe": float(chance[:, 0].mean()), "a random keyframe among those with an affordance region": float(chance[:, 1].mean())},
         "a_shown_box_is_on_the_target": {name: triple(A.bootstrap([covered(s, key) for s in scenes]))
                                          for name, key in (("P4 affordance regions", "P4"), ("P3 generic regions", "P3 s0"))},
@@ -238,6 +270,17 @@ def main() -> None:
     for name, row in {**summary["differences"], **summary["at_best_settings"]}.items():
         print(f"  {name}: {100 * row['rate']:+.1f} [{100 * row['low']:+.1f}, {100 * row['high']:+.1f}]")
     print("  best settings:", best)
+    for name in ("P3", "P3 same keyframes"):
+        rows = [(setting, row[f"P4 minus {name}"]) for setting, row in summary["same_setting"].items()]
+        low, high = min(rows, key=lambda r: r[1]["rate"]), max(rows, key=lambda r: r[1]["rate"])
+        print(f"  same setting, P4 minus {name}: from {100 * low[1]['rate']:+.1f} [{100 * low[1]['low']:+.1f}, {100 * low[1]['high']:+.1f}] "
+              f"({low[0]}) to {100 * high[1]['rate']:+.1f} ({high[0]}); intervals above 0 in "
+              f"{sum(r[1]['low'] > 0 for r in rows)} of {len(rows)} settings")
+    for name, row in summary["misses"].items():
+        print(f"  {name}: {100 * row['rate']:.1f}; minus P0 {100 * row['minus P0']['rate']:+.1f} "
+              f"[{100 * row['minus P0']['low']:+.1f}, {100 * row['minus P0']['high']:+.1f}]")
+    print("  misses repeat the run (stored, here):", {k: [round(100 * v, 1) for v in pair] for k, pair in summary["misses_repeat_the_run"].items()})
+    print("  median region area (px):", summary["median_region_area_px"], "ratio", round(summary["area_ratio_same_keyframes_to_p4"], 2))
     print("  chance:", {name: round(value, 3) for name, value in summary["chance"].items()})
     print("  a shown box is on the target:", {name: round(row["rate"], 3) for name, row in summary["a_shown_box_is_on_the_target"].items()})
     print("  keyframes without a token:", {name: round(value, 1) for name, value in summary["keyframes_without_a_token_of_40"].items()})

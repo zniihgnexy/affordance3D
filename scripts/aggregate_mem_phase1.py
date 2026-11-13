@@ -48,11 +48,12 @@ def more_budget(results: list[dict]) -> dict:
             if difference is not None:
                 rows[f"P4 at 1x minus {other} at {budget:g}x"] = triple(difference)
     grids = {run["policy"]: run["tokens"] for r in results for run in r["search"] if run["policy"].startswith(A.P1)}
-    for grid in sorted(grids, key=grids.get):
-        difference = A.affordance_against(results, grid, None)
+    for grid in sorted(grids, key=grids.get):  # a fine grid did not run where it exceeded the budget cap: paired on its own scenes
+        ran = [r for r in results if A.scene_rates(r, grid) is not None]
+        difference = A.affordance_against(ran, grid, None)
         if difference is not None:
-            budget = np.median([run["budget"] for r in results for run in r["search"] if run["policy"] == grid])
-            rows[f"P4 at 1x minus {grid} (about {budget:.1f}x)"] = triple(difference)
+            budget = np.median([run["budget"] for r in ran for run in r["search"] if run["policy"] == grid])
+            rows[f"P4 at 1x minus {grid} (about {budget:.1f}x, {len(ran)} scenes)"] = triple(difference)
     return rows
 
 
@@ -168,7 +169,7 @@ def main() -> None:
     first, read = summary["first_keyframe_right"], summary["reading"]
     against = {name: (first[f"P4 minus {name}"]["rate"], first[f"P4 minus {name}"]["low"], first[f"P4 minus {name}"]["high"])
                if f"P4 minus {name}" in first else None for name in (A.P2, A.P3)}
-    summary["g1"] = A.g1_verdict(against[A.P3], against[A.P2], read.get("P4 affordance regions", {}).get("rate"),
+    summary["rule_21_6_category"] = A.g1_verdict(against[A.P3], against[A.P2], read.get("P4 affordance regions", {}).get("rate"),
                                  read.get("P3 generic regions", {}).get("rate"))
     (args.runs / "summary.json").write_text(json.dumps(summary, indent=1))
     print(f"{summary['scenes']} scenes, {summary['tasks']} answerable tasks of {summary['tasks_all']}")
@@ -178,7 +179,7 @@ def main() -> None:
         print(f"  model picks the right part, {name}: {row['rate']:+.3f} [{row['low']:+.3f}, {row['high']:+.3f}]")
     for name, visits in summary["missing"].items():
         print(f"  WARNING: {name} is missing in {len(visits)} scenes and is left out: {' '.join(visits)}")
-    print("  G1:", summary["g1"])
+    print("  rule of section 21.6, category:", summary["rule_21_6_category"], "(whether gate G1 is passed is the project lead's decision)")
 
 
 if __name__ == "__main__":

@@ -81,6 +81,7 @@ torch.set_num_threads(48)  # shared server: leave most cores to others
 DATA, RUNS = ROOT / "data" / "scenefun3d", ROOT / "runs" / "mem_phase1"
 MONO_ID = "depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf"
 results, summary = R.load_runs(RUNS)  # written by scripts/run_mem_phase1.py and scripts/aggregate_mem_phase1.py
+diagnostics = R.load_diagnostics(RUNS)  # the follow-up check of section 11, written by scripts/diagnose_mem_phase1.py
 print(f"{summary['scenes']} scenes, {summary['tasks']} answerable tasks")
 """, hidden=True)
 
@@ -180,11 +181,11 @@ display(R.rates_table(summary["right_keyframe_in_top3"]))
 md(r"""
 ## 5. 预算曲线：多给 token 能不能追上
 
-**怎么看图：** 横轴是记忆的预算（token 数相对于 P4 的倍数，对数刻度），纵轴是"第一个关键帧对"的比例，色带是 95% 置信区间。虚线是只有整帧（P0）的水平。P4 最多只有 1 倍（affordance 区域就这么多），其他写法一直给到 8 倍。P1 的格子数是固定的几档，所以它的点不落在整数倍上。
+**怎么看图：** 横轴是记忆的预算（token 数相对于 P4 的倍数，对数刻度），纵轴是"第一个关键帧对"的比例，色带是 95% 置信区间。虚线是只有整帧（P0）的水平。点线是第 11 节加的一组：不写任何 token，只告诉检索哪些关键帧里有 affordance 区域（每帧一个比特）。**这条点线不低于图上任何一种不按 affordance 写的方法（图上只画了 30 个场景都跑了的设置），所以曲线之间的差距不能读成 token 的效率**，第 11 节把帧级信息和 token 分开。P4 最多只有 1 倍（affordance 区域就这么多），其他写法一直给到 8 倍。P1 的格子数是固定的几档，所以它的点不落在整数倍上。
 """)
 
 code(r"""
-R.budget_figure(results, "hit1", "the first keyframe shows the part")
+R.budget_figure(results, "hit1", "the first keyframe shows the part", bit=diagnostics["first_keyframe_right"][R.BIT])
 plt.show()
 curves = pd.DataFrame([point for name in (A.P4, A.P3, A.P2, A.P1) for point in summary["curves"][name]])
 curves[["rate", "low", "high"]] = (100 * curves[["rate", "low", "high"]]).round(1)
@@ -194,7 +195,7 @@ display(curves.round({"budget": 2, "tokens": 0}).set_index(["policy", "budget"])
 md(r"""
 **多给预算以后再比一次。** 这一项不属于预先写定的判定规则，是为了排除一个可能的偏差而加的检查。
 
-预算为 1 倍时，P2、P3 的 token 是散开取的，会有一些关键帧一个 token 也没有（第 3 节的输出里有那个场景的数目）；而打分公式给没有 token 的关键帧一个固定的低分。对 P4，"这一帧没有可操作的部件"是有用的信息；对 P2、P3，哪一帧没有 token 只是运气。预算到 4 至 8 倍时，几乎每个关键帧都有 token，这个因素就消失了。
+预算为 1 倍时，P2、P3 的 token 是散开取的，会有一些关键帧一个 token 也没有（第 3 节的输出里有那个场景的数目）；而打分公式给没有 token 的关键帧一个固定的低分。对 P4，"这一帧没有可操作的部件"是有用的信息；对 P2、P3，哪一帧没有 token 只是运气。预算到 4 至 8 倍时，P2、P3 这种靠运气的空关键帧基本没有了（第 11 节给出数目）。但 P4 从"哪些关键帧里有可操作的部件"得到的信息仍然在，所以下表同样不能读成 token 的效率。
 
 下表是 **P4 在 1 倍预算下的结果，减去其他写法在更大预算下的结果**（同一批任务成对比较，单位是百分点）。
 """)
@@ -329,41 +330,96 @@ verdict = pd.DataFrame({
     "model picks the right part, P4 (%)": reading[R.READING_NAMES[A.P4]], "model picks the right part, P3 (%)": reading[R.READING_NAMES[A.P3]],
 }).T[["rate", "low", "high"]]
 display((100 * verdict).round(1).rename(columns={"rate": "value", "low": "95% interval, low", "high": "95% interval, high"}))
-print("G1:", summary["g1"])
+print("rule of section 21.6, category:", summary["rule_21_6_category"], "| whether gate G1 is passed is the project lead's decision")
 """)
 
 md(r"""
-## 11. 怎么读这些结果
+## 11. 审稿后加的检查：增益从哪里来
 
-> **审稿后的说明（2026-11-12）：** 独立审稿指出，下面"结果说明了什么"的第 1 至 3 条把增益归因于"token 取在哪里"，证据还不够：打分公式给没有 token 的关键帧固定的低分，P4 可能只是受益于"知道哪些关键帧里有可操作的部件"。补充检查的计划和结果在讨论稿第 23 节；在那之前，这三条是暂定的。
+这份结果交给项目负责人之前，由一位独立的审稿人审了一遍。他指出一个第 4、5 节没有分开的问题：
+
+- 打分公式里，一个关键帧如果没有任何 token，token 这一项记为 −3 个标准差。
+- 对 P4，"没有 token"等于"这个关键帧里没有标注的可操作部件"，而任务所指的部件一定在有 token 的关键帧里。所以 P4 同时得到了两样东西：**token 的内容**，和**"哪些关键帧值得看"这个帧级信息**。
+- 对 P2、P3，哪个关键帧没有 token 只是运气。
+
+下面的检查把这两样分开。计划和每种结果怎么读，是在算之前写定并提交的（讨论稿第 23.2 节）。P2、P3 用 3 个随机种子，只用 CPU；用 CPU 重算的结果与 GPU 上的原结果逐条相同。
+
+| 对照组 | 它知道什么 |
+| --- | --- |
+| 整帧 + 每帧一个比特 | 哪些关键帧里有 affordance 区域；不用任何 token 的内容 |
+| 放进 P4 关键帧的 P2、P3（图里带斜线） | 与 P4 相同的关键帧、每帧个数也相同；帧内的位置是随机的，或者是通用区域 |
+
+**怎么看图：** 左边是五个对照组"第一个关键帧对"的比例。右边是相邻两步之间的差：第 1 行是帧级信息单独值多少，第 2 行是 P4 的 token 在帧级信息之上再加多少，第 3、4 行是关键帧相同时"帧内取在哪里"值多少。
+""")
+
+code(r"""
+print("CPU repeats the GPU run (task outcomes):", diagnostics["repeats_the_run"])
+set_matplotlib_formats("png")
+R.attribution_figure(diagnostics)
+plt.show()
+display(R.rates_table({**diagnostics["first_keyframe_right"], **diagnostics["differences"]}))
+""")
+
+md(r"""
+**结论会不会随打分公式里的两个常数改变？** 下表是每个对照组在 12 组常数下的结果（百分比）：token 一项的权重取 0.25、0.5、1、2；没有 token 的关键帧记 0、−1、−3。原实验用的是"权重 1、−3"。第二张表是 P4（原来的常数）减去每个基线在它自己最好的一组常数下的结果；基线的"最好"是在这 30 个场景上挑的，对基线偏乐观。第三张表是两种写法用同一组常数时，P4 减"放进 P4 关键帧的 P3"的差：token 的权重取 1 或 2 时区间都不含 0，取 0.5 或 0.25 时差变小，多数区间含 0。
+
+最后几行输出：随机选一个关键帧的命中率；端到端一步里给模型看的框有没有一个在目标部件上；各种写法没有 token 的关键帧数；区域面积的中位数（放进 P4 关键帧的 P2 与 P4 完全相同，P3 是 P4 的 1.7 倍左右）；以及 P4 只留四分之一、一半的 token 时，有和没有扣分项的结果。
+""")
+
+code(r"""
+display(R.sweep_table(diagnostics))
+print("best setting of each arm:", diagnostics["best_setting"])
+display(R.rates_table(diagnostics["at_best_settings"]))
+display(R.rates_table({setting: row["P4 minus P3 same keyframes"] for setting, row in diagnostics["same_setting"].items()}))
+print("median region area in pixels:", diagnostics["median_region_area_px"],
+      "| P3 in P4's keyframes against P4, median over scenes:", round(diagnostics["area_ratio_same_keyframes_to_p4"], 2))
+print("P4 with a part of its tokens, minus P0 (points):",
+      {name: f"{100 * row['minus P0']['rate']:+.1f} ({100 * row['minus P0']['low']:+.1f} to {100 * row['minus P0']['high']:+.1f})"
+       for name, row in diagnostics["misses"].items()})
+print("chance that a random keyframe is right:", {name: f"{100 * value:.1f}%" for name, value in diagnostics["chance"].items()})
+print("tasks where a box shown to the model lies on the target part:",
+      {name: f"{100 * row['rate']:.1f}% ({100 * row['low']:.1f} to {100 * row['high']:.1f})"
+       for name, row in diagnostics["a_shown_box_is_on_the_target"].items()})
+print("keyframes without any token, of 40 (mean over scenes):",
+      {name: round(value, 1) for name, value in diagnostics["keyframes_without_a_token_of_40"].items()})
+""")
+
+md(r"""
+## 12. 怎么读这些结果
 
 **按预先写定的规则，G1 的条件都满足：** P4 比 P3 高，差值的区间不含 0；端到端选对的比例 P4 不低于 P3；P4 也高于 P2。**关口是否通过，由项目负责人决定。**
 
 **结果说明了什么**（都是 ORACLE 的上限）
 
-1. **预算相同时，由 affordance 决定位置的 token 明显更好。** "第一个关键帧对"的比例：P4 66.2%，P3 47.3%，P0 45.6%，P2 38.5%。P4 比 P3 高 18.8 个百分点（区间 12.9 到 24.9）。
-2. **多给预算追不上。** P3 给到 8 倍的 token 是 51.3%，仍低于 P4 的 1 倍；P4 只留四分之一的 token（52.2%），就与 P3 的 4 到 8 倍相当。P4 在 1 倍预算下比 P3 在 8 倍预算下高 14.9 个百分点（区间 9.2 到 21.3）。
-3. **不按 affordance 取的 token，比只有整帧多不出什么。** 1 倍预算时，通用区域比只有整帧高 1.7 个百分点（区间 −3.5 到 +7.5，看不出差别）；随机位置比只有整帧低 7.1 个百分点（区间 −11.7 到 −2.3）。
-4. **端到端的差距更大。** 视觉语言模型选对部件的比例：P4 53.6%，P3 10.3%。
-5. **先重建没有让接触点更准。** 从单个关键帧现算，中位误差 4.1 厘米；先融合成 1 厘米体素的点云再读，是 5.4 厘米，每个场景还要多存约 22.5 MB。
+1. **预算相同时，P4 把正确的关键帧排在第 1 位的比例最高。** P4 66.2%，P3 47.3%，P0 45.6%，P2 38.5%。P4 比 P3 高 18.8 个百分点（区间 12.9 到 24.9）。
+2. **这个增益里有两样东西：帧级的信息，和 token 本身（第 11 节）。** 只用帧级信息（每个关键帧一个比特，不写任何 token），比只有整帧高 9.0 个百分点（区间 6.1 到 12.5）。只用 token（去掉对空关键帧的扣分），高 17.4 个百分点（区间 11.7 到 23.7）；这里面仍然包含"token 只出现在有可操作部件的关键帧里"这一点，因为同样去掉扣分，把通用区域放进 P4 的关键帧也有 57.5%（比只有整帧高 11.9 个百分点）。两样都用，高 20.5 个百分点。
+3. **关键帧相同时，取在 affordance 区域上比取在别处高 7 到 9 个百分点；这个数依赖检索时给 token 的权重。** 对通用区域是 7.0 个百分点（区间 2.8 到 11.3），对随机位置是 9.4 个百分点（区间 5.8 到 13.2）。18.8 是整套写法对 P3 的差，7.0 是其中"帧内取在哪里"的那一部分。token 的权重取 1 或 2 时这个差是 5.6 到 7.0 个百分点，区间都不含 0；权重降到 0.5 或 0.25 时缩小到 1.3 到 4.9 个百分点，多数区间含 0。
+4. **不按 affordance 写的方法，在试过的预算里都没有追上；但这主要说明帧级的功能信息很值钱，不能读成 token 的效率。** 在 30 个场景都跑了的设置里，P3 最高是 4 倍预算时的 52.7%，而"每帧一个比特"不写任何 token 就是 54.6%。P4 在 1 倍预算下比 P3 在 8 倍预算下高 14.9 个百分点（区间 9.2 到 21.3）。每个基线取 12 组常数里最好的一组，P4 仍领先 15 个百分点以上。
+5. **不按 affordance 取的 token，在 1 倍预算下比只有整帧多不出什么；预算加大后能多出几个百分点。** 1 倍时，通用区域 +1.7（区间 −3.5 到 +7.5），随机位置 −7.1（区间 −11.7 到 −2.3）。通用区域到 4 倍时是 +7.0（区间 2.6 到 11.7）。
+6. **端到端的差距主要来自候选。** 视觉语言模型选对部件的比例：P4 53.6%，P3 10.3%。给模型看的框里有一个在目标部件上的任务，P4 是 83.6%，P3 只有 20.0%。
+7. **简单融合同样的深度图，没有让接触点更准。** 从单个关键帧现算，中位误差 4.1 厘米；融合成 1 厘米体素的点云再读，是 5.4 厘米。在两种读法都读得出的 466 个部件上成对比较，融合的误差中位数多 0.26 厘米（区间 0.12 到 0.35）。
 
 **结果没有说明什么**
 
-- **这是最有利于 affordance 的设定。** affordance map 是标注投影来的，而 SceneFun3D 的任务只问标注过的功能部件。换成模型预测的 affordance map，会漏、会错，增益会缩小；缩小多少，要到阶段 2 才知道。
+- **这是最有利于 affordance 的设定。** affordance map 是标注投影来的，而 SceneFun3D 的任务只问标注过的功能部件：任务所指的部件一定在有 affordance 区域的关键帧里。换成模型预测的 affordance map，会漏、会错，增益会缩小；缩小多少，要到阶段 2 才知道。
+- **漏掉部件时，增益会很快变小。** P4 随机只留四分之一的 token，比只有整帧只高 6.5 个百分点（区间 0.4 到 13.6）；去掉对空关键帧的扣分再算，也差不多（6.0 个百分点）。
 - **没有测"普通物体"的查询。** affordance token 对这类查询会不会变差，这次回答不了。
-- **P3 只是通用区域的一种取法。** 这里用的是 SAM 的分割结果，按大小与 P4 匹配后随机取。其他取法（例如开放词表检测器给出的区域）没有比。
-- **端到端里 P3 的数字主要受候选框限制。** 它的框大多不在可操作的部件上，模型没有对的可选。这是"两种记忆交给模型的候选"的比较，不是模型读图能力的比较。
+- **P3 只是通用区域的一种取法。** 这里用的是 SAM 的分割结果，按大小与 P4 匹配后取。其他取法（例如开放词表检测器给出的区域）没有比；把全部分割区域都写进记忆的上限也没有跑。
 - **接触精度仍然不够。** 两种读法落在 3 厘米以内的都不到四成。
 - **没有成立的一项：** 选相机转得慢的帧，关键帧处的转速中位数从每秒 21.0 度降到 8.1 度，但看得到的部件没有变多，反而略少（561 个部件里 481 个；均匀取帧是 501 个）。
 
 **与规格（讨论稿第 21 节）不同的地方**
 
 - 6 个场景里共有 7 个关键帧，数据集给的 LiDAR 置信度整张为 0，无法按规格用 LiDAR 校正单目深度的尺度。这些帧改用同一场景其余关键帧的尺度中位数（只用输入）。
-- 1 个场景里有一个 affordance 区域大到填满了算法线用的窗口，周围没有可用的像素。这种情况改用区域自身的表面算法线；它只影响站立点，不影响接触点的误差。
-- 第 5 节后面的两张表（更大预算的比较、与只有整帧的比较）是规格之外加的检查，不参与判定。
-- 预算曲线里，P1 较细的网格在 token 少的场景里超过了 8 倍预算的上限，没有跑；图上只画了 30 个场景都有的两档，全部档位在表里（最后一列是场景数）。
+- 1 个场景里有一个 affordance 区域大到填满了算法线用的窗口。这种情况改用区域自身的表面算法线。
+- 这两处修正之后，30 个场景全部在修正后的代码上重跑了一遍；原先成功的 23 个场景，结果与第一次逐条相同。
+- 端到端一步里，P3 只用了一个随机种子的 token（规格写的是 5 个种子；检索指标用了 5 个）。
+- "token 在目标部件上"的判断，给区域框留了 8 个像素的余量。
+- P3 "按大小匹配"取的是面积最接近的区域，不同种子取到的区域有重叠，不是相互独立的抽取。
+- 第 5 节后面的表和第 11 节，是规格之外加的检查，不参与第 10 节的判定。
+- 预算曲线里，一档网格的 token 数超过 P4 的 12 倍时不跑，所以 token 少的场景里没有细网格；图上只画了 30 个场景都有的两档，全部档位在表里（最后一列是场景数）。
 
-完整的记录在[讨论稿](../../docs/mem/mem分支_问题定义与讨论稿_2026-11-10.md)第 22 节。
+完整的记录在[讨论稿](../../docs/mem/mem分支_问题定义与讨论稿_2026-11-10.md)第 22、23 节，审稿意见和处理在 `helm/REVIEW.md`。
 """)
 
 notebook = nbf.v4.new_notebook(cells=cells)

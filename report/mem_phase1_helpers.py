@@ -33,6 +33,18 @@ RIGHT_COLOUR, WRONG_COLOUR = "#008300", "#e34948"
 READING_NAMES = {A.P4: "P4 affordance regions", A.P3: "P3 generic regions"}  # keys of the model-reading results
 GEOMETRY_ROWS = {"single_frame": "one keyframe, read now (true part ids)", "l2_readout": "one keyframe, read now (parts linked by the memory)"}
 RUNNER_SEED = 1000  # scripts/run_mem_phase1.py draws P2 and P3 of seed s from default_rng(1000 + s)
+BIT, BIT_COLOUR = "whole keyframes + which keyframes hold an affordance region", "#6250d6"
+ATTRIBUTION_ARMS = (  # arm in the diagnostics, label, colour, hatched (a baseline given the keyframes of P4)
+    ("P0 whole keyframes", "P0 whole keyframes", POLICY_COLOUR[A.P0], False),
+    (BIT, "whole keyframes + one bit per keyframe\n(does it hold an affordance region?)", BIT_COLOUR, False),
+    ("P2 in the keyframes of P4", "P2 random places, in P4's keyframes", POLICY_COLOUR[A.P2], True),
+    ("P3 in the keyframes of P4", "P3 generic regions, in P4's keyframes", POLICY_COLOUR[A.P3], True),
+    ("P4 affordance regions", "P4 affordance regions", POLICY_COLOUR[A.P4], False))
+ATTRIBUTION_STEPS = (  # paired difference in the diagnostics, label, colour
+    (f"{BIT} minus P0 whole keyframes", "one bit per keyframe − P0", BIT_COLOUR),
+    (f"P4 affordance regions minus {BIT}", "P4 − one bit per keyframe", BIT_COLOUR),
+    ("P4 affordance regions minus P2 in the keyframes of P4", "P4 − P2 in P4's keyframes", POLICY_COLOUR[A.P2]),
+    ("P4 affordance regions minus P3 in the keyframes of P4", "P4 − P3 in P4's keyframes", POLICY_COLOUR[A.P3]))
 ONE = 1.0  # the budget at which the policies are compared: as many tokens as P4 has
 MB = 1e6
 
@@ -50,6 +62,14 @@ def load_runs(folder: Path) -> tuple[list[dict], dict]:
         raise ValueError(f"the summary covers {summary['scenes']} scenes, not the {len(results)} results that are there now: "
                          "run scripts/aggregate_mem_phase1.py again")
     return results, summary
+
+
+def load_diagnostics(folder: Path) -> dict:
+    """The follow-up check written by scripts/diagnose_mem_phase1.py."""
+    file = folder / "diagnostics.json"
+    if not file.exists():
+        raise FileNotFoundError(f"{file} is missing: run scripts/diagnose_mem_phase1.py (with --features first)")
+    return json.loads(file.read_text())
 
 
 # ---------------------------------------------------------------- tables
@@ -250,7 +270,37 @@ def reading_figure(summary: dict) -> plt.Figure:
     return fig
 
 
-def budget_figure(results: Sequence[dict], key: str = "hit1", what: str = "the first keyframe shows the part") -> plt.Figure:
+def attribution_figure(diagnostics: dict) -> plt.Figure:
+    """Where the gain of the affordance tokens comes from: the arms of the follow-up check (left; hatched = a baseline
+    given exactly the keyframes and per-keyframe token counts of P4) and the paired steps between them (right)."""
+    rates, steps = diagnostics["first_keyframe_right"], diagnostics["differences"]
+    fig, (left, right) = plt.subplots(1, 2, figsize=(12.5, 0.6 * len(ATTRIBUTION_ARMS) + 1.3), gridspec_kw={"width_ratios": [1.1, 1]})
+    _rate_bars(left, rates, [arm[0] for arm in ATTRIBUTION_ARMS], [arm[1] for arm in ATTRIBUTION_ARMS], [arm[2] for arm in ATTRIBUTION_ARMS])
+    for bar, arm in zip(left.patches, ATTRIBUTION_ARMS):
+        if arm[3]:
+            bar.set_hatch("///")
+            bar.set_edgecolor("white")
+    left.set_title("Share of tasks where the first keyframe shows the part (%)", fontsize=10, loc="left", color=INK)
+    _difference_dots(right, steps, [step[0] for step in ATTRIBUTION_STEPS], [step[1] for step in ATTRIBUTION_STEPS],
+                     [step[2] for step in ATTRIBUTION_STEPS])
+    right.set_title("Paired difference, percentage points (line = 95% interval)", fontsize=10, loc="left", color=INK)
+    fig.tight_layout(rect=(0, 0.035, 1, 1))
+    _oracle_note(fig)
+    return fig
+
+
+def sweep_table(diagnostics: dict) -> pd.DataFrame:
+    """The rate of every arm under every setting of the two constants of the scoring formula, in percent."""
+    names = {"P4": "P4 affordance regions", "P3 same keyframes": "P3 in P4's keyframes", "P2 same keyframes": "P2 in P4's keyframes",
+             "P3": "P3 generic regions", "P2": "P2 random places", "P1": "P1 uniform grid 2x1", "shortlist": "one bit per keyframe"}
+    table = pd.DataFrame(diagnostics["sweep"]).T
+    names = {key: label for key, label in names.items() if key in table.columns}
+    table = table.rename(columns=names)[list(names.values())]
+    return (100 * table).round(1)
+
+
+def budget_figure(results: Sequence[dict], key: str = "hit1", what: str = "the first keyframe shows the part",
+                  bit: dict | None = None) -> plt.Figure:
     """Rate against memory budget (tokens as a multiple of P4's) for every policy; bands are 95% intervals over scenes.
 
     Only points measured in every scene are drawn (a grid too fine for the budget cap of some scenes is left out).
@@ -259,6 +309,8 @@ def budget_figure(results: Sequence[dict], key: str = "hit1", what: str = "the f
     whole = [100 * value for value in A.bootstrap([A.scene_rates(result, A.P0, None, key) for result in results])]
     axis.axhspan(whole[1], whole[2], color=POLICY_COLOUR[A.P0], alpha=0.08, lw=0)
     axis.axhline(whole[0], color=POLICY_COLOUR[A.P0], lw=1.5, ls="--", label=f"{POLICY_NAMES[A.P0]} (no tokens)")
+    if bit is not None:  # the follow-up check: no tokens, only which keyframes hold an affordance region
+        axis.axhline(100 * bit["rate"], color=BIT_COLOUR, lw=1.5, ls=":", label="whole keyframes + one bit per keyframe (no tokens)")
     for name in (A.P4, A.P3, A.P2, A.P1):
         points = [point for point in A.curve(results, name, key) if point["scenes"] == len(results)]
         if not points:

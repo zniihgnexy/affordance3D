@@ -216,6 +216,28 @@ def test_target_pixels_are_the_centres_of_the_target_parts_per_keyframe() -> Non
     assert R.target_pixels(labels, parts=(3, 5)) == {1: [(22, 11)]}
 
 
+def _diagnostics() -> dict:
+    row = {"rate": 0.5, "low": 0.4, "high": 0.6}
+    step = {"rate": 0.1, "low": 0.02, "high": 0.2}
+    setting = {"P4": 0.66, "P3": 0.47, "P2": 0.39, "P1": 0.5, "shortlist": 0.55}
+    return {"first_keyframe_right": {arm[0]: row for arm in R.ATTRIBUTION_ARMS}, "differences": {s[0]: step for s in R.ATTRIBUTION_STEPS},
+            "sweep": {"weight 1, empty -3": setting, "weight 1, empty 0": {**setting, "P4": 0.631}}}
+
+
+def test_attribution_figure_and_sweep_table_show_the_follow_up_check(tmp_path: Path) -> None:
+    (tmp_path / "diagnostics.json").write_text(json.dumps(_diagnostics()))
+
+    diagnostics = R.load_diagnostics(tmp_path)
+    figure, table = R.attribution_figure(diagnostics), R.sweep_table(diagnostics)
+
+    bars = figure.axes[0].patches
+    assert len(figure.axes) == 2 and len(bars) == 5 and [bool(bar.get_hatch()) for bar in bars] == [False, False, True, True, False]
+    assert table.loc["weight 1, empty 0", "P4 affordance regions"] == 63.1 and table.loc["weight 1, empty -3", "one bit per keyframe"] == 55.0
+    plt.close(figure)
+    with pytest.raises(FileNotFoundError, match="diagnose_mem_phase1"):
+        R.load_diagnostics(tmp_path / "nowhere")
+
+
 def test_figures_refuse_a_summary_without_anything_to_compare() -> None:
     only_affordance = {**_summary(), "first_keyframe_right": {"P4": {"rate": 0.75, "low": 0.6, "high": 0.9}}}
     scene = _scene("1")
@@ -233,6 +255,8 @@ def test_figures_are_built_from_results_and_summary() -> None:
     sets = {A.P1: W.grid_candidates(2, TEST_HW, (1, 1)), A.P4: [W.Candidate(1, (2, 2, 9, 9), (0, 0, 12, 12))]}
     pick = {A.P0: R.Pick(0, None, False), A.P4: R.Pick(1, (2, 2, 9, 9), True)}
 
+    with_bit = R.budget_figure(results, bit={"rate": 0.55, "low": 0.5, "high": 0.6})
+    assert len(with_bit.axes[0].get_lines()) == len(R.budget_figure(results).axes[0].get_lines()) + 1  # one more line: the bit arm
     figures = [R.headline_figure(summary), R.reading_figure(summary), R.budget_figure(results), R.per_scene_figure(results),
                R.policies_figure(frames, sets, keyframes_shown=[0, 1]),
                R.picks_figure(frames, ["open the drawer"], [pick], [{1: [(5, 5)]}])]
