@@ -12,6 +12,15 @@ target part, widened by 8 pixels. The phase-1 rule (the box covers the centre of
     c3   no memory, the raw video: 40 frames taken evenly in time, shrunk; the model names a frame, then draws the box
          in that frame at full size
 
+The second batch (section 24.7):
+
+    b      P3 as in phase 1 (generic regions as many and as large as P4's, seeds 0 to 4), read like p4n; stored per seed
+    d      every generic region written into the memory, read like p4n (the 40 best-scoring regions of the top keyframes)
+    cplus  no memory: our 40 keyframes, shrunk; the model names one, then draws the box in it at full size (as c3)
+
+b and d need the vectors of every generic region; they are encoded once per scene, together with every grid level (for
+control a, scored on the CPU by scripts/score_mem_control_a.py), and saved in runs/mem_phase1/controls/features_<visit>.npz.
+
 Needs the phase-1 results and the saved features of scripts/diagnose_mem_phase1.py (rankings come from them). Writes
 runs/mem_phase1/controls/<visit>.json; the model's answers are cached in runs/mem_phase1/controls/answers_<visit>.json.
 The ground truth (part ids projected from the scan) is used for scoring only.
@@ -46,7 +55,8 @@ from affordance3d.mem.encoders import VLM_ID, VLM_REVISION, VisionLanguageModel
 from report import mem_phase1_helpers as R
 from report import mem_steps_helpers as H
 
-ARMS = ("p4n", "c1", "c2", "c3")
+ARMS = ("p4n", "c1", "c2", "c3", "b", "d", "cplus")
+P3_SEEDS = (0, 1, 2, 3, 4)
 CONTROLS_VERSION = "controls-v3"  # v2: every prompt defines "the part"; v3: longer answers (pilot, 2026-11-13)  # part of the answer cache key: change it when a prompt or an image changes
 TOP_KEYFRAMES, MAX_MARKS, SHRINK = 3, 40, 2
 ANSWER_TOKENS = {"number": 8, "box": 160}  # some answers explain first, then give the box
@@ -88,8 +98,10 @@ def free_box(reader: H.CachedReader, arm: str, task: str, frames: list, keyframe
 
 
 def numbered_choice(reader: H.CachedReader, task: str, query: np.ndarray, frames: list, times: list[str], keyframe_vectors: np.ndarray,
-                    candidates: list[policies.Candidate], vectors: np.ndarray, labels: list[np.ndarray], parts: tuple[int, ...]) -> dict:
-    """p4n: as the phase-1 reading step (same keyframes, same numbered regions), with the neutral prompt."""
+                    candidates: list[policies.Candidate], vectors: np.ndarray, labels: list[np.ndarray], parts: tuple[int, ...],
+                    arm: str = "p4n") -> dict:
+    """p4n, b, d: as the phase-1 reading step (the memory's three best keyframes, its best regions there numbered), with the
+    neutral prompt; `candidates` and `vectors` are what the memory holds."""
     scores = S.score_keyframes(query, keyframe_vectors, vectors, [c.keyframe for c in candidates], [0] * len(candidates))
     top = [int(k) for k in scores.ranking()[:TOP_KEYFRAMES]]
     inside = sorted((i for i, c in enumerate(candidates) if c.keyframe in top), key=lambda i: -scores.token_scores[i])[:MAX_MARKS]
@@ -99,7 +111,7 @@ def numbered_choice(reader: H.CachedReader, task: str, query: np.ndarray, frames
         return {**G.answer_record(G.Grounding(None, None), None, None, False, False, [], 0.0, len(top)), "frame_right": False,
                 "keyframes_shown": [times[k] for k in top], "marks": 0}
     prompt = G.numbered_prompt(task, len(marks))
-    reply = reader.ask(answer_key("p4n", prompt, [times[k] for k in top], [list(kept[i].box) for i in marks]), images, prompt,
+    reply = reader.ask(answer_key(arm, prompt, [times[k] for k in top], [list(kept[i].box) for i in marks]), images, prompt,
                        max_new_tokens=ANSWER_TOKENS["number"])
     mark = S.parse_mark(reply["answer"], len(marks))
     chosen = None if mark is None else kept[marks[mark - 1]]
@@ -110,10 +122,11 @@ def numbered_choice(reader: H.CachedReader, task: str, query: np.ndarray, frames
     return {**record, "frame_right": shows, "keyframes_shown": [times[k] for k in top], "marks": len(marks)}
 
 
-def raw_video(reader: H.CachedReader, task: str, video: list, times: list[str], labels: list[np.ndarray], parts: tuple[int, ...]) -> dict:
-    """c3: the model sees 40 evenly spaced frames (shrunk), names one, then draws the box in it at full size."""
+def raw_video(reader: H.CachedReader, task: str, video: list, times: list[str], labels: list[np.ndarray], parts: tuple[int, ...],
+              arm: str = "c3") -> dict:
+    """c3, cplus: the model sees 40 frames (shrunk), names one, then draws the box in it at full size."""
     first = G.frame_prompt(task, len(video))
-    pick = reader.ask(answer_key("c3-frame", first, times, []), [shrink(frame.rgb) for frame in video], first,
+    pick = reader.ask(answer_key(f"{arm}-frame", first, times, []), [shrink(frame.rgb) for frame in video], first,
                       labels=G.image_labels(len(video), "Frame"), max_new_tokens=ANSWER_TOKENS["number"])
     number = S.parse_mark(pick["answer"], len(video))
     if number is None:
@@ -121,13 +134,50 @@ def raw_video(reader: H.CachedReader, task: str, video: list, times: list[str], 
                 "frame_right": False}
     index = number - 1
     second = G.single_grounding_prompt(task)
-    reply = reader.ask(answer_key("c3-box", second, [times[index]], []), [video[index].rgb], second, max_new_tokens=ANSWER_TOKENS["box"])
+    reply = reader.ask(answer_key(f"{arm}-box", second, [times[index]], []), [video[index].rgb], second, max_new_tokens=ANSWER_TOKENS["box"])
     grounding = G.parse_grounding(reply["answer"], 1)
     box = None if grounding.box is None else G.to_pixels(grounding.box, video[index].image_hw)
     hit, hit_old, shows = scored(box, labels[index], parts)
     record = G.answer_record(G.Grounding(number, grounding.box), box, times[index], hit, hit_old, [pick["answer"], reply["answer"]],
                              pick["seconds"] + reply["seconds"], len(video) + 1)
     return {**record, "frame_right": shows}
+
+
+def all_grids(n_keyframes: int, image_hw: tuple[int, int]) -> dict[str, list[policies.Candidate]]:
+    """Every grid level of phase 1, each cut the way policies.grid_shape orients it (long side of the image, more cells)."""
+    upright = image_hw[0] >= image_hw[1]
+    return {f"{rows}x{columns}": policies.grid_candidates(n_keyframes, image_hw, (rows, columns) if upright else (columns, rows))
+            for rows, columns in policies.GRID_SHAPES}
+
+
+def p3_indices(p4: list[policies.Candidate], pool: list[policies.Candidate], n_keyframes: int, image_hw: tuple[int, int],
+               seed: int) -> list[int]:
+    """Indices into `pool` of P3 for `seed`, drawn with the random numbers of the phase-1 runner (P2 first, then P3)."""
+    rng = np.random.default_rng(R.RUNNER_SEED + seed)
+    policies.random_candidates(p4, len(p4), n_keyframes, image_hw, rng)
+    position = {id(candidate): i for i, candidate in enumerate(pool)}
+    return [position[id(candidate)] for candidate in policies.size_matched(pool, p4, len(p4), rng)]
+
+
+def generic_features(file: Path, frames: list, pool: list[policies.Candidate]) -> dict[str, np.ndarray]:
+    """Vectors of every generic region and every grid cell of one scene, encoded once and kept in `file`."""
+    if file.exists():
+        with np.load(file) as saved:
+            return {key: saved[key] for key in saved.files}
+    from affordance3d.mem.encoders import ImageTextEncoder
+
+    encoder = ImageTextEncoder()
+    arrays = {"pool/vectors": encoder.images(R.crops_of(frames, pool)),
+              "pool/keyframe": np.array([c.keyframe for c in pool], dtype=np.int64),
+              "pool/boxes": np.array([c.box for c in pool], dtype=np.int64).reshape(len(pool), 4)}
+    for name, cells in all_grids(len(frames), frames[0].image_hw).items():
+        arrays[f"grid {name}/vectors"] = encoder.images(R.crops_of(frames, cells))
+        arrays[f"grid {name}/keyframe"] = np.array([c.keyframe for c in cells], dtype=np.int64)
+    del encoder
+    file.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(file.with_suffix(".tmp.npz"), **arrays)
+    file.with_suffix(".tmp.npz").rename(file)
+    return arrays
 
 
 def main() -> None:
@@ -151,18 +201,45 @@ def main() -> None:
     with np.load(args.runs / "diagnostics" / f"{args.visit}.npz") as saved:
         keyframe_vectors, queries = saved["keyframes"], saved["queries"]
         p4_vectors, p4_keyframes, p4_boxes = saved["vectors/P4"], saved["keyframe/P4"], saved["boxes/P4"]
+        saved_p3 = {seed: (saved[f"boxes/P3 s{seed}"], saved[f"vectors/P3 s{seed}"]) for seed in P3_SEEDS if f"boxes/P3 s{seed}" in saved.files}
     p4 = [policies.Candidate(int(k), tuple(int(v) for v in box), (0, 0, 0, 0)) for k, box in zip(p4_keyframes, p4_boxes)]
     frames = rgb_frames(scene, steady)
     out = args.runs / "controls"
     reader = H.CachedReader(out / f"answers_{args.visit}.json", VisionLanguageModel)
     record_file = out / f"{args.visit}.json"
     record = json.loads(record_file.read_text()) if record_file.exists() else {"visit": args.visit, "video": result["video"], "arms": {}}
+    pool = generic = None
+    if {"b", "d"} & set(arms):
+        pool = R.generic_pool(args.runs / "regions" / f"{args.visit}.json", frames[0].image_hw)
+        generic = generic_features(out / f"features_{args.visit}.npz", frames, pool)
+        draws = {seed: p3_indices(p4, pool, len(frames), frames[0].image_hw, seed) for seed in P3_SEEDS}
+        agreement = []
+        for seed, (boxes, vectors) in saved_p3.items():
+            if not np.array_equal(generic["pool/boxes"][draws[seed]], boxes):
+                raise SystemExit(f"{args.visit}: P3 seed {seed} differs from the draw saved by the diagnostics")
+            agreement.append(float(np.min(np.sum(generic["pool/vectors"][draws[seed]] * vectors, axis=1))))
+        record["encoder_agreement"] = min(agreement) if agreement else None  # lowest cosine, this run's vectors against phase 1's
     record.update({"model": f"{VLM_ID}@{VLM_REVISION}", "controls_version": CONTROLS_VERSION, "tasks": [task.text for task in tasks]})
     uniform = video = uniform_labels = None
     for arm in arms:
+        if arm == "b":
+            for seed in P3_SEEDS:
+                chosen = [pool[i] for i in draws[seed]]
+                record["arms"][f"b s{seed}"] = [numbered_choice(reader, task.text, query, frames, steady, keyframe_vectors, chosen,
+                                                                generic["pool/vectors"][draws[seed]], labels, task.parts, f"b s{seed}")
+                                                for task, query in zip(tasks, queries)]
+            rows = [row for seed in P3_SEEDS for row in record["arms"][f"b s{seed}"]]
+            print(f"{args.visit} b: {np.mean([row['hit'] for row in rows]):.0%} of {len(tasks)} tasks right over {len(P3_SEEDS)} seeds",
+                  flush=True)
+            continue
         rows = []
         for task, query in zip(tasks, queries):
-            if arm == "p4n":
+            if arm == "d":
+                rows.append(numbered_choice(reader, task.text, query, frames, steady, keyframe_vectors, pool, generic["pool/vectors"],
+                                            labels, task.parts, "d"))
+            elif arm == "cplus":
+                rows.append(raw_video(reader, task.text, frames, steady, labels, task.parts, "cplus"))
+            elif arm == "p4n":
                 rows.append(numbered_choice(reader, task.text, query, frames, steady, keyframe_vectors, p4, p4_vectors, labels, task.parts))
             elif arm in ("c1", "c2"):
                 scores = (D.keyframe_scores(query, keyframe_vectors, np.zeros((0, keyframe_vectors.shape[1])), []) if arm == "c1"

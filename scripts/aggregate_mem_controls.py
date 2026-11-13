@@ -20,7 +20,12 @@ sys.path.insert(0, str(REPO_ROOT))
 from affordance3d.mem import phase1_stats as A
 
 NAMES = {"p4n": "P4: the memory picks the keyframes and numbers its regions", "c1": "c1: no memory, three best keyframes by meaning",
-         "c2": "c2: the memory's keyframes, the model draws the box", "c3": "c3: no memory, the raw video (40 even frames)"}
+         "c2": "c2: the memory's keyframes, the model draws the box", "c3": "c3: no memory, the raw video (40 even frames)",
+         "b": "b: P3, generic regions as many as P4's (5 seeds), read like P4",
+         "d": "d: every generic region in the memory, read like P4",
+         "cplus": "c+: no memory, our 40 keyframes, the model names one and draws the box"}
+B_SEEDS = (0, 1, 2, 3, 4)
+AVERAGED = ("hit", "hit_old", "frame_right", "seconds", "images_read")
 READINGS = {  # fixed before the run (round-7 brief, question 4; round-8 brief, section 6)
     ("c1", "close"): "close to P4: without the memory the model does about as well; C1 does not hold; stop and discuss",
     ("c3", "close"): "close to P4: without the memory the model does about as well; C1 does not hold; stop and discuss",
@@ -28,6 +33,13 @@ READINGS = {  # fixed before the run (round-7 brief, question 4; round-8 brief, 
     ("c1", "behind"): "behind P4: expected with the annotations; report only as room for phase 2",
     ("c2", "behind"): "behind P4: the numbered boxes add something beyond choosing the keyframes (with the annotations)",
     ("c3", "behind"): "behind P4: expected with the annotations; report only as room for phase 2",
+    # second batch, fixed before the run (discussion draft, section 24.7)
+    ("b", "close"): "close to P4: generic regions as many as P4's do about as well in the reading step",
+    ("b", "behind"): "behind P4: expected with the annotations; report only as room for phase 2",
+    ("d", "close"): "close to P4: in the reading step the annotated boxes are no better than the best of all generic regions",
+    ("d", "behind"): "behind P4: expected with the annotations; report only as room for phase 2",
+    ("cplus", "close"): "close to P4: without the memory the model does about as well; C1 does not hold; stop and discuss",
+    ("cplus", "behind"): "behind P4: expected with the annotations; report only as room for phase 2",
 }
 UNDETERMINED = "undetermined: the interval is too wide to call it close"
 
@@ -40,11 +52,21 @@ def triple(values: tuple[float, float, float]) -> dict:
     return {"rate": values[0], "low": values[1], "high": values[2]}
 
 
+def with_seed_average(record: dict) -> dict:
+    """A copy of `record` in which arm b is the per-task average of its seeds (b s0 ... b s4), when all of them ran."""
+    seeds = [record["arms"].get(f"b s{seed}") for seed in B_SEEDS]
+    if any(rows is None for rows in seeds):
+        return record
+    averaged = [{key: float(np.mean([rows[i][key] for rows in seeds])) for key in AVERAGED} for i in range(len(seeds[0]))]
+    return {**record, "arms": {**record["arms"], "b": averaged}}
+
+
 def per_scene(records: list[dict], arm: str, key: str) -> list[np.ndarray]:
     return [np.array([row[key] for row in record["arms"][arm]], dtype=float) for record in records]
 
 
 def summarise(records: list[dict]) -> dict:
+    records = [with_seed_average(record) for record in records]
     arms = [arm for arm in NAMES if all(arm in record["arms"] for record in records)]
     summary = {"scenes": len(records), "tasks": int(sum(len(record["tasks"]) for record in records)), "arms": {}, "against_p4": {}}
     for arm in arms:
@@ -62,6 +84,8 @@ def summarise(records: list[dict]) -> dict:
             summary["against_p4"][arm] = {**triple(difference), "verdict": verdict, "reading": reading(arm, verdict)}
     if {"c1", "c2"} <= set(arms):
         summary["choosing_keyframes"] = triple(A.paired_difference(per_scene(records, "c2", "hit"), per_scene(records, "c1", "hit")))
+    if {"cplus", "c3"} <= set(arms):
+        summary["our_keyframes_vs_even_frames"] = triple(A.paired_difference(per_scene(records, "cplus", "hit"), per_scene(records, "c3", "hit")))
     return summary
 
 
@@ -85,6 +109,9 @@ def main() -> None:
     if "choosing_keyframes" in summary:
         row = summary["choosing_keyframes"]
         print(f"  c2 minus c1 (what choosing the keyframes is worth): {100 * row['rate']:+.1f} [{100 * row['low']:+.1f}, {100 * row['high']:+.1f}]")
+    if "our_keyframes_vs_even_frames" in summary:
+        row = summary["our_keyframes_vs_even_frames"]
+        print(f"  c+ minus c3 (our keyframes against even frames): {100 * row['rate']:+.1f} [{100 * row['low']:+.1f}, {100 * row['high']:+.1f}]")
 
 
 if __name__ == "__main__":

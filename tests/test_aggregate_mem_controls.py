@@ -40,3 +40,26 @@ def test_an_arm_close_to_p4_stops_the_work_and_an_arm_missing_somewhere_is_left_
     assert "c2" not in summary["arms"] and summary["against_p4"]["c1"]["verdict"] == "close"
     assert "stop and discuss" in summary["against_p4"]["c1"]["reading"]
     assert agg.reading("c3", "undetermined") == agg.UNDETERMINED
+
+
+def test_arm_b_is_the_per_task_average_of_its_five_seeds_and_c_plus_is_set_against_c3() -> None:
+    def record() -> dict:
+        arms = {"p4n": [_row(True), _row(False)], "c3": [_row(False), _row(False)], "cplus": [_row(True), _row(False)]}
+        arms.update({f"b s{seed}": [_row(seed < 2), _row(False)] for seed in agg.B_SEEDS})
+        return {"tasks": ["0", "1"], "arms": arms}
+
+    records = [record() for _ in range(5)]
+
+    summary = agg.summarise(records)
+
+    assert summary["arms"]["b"]["right_part"]["rate"] == pytest.approx(0.2)  # 2 of 5 seeds right on one task of two
+    assert summary["against_p4"]["b"]["rate"] == pytest.approx(0.3)
+    assert summary["our_keyframes_vs_even_frames"]["rate"] == pytest.approx(0.5)
+    assert summary["against_p4"]["cplus"]["verdict"] == "close" and "stop and discuss" in summary["against_p4"]["cplus"]["reading"]
+    assert "b" not in records[0]["arms"]  # the records themselves are left as they were
+
+
+def test_arm_b_is_left_out_when_a_seed_is_missing() -> None:
+    record = {"tasks": ["0"], "arms": {"p4n": [_row(True)], "b s0": [_row(True)]}}
+
+    assert agg.with_seed_average(record) is record
