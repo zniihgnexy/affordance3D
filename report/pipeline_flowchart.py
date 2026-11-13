@@ -314,7 +314,41 @@ TARGET_R8 = Flowchart(
     panel_title="The contribution you described, as I read it; [brackets] = the evidence so far, as I judge it",
 )
 
-CHARTS = {"stage_1": STAGE_1, "target_r8": TARGET_R8}
+TARGET_R9 = Flowchart(
+    title="The paper you described, after the survey and control c (round 9): evidence and novelty of each claim",
+    boxes=TARGET_R8.boxes,
+    arrows=TARGET_R8.arrows,
+    contributions=(
+        Contribution("CA", "A new way to build the affordance map from the video (part level, with action types)",
+                     "Not built. FunGraph (IROS 2025) trains a part detector with action labels on frames; Functional-SLAM (CoRL 2026) "
+                     "builds part nodes online\nand merges them across frames. Simulation: misses cost more than false alarms; with 1/4 "
+                     "of the parts left, small ones dropped first, the gain is gone.", "largely taken; weakest claim"),
+        Contribution("CB", "Search by function, instead of a VLM reading the whole video for each question",
+                     "Control c: 53.1% (annotated maps) vs 28.5% for a VLM reading 40 raw frames; the lead comes mainly from the "
+                     "annotated boxes,\nthe memory's own share is not measured yet. FunGraph, KeySG and T-FunS3D already search a "
+                     "prebuilt functional index.",
+                     "partly taken; ORACLE upper bound only"),
+        Contribution("CC", "More accurate and faster than a traditional VLM reading the raw video",
+                     "1.2 s and 3 images vs 5.7 s and 41 images per question (writing not counted). 'Write once, query many' "
+                     "exists for long video;\nopen on SceneFun3D parts. Aligning with other papers needs the official 3D metric "
+                     "and Qwen3-VL-8B.", "idea taken; result on parts open"),
+        Contribution("CD", "Especially strong on action-related questions",
+                     "Retrieval never used the action key. Gap to the raw-video VLM: knobs +50, sockets +35, door handles +33, "
+                     "others +19 to +28, unplug -10 (n = 10);\nno difference between types (p = 0.16). No precedent found for A; "
+                     "C partly taken (AffordBot, AFUN); B taken at object level.", "A no support yet; C partly; B taken"),
+    ),
+    lanes=TARGET_R8.lanes,
+    notes=((9.9, T_READ_Y - 0.25, ("CC: compare the two answers on accuracy,\ntime per question, and total cost\n"
+                                   "over many questions on one scene")),
+           (9.9, T_READ_Y + 1.2, "CD: A and C, with B alongside (confirmed in round 8)")),
+    hints=TARGET_R8.hints,
+    footer="Novelty from the round-9 survey (method sections or abstracts; no paper read in full). Numbers of our memory use "
+           "annotated affordance maps (upper bounds); the raw-video VLM's are not upper bounds (a 4B model).",
+    contribution_label="red: the contribution you described",
+    panel_title="Each claim after the survey; [brackets] = novelty and evidence as I judge them, not a result",
+)
+
+CHARTS = {"stage_1": STAGE_1, "target_r8": TARGET_R8, "target_r9": TARGET_R9}
 
 
 def main(argv: Sequence[str]) -> None:

@@ -194,8 +194,8 @@ def typical_scene(results: Sequence[dict], other: str = A.P3, min_tasks: int = 1
 ORACLE_NOTE = "ORACLE affordance map (projected annotations): every number is an upper bound"
 
 
-def _oracle_note(fig: plt.Figure) -> None:
-    fig.text(0.995, 0.005, ORACLE_NOTE, ha="right", va="bottom", fontsize=8, color=MUTED)
+def _oracle_note(fig: plt.Figure, note: str = ORACLE_NOTE) -> None:
+    fig.text(0.995, 0.005, note, ha="right", va="bottom", fontsize=8, color=MUTED)
 
 
 def _clean(axis: plt.Axes, grid: str = "x") -> None:
@@ -489,4 +489,55 @@ def picks_figure(frames: Sequence[Frame], texts: Sequence[str], picks: Sequence[
             for spine in axis.spines.values():
                 spine.set_color(colour)
                 spine.set_linewidth(2.5)
+    return fig
+
+
+# ---------------------------------------------------------------- round-7 controls: a vision-language model without the memory
+
+CONTROL_NAMES = {"p4n": "P4: memory picks keyframes,\nnumbers its regions", "c3": "c3: no memory, VLM reads\n40 raw-video frames",
+                 "c2": "c2: memory's keyframes,\nVLM draws the box", "c1": "c1: no memory, 3 keyframes\nby meaning, VLM draws the box"}
+CONTROL_COLOUR = {"p4n": POLICY_COLOUR[A.P4], "c3": "#e34948", "c2": "#1baf7a", "c1": POLICY_COLOUR[A.P0]}
+ACTION_NAMES = {"rotate": "knob (rotate)", "hook_turn": "door handle (turn)", "tip_push": "switch / button (push)",
+                "hook_pull": "drawer or door handle (pull)", "pinch_pull": "small knob (pinch, pull)", "key_press": "key (press)",
+                "plug_in": "socket (plug in)", "unplug": "plug (unplug)", "foot_push": "pedal (foot)"}
+
+
+CONTROLS_NOTE = ("P4 and c2 use the ORACLE affordance map (annotations): upper bounds. "
+                 "c1 and c3 use no map: not upper bounds, but a 4B model with our prompts, not the field's strongest opponent")
+
+
+def _action_label(action: str, row: dict) -> str:
+    """Action type, its task count and, when computed, the gap P4 minus c3 with its 95% interval (points)."""
+    label = f"{ACTION_NAMES.get(action, action)}  (n={row['tasks']})"
+    gap = row.get("p4_minus_c3")
+    return label if gap is None else f"{label}\ngap {100 * gap[0]:+.0f} [{100 * gap[1]:+.0f}, {100 * gap[2]:+.0f}]"
+
+
+def controls_figure(summary: dict, by_action: dict, min_tasks: int = 10, between_types_p: float | None = None) -> plt.Figure:
+    """Left: share of tasks where the chosen box lies on the target part, per arm, with 95% intervals. Right: P4 and the
+    raw-video arm (c3) per action type of the target part (types with at least `min_tasks` tasks); `between_types_p` is
+    the p-value of the test whether the gap differs between action types, shown in the title when given."""
+    arms = [arm for arm in ("p4n", "c3", "c2", "c1") if arm in summary["arms"]]
+    rows = {arm: summary["arms"][arm]["right_part"] for arm in arms}
+    actions = [action for action, row in sorted(by_action.items(), key=lambda item: -item[1]["tasks"]) if row["tasks"] >= min_tasks]
+    fig, (left, right) = plt.subplots(1, 2, figsize=(13.5, 0.62 * max(len(arms), len(actions)) + 1.6), gridspec_kw={"width_ratios": [1, 1.1]})
+    _rate_bars(left, rows, arms, [CONTROL_NAMES[arm] for arm in arms], [CONTROL_COLOUR[arm] for arm in arms])
+    for bar, arm in zip(left.patches, arms):
+        bar.set_label(f"{summary['arms'][arm]['seconds_per_question']:.1f} s")
+    left.set_title("Share of tasks: the chosen box lies on the target part (%)", fontsize=10, loc="left", color=INK)
+    y = np.arange(len(actions))
+    for offset, arm in ((-0.18, "p4n"), (0.18, "c3")):
+        values = [100 * by_action[action][arm] for action in actions]
+        right.barh(y + offset, values, height=0.34, color=CONTROL_COLOUR[arm], label=CONTROL_NAMES[arm].replace("\n", " "))
+        for yy, value in zip(y + offset, values):
+            right.text(value + 1.2, yy, f"{value:.0f}", va="center", fontsize=8.5, color=INK)
+    right.set_yticks(y, [_action_label(action, by_action[action]) for action in actions], fontsize=9, color=INK)
+    right.set_ylim(len(actions) - 0.5, -1.4)  # top to bottom, with a free row above the bars for the legend
+    right.set_xlim(0, 108)
+    differs = "" if between_types_p is None else f"; gap differs between types? p = {between_types_p:.2f}"
+    right.set_title(f"By the action type of the target part (%){differs}", fontsize=10, loc="left", color=INK)
+    right.legend(frameon=False, fontsize=8.5, loc="upper right")
+    _clean(right)
+    fig.tight_layout(rect=(0, 0.035, 1, 1))
+    _oracle_note(fig, CONTROLS_NOTE)
     return fig

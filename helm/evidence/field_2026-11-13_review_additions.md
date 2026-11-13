@@ -1,0 +1,11 @@
+# Field additions from the round-9 review loop (2026-11-13)
+
+The four scout records of 2026-11-13 missed or only named some work that the three review passes of the round-9 brief brought up. Each line says who found it and how far it was read. Nothing here was read in full by the helm unless it says so.
+
+| Work | Found by | Read to | What it means for this project |
+|---|---|---|---|
+| Functional-SLAM, arXiv 2609.07497 (2026-09-07; CoRL 2026; code public) | Reviewer, pass 3 (abstract and full HTML) | Helm: abstract and introduction | Builds a functional scene graph online from RGB, keeps small interaction elements (handles, knobs, buttons) as persistent nodes, holds their geometry in anchor-keyframe coordinates (no fused 3D map) and merges them across frames. The reviewer read that it reports element recall against frames per second on SceneFun3D, with recall at 3 of about 16% (similar to FunGraph and OpenFunGraph), and that an appendix uses SAM 3 as the front end. Covers most of option 丙 (recall under a write budget, one entry per part across frames). Its purpose is mapping and loop closure for robots, not answering questions. |
+| MaskClustering (CVPR 2024), OnlineAnySeg (CVPR 2025), OVI-MAP (arXiv 2026), EmbodiedSAM | Reviewer, pass 2 | Named only; not read by the helm | Merging masks across views from posed RGB-D is established work; an association claim would have to beat these. |
+| AffordMem, Table 2: SAM 3 prompted with the task text | Reviewer, pass 3 | Not checked by the helm | Reported AP25 30.45 on SceneFun3D, close to Fun3DU: a plain no-memory opponent that prompts a segmenter with the question. |
+| UniFunc3D runtime | Charter audit, pass 3 (from the scout record) | Scout record | 53 to 99 s per question, measured on 8 H100 cards. |
+| NeurIPS 2026 guidance on use-inspired papers | Reviewers, passes 1 to 3 | Blog post read; reviewer guidelines only as search snippets (the page returned HTTP 500) | Use-inspired papers "may apply existing methods in a new context, but … should analyze why certain methodological choices are effective or ineffective"; they should tie task framing, methods and metrics to the needs of a use case. NeurIPS 2027 guidance is not out. |

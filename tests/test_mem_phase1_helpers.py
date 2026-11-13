@@ -266,3 +266,23 @@ def test_figures_are_built_from_results_and_summary() -> None:
     assert len(figures[3].axes[0].patches) == 2  # one bar per scene
     for figure in figures:
         plt.close(figure)
+
+
+def test_controls_figure_shows_every_arm_and_the_action_types_with_enough_tasks() -> None:
+    def arm(rate: float) -> dict:
+        return {"right_part": {"rate": rate, "low": rate - 0.05, "high": rate + 0.05}, "seconds_per_question": 1.0}
+
+    summary = {"arms": {"p4n": arm(0.53), "c1": arm(0.15), "c2": arm(0.17), "c3": arm(0.28)}}
+    by_action = {"hook_pull": {"tasks": 126, "p4n": 0.45, "c3": 0.25, "p4_minus_c3": [0.206, 0.115, 0.367]},
+                 "rotate": {"tasks": 28, "p4n": 0.75, "c3": 0.25},
+                 "foot_push": {"tasks": 1, "p4n": 1.0, "c3": 0.0}}
+
+    figure = R.controls_figure(summary, by_action, between_types_p=0.159)
+
+    left, right = figure.axes
+    assert right.get_title(loc="left").endswith("p = 0.16")
+    assert right.get_yticklabels()[0].get_text().endswith("gap +21 [+12, +37]")
+    assert any("c1 and c3 use no map" in text.get_text() for text in figure.texts)
+    assert len(left.patches) == 4 and len(right.patches) == 4  # four arms; two action types times two arms
+    assert [tick.get_text().split("  ")[0] for tick in right.get_yticklabels()] == ["drawer or door handle (pull)", "knob (rotate)"]
+    plt.close(figure)
