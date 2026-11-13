@@ -1,6 +1,7 @@
 """Misses and false alarms in the affordance map (R7-B; discussion draft, section 24.6): how good must a predicted map be?
 
-    python scripts/simulate_map_errors.py      # reads runs/mem_phase1/diagnostics/<visit>.npz, writes runs/mem_phase1/map_errors.json
+    python scripts/simulate_map_errors.py                      # reads runs/mem_phase1/diagnostics/<visit>.npz, writes runs/mem_phase1/map_errors.json
+    python scripts/simulate_map_errors.py --exclusion centre   # sensitivity check: stricter false alarms, writes map_errors_centre.json
 
 CPU only, from the features saved by scripts/diagnose_mem_phase1.py. A share of the affordance regions is kept (at random,
 or dropping the smallest first) and generic regions are mixed in as false alarms; each setting is scored by "the first
@@ -26,6 +27,7 @@ SEEDS = 5
 GENERIC_SEEDS = ("P3 s0", "P3 s1", "P3 s2")
 THRESHOLD_FALSE_ALARMS = 0.5
 SAME_PART_IOU = 0.5  # a generic region overlapping an affordance region this much is the same part, not a false alarm
+WIDEN = 8  # pixels, as in the scoring rule of the controls: a centre this close to an affordance region counts as on it
 
 
 def kept_tokens(areas: np.ndarray, share: float, mode: str, rng: np.random.Generator) -> np.ndarray:
@@ -47,16 +49,33 @@ def iou(box: np.ndarray, others: np.ndarray) -> np.ndarray:
     return np.where(union > 0, inter / np.maximum(union, 1), 0.0)
 
 
-def false_alarm_pool(scene: dict) -> tuple[np.ndarray, np.ndarray]:
+def centre_inside(box: np.ndarray, others: np.ndarray, widen: int = WIDEN) -> np.ndarray:
+    """Whether the centre of `box` lies in each of `others`, widened by `widen` pixels on every side."""
+    x, y = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    return ((others[:, 0] - widen <= x) & (x <= others[:, 2] + widen) & (others[:, 1] - widen <= y) & (y <= others[:, 3] + widen))
+
+
+def on_a_part(box: np.ndarray, same: np.ndarray, exclusion: str) -> bool:
+    """Whether a generic region stands for an affordance region of its keyframe, by the chosen rule."""
+    if not len(same):
+        return False
+    if exclusion == "iou":
+        return bool(iou(box, same).max() >= SAME_PART_IOU)
+    if exclusion == "centre":
+        return bool(centre_inside(box, same).any())
+    raise ValueError(f"unknown exclusion rule {exclusion!r}")
+
+
+def false_alarm_pool(scene: dict, exclusion: str = "iou") -> tuple[np.ndarray, np.ndarray]:
     """Generic regions available as false alarms (vectors, keyframes): the size-matched draws saved for P3, each
-    region once, without those that lie on an affordance region of the same keyframe."""
+    region once, without those that lie on an affordance region of the same keyframe (by `exclusion`)."""
     seen, vectors, keyframes = set(), [], []
     affordance_boxes, affordance_keyframes = scene["boxes/P4"], scene["keyframe/P4"]
     for name in GENERIC_SEEDS:
         for vector, keyframe, box in zip(scene[f"vectors/{name}"], scene[f"keyframe/{name}"], scene[f"boxes/{name}"]):
             place = (int(keyframe), *(int(v) for v in box))
             same = affordance_boxes[affordance_keyframes == keyframe]
-            if place in seen or (len(same) and iou(box, same).max() >= SAME_PART_IOU):
+            if place in seen or on_a_part(box, same, exclusion):
                 continue
             seen.add(place)
             vectors.append(vector)
@@ -109,13 +128,14 @@ def threshold(grid: dict, mode: str) -> float | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--runs", type=Path, default=REPO_ROOT / "runs" / "mem_phase1")
+    parser.add_argument("--exclusion", choices=("iou", "centre"), default="iou")
     args = parser.parse_args()
     results = A.scored(A.load_results(args.runs))
     scenes = []
     for result in results:
         with np.load(args.runs / "diagnostics" / f"{result['visit']}.npz") as saved:
             scene = {**{key: saved[key] for key in saved.files if key != "truth"}, "truth": json.loads(str(saved["truth"]))}
-        scenes.append({**scene, "visit": result["visit"], "alarm_pool": false_alarm_pool(scene)})
+        scenes.append({**scene, "visit": result["visit"], "alarm_pool": false_alarm_pool(scene, args.exclusion)})
     p0 = [reference_hits(scene, "P0") for scene in scenes]
     p3 = [reference_hits(scene, "P3") for scene in scenes]
     grid: dict = {"random": {}, "smallest_first": {}}
@@ -134,8 +154,11 @@ def main() -> None:
     summary = {"scenes": len(scenes), "tasks": int(sum(len(s["queries"]) for s in scenes)), "p0": A.pooled(p0), "p3": A.pooled(p3),
                "scenes_with_fewer_false_alarms_than_asked": short,
                "grid": grid, "threshold_keep_share": {mode: threshold(grid, mode) for mode in grid},
-               "threshold_false_alarms": THRESHOLD_FALSE_ALARMS}
-    (args.runs / "map_errors.json").write_text(json.dumps(summary, indent=1))
+               "threshold_false_alarms": THRESHOLD_FALSE_ALARMS, "exclusion": args.exclusion,
+               "false_alarms_used": {f"{a:g}": float(np.mean([min(round(a * len(s["boxes/P4"])), len(s["alarm_pool"][0])) / len(s["boxes/P4"])
+                                                            for s in scenes])) for a in FALSE_ALARMS}}
+    name = "map_errors.json" if args.exclusion == "iou" else f"map_errors_{args.exclusion}.json"
+    (args.runs / name).write_text(json.dumps(summary, indent=1))
     print(f"{summary['scenes']} scenes, {summary['tasks']} tasks; P0 {100 * summary['p0']:.1f}%, P3 {100 * summary['p3']:.1f}%")
     for mode, rows in grid.items():
         print(f"  {mode}: first keyframe right (%), rows = share kept, columns = false alarms {FALSE_ALARMS}")

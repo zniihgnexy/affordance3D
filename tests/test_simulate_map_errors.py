@@ -77,3 +77,16 @@ def test_threshold_walks_down_from_keeping_everything() -> None:
     assert sim.threshold(grid, "random") == 0.75
     grid["random"]["1"] = cell("worse")
     assert sim.threshold(grid, "random") is None
+
+
+def test_the_centre_rule_also_drops_regions_that_only_touch_a_part() -> None:
+    scene = _scene()
+    # a generic region of keyframe 2 that overlaps the affordance box (0, 0, 10, 10) a little, with its centre 6 px outside
+    for name in sim.GENERIC_SEEDS:
+        scene[f"boxes/{name}"] = np.array([[8, 8, 24, 24], [60, 60, 70, 70]])
+        scene[f"keyframe/{name}"] = np.array([2, 3])
+
+    assert sim.false_alarm_pool(scene, "iou")[1].tolist() == [2, 3]
+    assert sim.false_alarm_pool(scene, "centre")[1].tolist() == [3]
+    with pytest.raises(ValueError):
+        sim.false_alarm_pool(scene, "touching")
