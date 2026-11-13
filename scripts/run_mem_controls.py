@@ -24,6 +24,19 @@ Round 9 (section 24.8), to measure what the memory itself is worth:
     c1s    c1's three keyframes read like c3 (shrunk: name one; then draw the box at full size)   [c1' in the draft]
     c2s    P4's three keyframes read the same way                                                 [c2' in the draft]
 
+Round 9, question 2 (section 24.9): off-the-shelf tools build the map. Their boxes come from scripts/run_tool_maps.py
+(runs/mem_phase1/tool_maps/<tool>/<visit>.json; <tool> is sam3 or qwen8b) and are named on the command line explicitly:
+
+    p4t_<tool>   P4 with the tool's boxes as the regions: encoded, ranked and read as p4n (every action the same type)
+    c4t_<tool>   c4 with the tool's boxes: c1's three keyframes, their boxes numbered in keyframe order (at most 40)
+    p4tp_<tool>  diagnostic: p4t with only the boxes whose centre lies on an annotated part (widened by 8 pixels)
+    sam3q        no memory: SAM 3 prompted with the task text on c3's 40 even frames (tool_maps/sam3_tasks/<visit>.json);
+                 the three frames with its best boxes, its best boxes there (at most 40) numbered; the model picks one
+
+    python scripts/run_mem_controls.py --visit 421254 --model 8b --arms p4t_sam3,p4t_qwen8b,c4t_sam3,p4tp_sam3,sam3q
+
+The crops around a tool's boxes are encoded once and kept in runs/mem_phase1/tool_maps/<tool>/features_<visit>.npz.
+
 --model 8b runs Qwen3-VL-8B instead of the 4B model; its records and answers go to runs/mem_phase1/controls_8b/.
 
 b and d need the vectors of every generic region; they are encoded once per scene, together with every grid level (for
@@ -59,11 +72,13 @@ from affordance3d.mem import keyframes, policies
 from affordance3d.mem import phase1_diagnostics as D
 from affordance3d.mem import pipeline as P
 from affordance3d.mem import search as S
+from affordance3d.mem import tool_maps as TM
 from affordance3d.mem.encoders import VLMS, VisionLanguageModel
 from report import mem_phase1_helpers as R
 from report import mem_steps_helpers as H
 
-ARMS = ("p4n", "c1", "c2", "c3", "b", "d", "cplus", "c4", "c1s", "c2s")
+ARMS = ("p4n", "c1", "c2", "c3", "b", "d", "cplus", "c4", "c1s", "c2s")  # the default of --arms
+TOOL_ARMS = (*(f"{kind}_{tool}" for kind in ("p4t", "c4t", "p4tp") for tool in TM.TOOLS), "sam3q")  # named explicitly
 OUT_FOLDERS = {"4b": "controls", "8b": "controls_8b"}
 P3_SEEDS = (0, 1, 2, 3, 4)
 CONTROLS_VERSION = "controls-v3"  # v2: every prompt defines "the part"; v3: longer answers (pilot, 2026-11-13)  # part of the answer cache key: change it when a prompt or an image changes
@@ -210,6 +225,70 @@ def generic_features(file: Path, frames: list, pool: list[policies.Candidate]) -
     return arrays
 
 
+def tool_features(file: Path, frames: list, candidates: list[policies.Candidate], width: int) -> np.ndarray:
+    """Vectors of the crops around a tool's boxes, encoded as generic_features encodes regions, once, and kept in `file`
+    with the boxes they belong to and the seconds the encoding took."""
+    boxes = np.array([c.box for c in candidates], dtype=np.int64).reshape(len(candidates), 4)
+    keyframe = np.array([c.keyframe for c in candidates], dtype=np.int64)
+    if file.exists():
+        with np.load(file) as saved:
+            if not (np.array_equal(saved["boxes"], boxes) and np.array_equal(saved["keyframe"], keyframe)):
+                raise SystemExit(f"{file} was encoded from other boxes than the tool map holds now; move it away")
+            return saved["vectors"]
+    from affordance3d.mem.encoders import ImageTextEncoder
+
+    encoder = ImageTextEncoder()
+    start = time.time()
+    vectors = encoder.images(R.crops_of(frames, candidates)) if candidates else np.zeros((0, width), dtype=np.float32)
+    seconds = time.time() - start
+    del encoder
+    file.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(file.with_suffix(".tmp.npz"), vectors=vectors, keyframe=keyframe, boxes=boxes, seconds=seconds)
+    file.with_suffix(".tmp.npz").rename(file)
+    return vectors
+
+
+def tool_memory(runs: Path, tool: str, visit: str, frames: list, labels: list[np.ndarray], width: int) -> dict:
+    """A tool's map as the memory holds it: its boxes as regions, their vectors, and which of them lie on an annotated
+    part (for the diagnostic arm only)."""
+    record = TM.read_tool_map(runs / "tool_maps" / tool / f"{visit}.json")
+    missing = TM.missing_keyframes(record, len(frames))
+    if missing:
+        raise SystemExit(f"{visit}: the {tool} map lacks keyframes {missing}; run scripts/run_tool_maps.py to the end first")
+    candidates = TM.candidates_of(TM.tool_detections(record), frames[0].image_hw)
+    vectors = tool_features(runs / "tool_maps" / tool / f"features_{visit}.npz", frames, candidates, width)
+    return {"candidates": candidates, "vectors": vectors, "on_part": TM.on_a_part(candidates, labels)}
+
+
+def tool_arm(reader: H.CachedReader, arm: str, task: H.Task, query: np.ndarray, frames: list, times: list[str],
+             keyframe_vectors: np.ndarray, memory: dict, labels: list[np.ndarray]) -> dict:
+    """p4t_<tool>, c4t_<tool>, p4tp_<tool>: the tool's boxes in the place of the annotated regions."""
+    kind = arm.split("_", 1)[0]
+    candidates, vectors = memory["candidates"], memory["vectors"]
+    if kind == "c4t":
+        shown = best_keyframes(query, keyframe_vectors)
+        return numbered_reading(reader, arm, task.text, frames, times, shown, annotated_on(shown, candidates), labels, task.parts)
+    if kind == "p4tp":
+        candidates, vectors = [candidates[i] for i in memory["on_part"]], vectors[memory["on_part"]]
+    return numbered_choice(reader, task.text, query, frames, times, keyframe_vectors, candidates, vectors, labels, task.parts, arm)
+
+
+def task_prompts(runs: Path, visit: str, texts: list[str], uniform: list[str]) -> dict:
+    """What SAM 3 found for every task's text on the even frames (scripts/run_tool_maps.py --tool sam3_tasks)."""
+    record = TM.read_tool_map(runs / "tool_maps" / TM.TASK_PROMPTED / f"{visit}.json")
+    if record["tasks"] != texts or record["times"] != uniform or len(record["frames"]) != len(uniform):
+        raise SystemExit(f"{visit}: the {TM.TASK_PROMPTED} file holds other tasks or frames, or is not finished")
+    return record
+
+
+def task_prompted(reader: H.CachedReader, record: dict, index: int, task: H.Task, video: list, times: list[str],
+                  labels: list[np.ndarray]) -> dict:
+    """sam3q: SAM 3's best boxes for the task text, on the even frames that hold its best boxes, numbered."""
+    top, marks = TM.task_prompt_marks(TM.task_detections(record, index))
+    kept = [policies.Candidate(d.keyframe, d.box, (0, 0, 0, 0)) for d in marks]
+    return numbered_reading(reader, "sam3q", task.text, video, times, top, kept, labels, task.parts)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--visit", required=True)
@@ -219,9 +298,9 @@ def main() -> None:
     args = parser.parse_args()
     model_id, revision = VLMS[args.model]
     arms = [arm for arm in args.arms.split(",") if arm]
-    unknown = set(arms) - set(ARMS)
+    unknown = set(arms) - set(ARMS) - set(TOOL_ARMS)
     if unknown:
-        raise SystemExit(f"unknown arms {sorted(unknown)}; choose from {ARMS}")
+        raise SystemExit(f"unknown arms {sorted(unknown)}; choose from {ARMS + TOOL_ARMS}")
     result = json.loads((args.runs / f"{args.visit}.json").read_text())
     started = time.time()
     scene = P.load_scene(REPO_ROOT / "data" / "scenefun3d", args.visit, result["video"])
@@ -252,7 +331,8 @@ def main() -> None:
             agreement.append(float(np.min(np.sum(generic["pool/vectors"][draws[seed]] * vectors, axis=1))))
         record["encoder_agreement"] = min(agreement) if agreement else None  # lowest cosine, this run's vectors against phase 1's
     record.update({"model": f"{model_id}@{revision}", "controls_version": CONTROLS_VERSION, "tasks": [task.text for task in tasks]})
-    uniform = video = uniform_labels = None
+    uniform = video = uniform_labels = prompted = None
+    memories: dict[str, dict] = {}  # the tool maps, loaded when an arm needs one
     for arm in arms:
         if arm == "b":
             for seed in P3_SEEDS:
@@ -265,8 +345,13 @@ def main() -> None:
                   flush=True)
             continue
         rows = []
-        for task, query in zip(tasks, queries):
-            if arm == "c4":
+        for index, (task, query) in enumerate(zip(tasks, queries)):
+            if arm in TOOL_ARMS and arm != "sam3q":
+                tool = arm.split("_", 1)[1]
+                if tool not in memories:
+                    memories[tool] = tool_memory(args.runs, tool, args.visit, frames, labels, keyframe_vectors.shape[1])
+                rows.append(tool_arm(reader, arm, task, query, frames, steady, keyframe_vectors, memories[tool], labels))
+            elif arm == "c4":
                 shown = best_keyframes(query, keyframe_vectors)
                 rows.append(numbered_reading(reader, "c4", task.text, frames, steady, shown, annotated_on(shown, p4), labels, task.parts))
             elif arm in ("c1s", "c2s"):
@@ -288,7 +373,11 @@ def main() -> None:
                     uniform = keyframes.scene_keyframes(scene, "uniform", result["n_keyframes"])
                     video = rgb_frames(scene, uniform)
                     uniform_labels = P.label_maps(scene, P.gt_frames(scene, uniform))
-                rows.append(raw_video(reader, task.text, video, uniform, uniform_labels, task.parts))
+                if arm == "sam3q":
+                    prompted = prompted or task_prompts(args.runs, args.visit, [t.text for t in tasks], uniform)
+                    rows.append(task_prompted(reader, prompted, index, task, video, uniform, uniform_labels))
+                else:
+                    rows.append(raw_video(reader, task.text, video, uniform, uniform_labels, task.parts))
         record["arms"][arm] = rows
         hits = np.mean([row["hit"] for row in rows])
         print(f"{args.visit} {arm}: {hits:.0%} of {len(rows)} tasks right, {np.median([row['seconds'] for row in rows]):.1f} s per question",

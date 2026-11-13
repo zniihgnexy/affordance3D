@@ -81,3 +81,73 @@ def test_round9_arms_are_read_by_their_fixed_rules_and_set_against_the_4b_model(
     assert summary["choosing_keyframes_same_reading"]["rate"] == pytest.approx(0.25)
     assert summary["choosing_keyframes_same_reading"]["verdict"] == "worth something"
     assert agg.against_smaller(records, smaller)["p4n"]["rate"] == pytest.approx(0.25)
+
+
+def _tool_records(arms: dict[str, list[bool]], n: int = 6) -> list[dict]:
+    return [{"visit": str(i), "tasks": ["0", "1", "2", "3"], "arms": {arm: [_row(h) for h in hits] for arm, hits in arms.items()}}
+            for i in range(n)]
+
+
+TOOL_ARMS = {"p4n": [True, True, True, False], "c4": [True, True, False, False], "c3": [False] * 4,
+             "p4t_sam3": [True, True, False, False], "c4t_sam3": [True, False, False, False], "sam3q": [False] * 4,
+             "p4tp_sam3": [True, True, True, False]}
+GAIN = {"rate": 0.08, "low": 0.02, "high": 0.12}
+TOOL_SUMMARY = {"deciding_tool": {"tool": "sam3", "reason": "tie"}, "tools": {"sam3": {"recall_gain_40_minus_10": GAIN}}}
+
+
+def test_tool_arms_are_compared_with_p4_but_read_only_by_the_rules_of_section_24_9() -> None:
+    summary = agg.summarise(_tool_records(TOOL_ARMS))
+
+    assert {"p4t_sam3", "c4t_sam3", "sam3q", "p4tp_sam3"} <= set(summary["arms"])
+    assert summary["against_p4"]["p4t_sam3"]["reading"] == agg.TOOL_READING
+    assert summary["against_p4"]["c4"]["reading"] == agg.READINGS[("c4", summary["against_p4"]["c4"]["verdict"])]
+
+
+def test_no_stop_when_the_tool_memory_beats_its_own_boxes_without_memory_c3_and_sam3_with_the_task_text() -> None:
+    readings = agg.tool_map_readings(_tool_records(TOOL_ARMS), TOOL_SUMMARY)
+
+    stop = readings["verdict"]["stop"]
+    assert stop["tool_p4_minus_tool_c4"]["rate"] == pytest.approx(0.25) and stop["tool_p4_minus_tool_c4"]["verdict"] == "behind"
+    assert not stop["stop"] and stop["reading"] == agg.GO_READING
+    assert readings["annotated_p4_minus_annotated_c4"]["rate"] == pytest.approx(0.25)
+    assert "not read" in readings["tools"]["qwen8b"]["stop"]["reading"]  # its arms did not run
+
+
+@pytest.mark.parametrize("change", [{"c4t_sam3": [True, True, False, False]},  # same candidates without memory: close
+                                    {"sam3q": [True, True, False, False]},  # SAM 3 with the task text as good
+                                    {"c3": [True, True, True, False]}])  # the raw video better
+def test_stop_when_the_tool_memory_is_close_to_its_boxes_without_memory_or_no_better_than_c3_or_sam3q(change: dict) -> None:
+    stop = agg.tool_map_readings(_tool_records({**TOOL_ARMS, **change}), TOOL_SUMMARY)["verdict"]["stop"]
+
+    assert stop["stop"] and stop["reading"] == agg.STOP_READING
+
+
+def test_a_wide_interval_on_the_memory_comparison_alone_does_not_stop() -> None:
+    records = _tool_records({**TOOL_ARMS, "p4t_sam3": [True] * 4})
+    for i, record in enumerate(records):  # the difference is 0 in four scenes and 1 in two: mean 0.33, interval down to 0
+        record["arms"]["c4t_sam3"] = [_row(i < 4) for _ in range(4)]
+
+    stop = agg.tool_map_readings(records, TOOL_SUMMARY)["verdict"]["stop"]
+
+    assert stop["tool_p4_minus_tool_c4"]["verdict"] == "undetermined" and not stop["stop"]
+
+
+def test_the_gap_to_the_annotated_map_is_read_with_the_recall_gain_and_split_into_misses_and_false_alarms() -> None:
+    records = _tool_records(TOOL_ARMS)
+
+    readings = agg.tool_map_readings(records, TOOL_SUMMARY)["verdict"]
+
+    assert readings["gap"]["annotated_p4_minus_tool_p4"]["rate"] == pytest.approx(0.25) and readings["gap"]["verdict"] == "large"
+    assert readings["split"]["false_alarms"]["rate"] == pytest.approx(0.25) and readings["split"]["misses"]["rate"] == pytest.approx(0.0)
+    assert readings["split"]["false_alarms"]["share_of_gap"] == pytest.approx(1.0)
+    flat = {**TOOL_SUMMARY, "tools": {"sam3": {"recall_gain_40_minus_10": {"rate": 0.08, "low": -0.01, "high": 0.15}}}}
+    assert agg.tool_map_readings(records, flat)["verdict"]["gap"]["verdict"] == "undetermined"
+    level = agg.tool_map_readings(_tool_records({**TOOL_ARMS, "p4t_sam3": TOOL_ARMS["p4n"]}), TOOL_SUMMARY)
+    assert level["verdict"]["gap"]["verdict"] == "small" and "suffice" in level["verdict"]["gap"]["reading"]
+
+
+def test_without_a_deciding_tool_the_readings_are_kept_but_no_verdict_is_given() -> None:
+    readings = agg.tool_map_readings(_tool_records(TOOL_ARMS), None)
+
+    assert "verdict" not in readings and "no deciding tool" in readings["reading"]
+    assert readings["tools"]["sam3"]["gap"]["verdict"] == "undetermined"  # no recall gain known: cannot be "large"
