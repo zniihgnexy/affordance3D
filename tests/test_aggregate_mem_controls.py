@@ -92,7 +92,7 @@ TOOL_ARMS = {"p4n": [True, True, True, False], "c4": [True, True, False, False],
              "p4t_sam3": [True, True, False, False], "c4t_sam3": [True, False, False, False], "sam3q": [False] * 4,
              "p4tp_sam3": [True, True, True, False]}
 GAIN = {"rate": 0.08, "low": 0.02, "high": 0.12}
-TOOL_SUMMARY = {"deciding_tool": {"tool": "sam3", "reason": "tie"}, "tools": {"sam3": {"recall_gain_40_minus_10": GAIN}}}
+TOOL_SUMMARY = {"deciding_tool": {"tool": "sam3", "reason": "tie"}, "tools": {"sam3": {agg.GAIN_KEY: GAIN}}}
 
 
 def test_tool_arms_are_compared_with_p4_but_read_only_by_the_rules_of_section_24_9() -> None:
