@@ -92,11 +92,18 @@ class VisionLanguageModel:
         self._processor = AutoProcessor.from_pretrained(**source)
         self._model = AutoModelForImageTextToText.from_pretrained(**source, **_gpu_precision(self.device)).eval().to(self.device)
 
-    def ask(self, images: Sequence[np.ndarray], prompt: str, max_new_tokens: int = 16) -> str:
+    def ask(self, images: Sequence[np.ndarray], prompt: str, max_new_tokens: int = 16, labels: Sequence[str] | None = None) -> str:
+        """Answer `prompt` about the images; `labels` (one per image) are put before each image, e.g. "Image 1:"."""
         import torch
         from PIL import Image
 
-        content = [{"type": "image", "image": Image.fromarray(image)} for image in images]
+        if labels is not None and len(labels) != len(images):
+            raise ValueError(f"{len(labels)} labels for {len(images)} images")
+        content = []
+        for index, image in enumerate(images):
+            if labels is not None:
+                content.append({"type": "text", "text": labels[index]})
+            content.append({"type": "image", "image": Image.fromarray(image)})
         messages = [{"role": "user", "content": [*content, {"type": "text", "text": prompt}]}]
         inputs = self._processor.apply_chat_template(messages, tokenize=True, add_generation_prompt=True,
                                                      return_dict=True, return_tensors="pt").to(self.device)

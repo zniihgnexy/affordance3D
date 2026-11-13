@@ -502,11 +502,12 @@ class CachedReader:
         self._cache, self._make_model, self._model = cache, make_model, None
         self.answers: dict[str, dict] = json.loads(cache.read_text()) if cache.exists() else {}
 
-    def ask(self, key: str, images: Sequence[np.ndarray], prompt: str) -> dict:
+    def ask(self, key: str, images: Sequence[np.ndarray], prompt: str, **options: object) -> dict:
+        """The model's answer for `key`, asked now if it is not on disk; `options` go to the model (e.g. labels, max_new_tokens)."""
         if key not in self.answers:
             self._model = self._model or self._make_model()
             start = time.time()
-            answer = self._model.ask(images, prompt)
+            answer = self._model.ask(images, prompt, **options)
             self.answers[key] = {"prompt": prompt, "answer": answer, "seconds": round(time.time() - start, 1)}
             self._cache.parent.mkdir(parents=True, exist_ok=True)
             self._cache.write_text(json.dumps(self.answers, indent=1))

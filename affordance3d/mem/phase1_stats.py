@@ -66,6 +66,18 @@ def affordance_against(results: Sequence[dict], other: str, budget: float | None
     return paired_difference(ours, theirs)
 
 
+CLOSE_POINTS, WIDE_POINTS = 0.05, 0.10  # round-7 rule for the controls, fixed before they ran (discussion draft, section 24)
+
+
+def closeness(difference: tuple[float, float, float], close: float = CLOSE_POINTS, wide: float = WIDE_POINTS) -> str:
+    """How an arm stands against P4, from P4 minus the arm (mean, low, high): "close" when the interval's lower end is below
+    `close`; "undetermined" when that happens only because the interval is wide (the mean itself is above `wide`); else "behind"."""
+    mean, low, _ = difference
+    if low >= close:
+        return "behind"
+    return "undetermined" if mean > wide else "close"
+
+
 def curve(results: Sequence[dict], policy: str, key: str = "hit1") -> list[dict]:
     """Points of one policy's rate-against-budget curve: runs are grouped by policy name and nominal budget."""
     groups: dict[tuple[str, float], dict[int, list]] = {}
