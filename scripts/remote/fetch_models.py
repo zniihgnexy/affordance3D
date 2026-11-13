@@ -7,12 +7,16 @@ a file that differs from the original is rejected.
 
     python scripts/remote/fetch_models.py                 # the models of the L2 memory examples
     python scripts/remote/fetch_models.py org/name@sha    # any other repository
+    python scripts/remote/fetch_models.py org/name@sha --skip=sam3.pt   # leave out files matching a pattern
+
+A skipped file is neither fetched nor checked; the folder is marked verified for the files that are there.
 
 Models land in $AFFORDANCE3D_MODELS/<org>/<name> (see scripts/remote/env.sh).
 """
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
 import os
@@ -68,7 +72,13 @@ def download(url: str, target: Path) -> None:
     partial.replace(target)
 
 
-def fetch(spec: str, root: Path) -> None:
+def split_arguments(arguments: list[str]) -> tuple[list[str], tuple[str, ...]]:
+    """(model specs, file-name patterns to leave out) from the command line."""
+    skips = tuple(a.split("=", 1)[1] for a in arguments if a.startswith("--skip="))
+    return [a for a in arguments if not a.startswith("--skip=")], skips
+
+
+def fetch(spec: str, root: Path, skips: tuple[str, ...] = ()) -> None:
     if not SPEC.match(spec):
         raise SystemExit(f"{spec!r}: expected org/name@<40-character commit hash>")
     repo, revision = spec.split("@")
@@ -76,6 +86,9 @@ def fetch(spec: str, root: Path) -> None:
     marker.unlink(missing_ok=True)
     for published in published_files(repo, revision):
         name = published["rfilename"]
+        if any(fnmatch.fnmatch(name, pattern) for pattern in skips):
+            print(f"skip {repo}/{name}", flush=True)
+            continue
         if not safe_name(name):
             raise SystemExit(f"{repo}: refusing the file name {name!r}")
         target = root / repo / name
@@ -93,8 +106,9 @@ def main() -> None:
     if "AFFORDANCE3D_MODELS" not in os.environ:
         raise SystemExit("AFFORDANCE3D_MODELS is not set; source scripts/remote/env.sh first")
     root = Path(os.environ["AFFORDANCE3D_MODELS"])
-    for spec in sys.argv[1:] or DEFAULT_MODELS:
-        fetch(spec, root)
+    specs, skips = split_arguments(sys.argv[1:])
+    for spec in specs or DEFAULT_MODELS:
+        fetch(spec, root, skips)
 
 
 if __name__ == "__main__":

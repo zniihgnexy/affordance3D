@@ -31,3 +31,10 @@ def test_safe_name_keeps_files_inside_the_model_folder(name: str, safe: bool) ->
 def test_fetch_refuses_anything_but_a_repository_pinned_to_a_full_commit_hash(spec_text: str, tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         fetch_models.fetch(spec_text, tmp_path)
+
+
+def test_skip_patterns_are_split_from_the_model_specs() -> None:
+    specs, skips = fetch_models.split_arguments(["org/name@" + "a" * 40, "--skip=sam3.pt", "--skip=*.bin"])
+
+    assert specs == ["org/name@" + "a" * 40] and skips == ("sam3.pt", "*.bin")
+    assert fetch_models.split_arguments([]) == ([], ())
