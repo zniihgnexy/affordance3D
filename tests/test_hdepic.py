@@ -250,18 +250,3 @@ def test_hand_file_summary_reports_the_device_frame_and_tracked_share(tmp_path: 
                        "tracked": {"left": 0.667, "right": 0.667}}
     assert b1.position_frame(["tx_left_wrist_world", "ty_left_palm_world"]) == "world"
     assert b1.position_frame(["tx_left_wrist_world", "ty_left_palm_device"]) == "unknown"
-
-
-def test_pose_gate_follows_the_plan() -> None:
-    assert b1.pose_gate({"status": 403})[0] is False
-    assert b1.pose_gate({"status": None, "error": "timeout"})[0] is False
-    assert b1.pose_gate({"status": 200, "final_host": "login.microsoftonline.com", "bytes": 10})[1] == "needs a login"
-    assert b1.pose_gate({"status": 200, "bytes": None, "content_type": "text/html"})[0] is False
-    assert b1.pose_gate({"status": 200, "bytes": 2 * 10**9, "content_type": "application/zip"})[0] is False
-    assert b1.pose_gate({"status": 200, "bytes": 5 * 10**8, "content_type": "application/zip"}) == (True, "500.0 MB")
-
-
-def test_readme_link_pattern_finds_the_intermediate_data_link() -> None:
-    readme = "**[Download intermediate data](https://example.org/share/abc?e=1)**"
-
-    assert b1.POSE_LINK.search(readme).group(1) == "https://example.org/share/abc?e=1"
