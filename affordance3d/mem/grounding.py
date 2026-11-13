@@ -17,20 +17,21 @@ import numpy as np
 
 RELATIVE_SCALE = 1000.0
 MARGIN_PX = 8
+PART = ("the part that must be operated to do the task (the small element a hand or foot touches, such as a handle, knob, "
+        "button, switch, key, pedal, plug or socket, not the whole object)")  # SceneFun3D annotates these elements
 Box = tuple[int, int, int, int]  # left, top, right, bottom (exclusive), pixels
 
 
 def numbered_prompt(task: str, n_marks: int) -> str:
     """Pick one of our numbered boxes; neutral wording: a box is a region, not said to be operable."""
     return (f"These images are keyframes from a walk through one room. Boxes numbered 1 to {n_marks} mark regions in the "
-            f"images. Task: \"{task}\". Which numbered box shows the part that must be operated to do the task? "
-            f"Answer with the number only.")
+            f"images. Task: \"{task}\". Which numbered box shows {PART}? Answer with the number only.")
 
 
 def grounding_prompt(task: str, n_images: int) -> str:
     """Find the part in one of several numbered images and draw a box around it."""
     return (f"These {n_images} images are keyframes from a walk through one room, numbered 1 to {n_images} in the order "
-            f"shown. Task: \"{task}\". Find the part that must be operated to do the task. Answer in JSON as "
+            f"shown. Task: \"{task}\". Find {PART}. Answer in JSON as "
             f"{{\"image\": <image number>, \"bbox_2d\": [x1, y1, x2, y2]}}, with the box in coordinates from 0 to 1000 "
             f"relative to that image.")
 
@@ -38,15 +39,13 @@ def grounding_prompt(task: str, n_images: int) -> str:
 def frame_prompt(task: str, n_frames: int) -> str:
     """Pick the frame of a video in which the part is best visible."""
     return (f"These {n_frames} frames are taken evenly from a video of one room, numbered 1 to {n_frames} in time order. "
-            f"Task: \"{task}\". In which frame is the part that must be operated to do the task best visible? "
-            f"Answer with the frame number only.")
+            f"Task: \"{task}\". In which frame is {PART} best visible? Answer with the frame number only.")
 
 
 def single_grounding_prompt(task: str) -> str:
     """Draw a box around the part in one image."""
-    return (f"This image is a frame from a video of one room. Task: \"{task}\". Find the part that must be operated to do "
-            f"the task. Answer in JSON as {{\"bbox_2d\": [x1, y1, x2, y2]}}, with coordinates from 0 to 1000 relative to "
-            f"the image.")
+    return (f"This image is a frame from a video of one room. Task: \"{task}\". Find {PART}. Answer in JSON as "
+            f"{{\"bbox_2d\": [x1, y1, x2, y2]}}, with coordinates from 0 to 1000 relative to the image.")
 
 
 def image_labels(n: int, word: str = "Image") -> list[str]:

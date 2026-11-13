@@ -47,7 +47,7 @@ from report import mem_phase1_helpers as R
 from report import mem_steps_helpers as H
 
 ARMS = ("p4n", "c1", "c2", "c3")
-CONTROLS_VERSION = "controls-v1"  # part of the answer cache key: change it when a prompt or an image changes
+CONTROLS_VERSION = "controls-v2"  # v2: every prompt defines "the part" (pilot, 2026-11-13)  # part of the answer cache key: change it when a prompt or an image changes
 TOP_KEYFRAMES, MAX_MARKS, SHRINK = 3, 40, 2
 ANSWER_TOKENS = {"number": 8, "box": 64}
 

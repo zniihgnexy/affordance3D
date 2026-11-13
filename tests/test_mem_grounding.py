@@ -52,6 +52,8 @@ def test_prompts_name_the_task_and_the_number_of_images_and_stay_neutral() -> No
 
     assert task in G.numbered_prompt(task, 7) and "1 to 7" in G.numbered_prompt(task, 7)
     assert "operable" not in G.numbered_prompt(task, 7)  # boxes are called regions, not parts one can operate
+    for prompt in (G.numbered_prompt(task, 7), G.grounding_prompt(task, 3), G.frame_prompt(task, 40), G.single_grounding_prompt(task)):
+        assert "not the whole object" in prompt  # every arm is told what "the part" means
     assert "1 to 3" in G.grounding_prompt(task, 3) and "bbox_2d" in G.grounding_prompt(task, 3)
     assert "1 to 40" in G.frame_prompt(task, 40) and "bbox_2d" in G.single_grounding_prompt(task)
     assert G.image_labels(2) == ["Image 1:", "Image 2:"] and G.image_labels(1, "Frame") == ["Frame 1:"]
