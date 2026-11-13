@@ -231,7 +231,8 @@ def test_attribution_figure_and_sweep_table_show_the_follow_up_check(tmp_path: P
     figure, table = R.attribution_figure(diagnostics), R.sweep_table(diagnostics)
 
     bars = figure.axes[0].patches
-    assert len(figure.axes) == 2 and len(bars) == 5 and [bool(bar.get_hatch()) for bar in bars] == [False, False, True, True, False]
+    assert len(figure.axes) == 2 and len(bars) == 6
+    assert [bool(bar.get_hatch()) for bar in bars] == [False, False, False, True, True, False]  # hatched: given P4's keyframes
     assert table.loc["weight 1, empty 0", "P4 affordance regions"] == 63.1 and table.loc["weight 1, empty -3", "one bit per keyframe"] == 55.0
     plt.close(figure)
     with pytest.raises(FileNotFoundError, match="diagnose_mem_phase1"):

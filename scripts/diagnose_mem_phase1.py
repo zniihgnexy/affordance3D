@@ -210,7 +210,8 @@ def main() -> None:
             "P2, no penalty for keyframes without a token": [over_seeds(s, "P2", empty_z=0.0) for s in scenes],
             "P3 in the keyframes of P4": [over_seeds(s, "P3 same keyframes") for s in scenes],
             "P2 in the keyframes of P4": [over_seeds(s, "P2 same keyframes") for s in scenes]}
-    pairs = (("P4 affordance regions", "whole keyframes + which keyframes hold an affordance region"),
+    pairs = (("P4 affordance regions", "P0 whole keyframes"),
+             ("P4 affordance regions", "whole keyframes + which keyframes hold an affordance region"),
              ("whole keyframes + which keyframes hold an affordance region", "P0 whole keyframes"),
              ("P4 affordance regions", "P3 in the keyframes of P4"), ("P4 affordance regions", "P2 in the keyframes of P4"),
              ("P3 in the keyframes of P4", "whole keyframes + which keyframes hold an affordance region"),

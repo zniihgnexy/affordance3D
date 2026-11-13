@@ -34,17 +34,20 @@ READING_NAMES = {A.P4: "P4 affordance regions", A.P3: "P3 generic regions"}  # k
 GEOMETRY_ROWS = {"single_frame": "one keyframe, read now (true part ids)", "l2_readout": "one keyframe, read now (parts linked by the memory)"}
 RUNNER_SEED = 1000  # scripts/run_mem_phase1.py draws P2 and P3 of seed s from default_rng(1000 + s)
 BIT, BIT_COLOUR = "whole keyframes + which keyframes hold an affordance region", "#6250d6"
+TOKENS_ONLY, TOKENS_ONLY_COLOUR = "P4, no penalty for keyframes without a token", "#8fb8ea"
 ATTRIBUTION_ARMS = (  # arm in the diagnostics, label, colour, hatched (a baseline given the keyframes of P4)
     ("P0 whole keyframes", "P0 whole keyframes", POLICY_COLOUR[A.P0], False),
-    (BIT, "whole keyframes + one bit per keyframe\n(does it hold an affordance region?)", BIT_COLOUR, False),
+    (BIT, "flag only: whole keyframes + one bit\n(does the keyframe hold an affordance region?)", BIT_COLOUR, False),
+    (TOKENS_ONLY, "tokens only: P4 without the flag's penalty\n(still placed only in flagged keyframes)", TOKENS_ONLY_COLOUR, False),
     ("P2 in the keyframes of P4", "P2 random places, in P4's keyframes", POLICY_COLOUR[A.P2], True),
     ("P3 in the keyframes of P4", "P3 generic regions, in P4's keyframes", POLICY_COLOUR[A.P3], True),
-    ("P4 affordance regions", "P4 affordance regions", POLICY_COLOUR[A.P4], False))
-ATTRIBUTION_STEPS = (  # paired difference in the diagnostics, label, colour
-    (f"{BIT} minus P0 whole keyframes", "one bit per keyframe − P0", BIT_COLOUR),
-    (f"P4 affordance regions minus {BIT}", "P4 − one bit per keyframe", BIT_COLOUR),
-    ("P4 affordance regions minus P2 in the keyframes of P4", "P4 − P2 in P4's keyframes", POLICY_COLOUR[A.P2]),
-    ("P4 affordance regions minus P3 in the keyframes of P4", "P4 − P3 in P4's keyframes", POLICY_COLOUR[A.P3]))
+    ("P4 affordance regions", "P4 affordance regions (flag + tokens)", POLICY_COLOUR[A.P4], False))
+ATTRIBUTION_STEPS = (  # paired difference in the diagnostics, label, colour; the first three do not add up
+    (f"{BIT} minus P0 whole keyframes", "flag only − P0", BIT_COLOUR),
+    (f"{TOKENS_ONLY} minus P0 whole keyframes", "tokens only − P0", TOKENS_ONLY_COLOUR),
+    ("P4 affordance regions minus P0 whole keyframes", "flag + tokens (P4) − P0", POLICY_COLOUR[A.P4]),
+    ("P4 affordance regions minus P3 in the keyframes of P4", "P4 − P3 in P4's keyframes", POLICY_COLOUR[A.P3]),
+    ("P4 affordance regions minus P2 in the keyframes of P4", "P4 − P2 in P4's keyframes", POLICY_COLOUR[A.P2]))
 ONE = 1.0  # the budget at which the policies are compared: as many tokens as P4 has
 MB = 1e6
 
@@ -274,7 +277,7 @@ def attribution_figure(diagnostics: dict) -> plt.Figure:
     """Where the gain of the affordance tokens comes from: the arms of the follow-up check (left; hatched = a baseline
     given exactly the keyframes and per-keyframe token counts of P4) and the paired steps between them (right)."""
     rates, steps = diagnostics["first_keyframe_right"], diagnostics["differences"]
-    fig, (left, right) = plt.subplots(1, 2, figsize=(12.5, 0.6 * len(ATTRIBUTION_ARMS) + 1.3), gridspec_kw={"width_ratios": [1.1, 1]})
+    fig, (left, right) = plt.subplots(1, 2, figsize=(13.5, 0.62 * len(ATTRIBUTION_ARMS) + 1.4), gridspec_kw={"width_ratios": [1.15, 1]})
     _rate_bars(left, rates, [arm[0] for arm in ATTRIBUTION_ARMS], [arm[1] for arm in ATTRIBUTION_ARMS], [arm[2] for arm in ATTRIBUTION_ARMS])
     for bar, arm in zip(left.patches, ATTRIBUTION_ARMS):
         if arm[3]:
