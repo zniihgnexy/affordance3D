@@ -64,3 +64,12 @@ def test_a_frame_tag_and_a_design_line_are_drawn_and_checked() -> None:
         F.check(replace(SMALL, frame_tag="C9"))
     with pytest.raises(ValueError, match="kind"):
         F.check(replace(SMALL, contributions=(F.Contribution("C1", "x", "y", "z", kind="other"),)))
+
+
+def test_every_named_chart_is_consistent_and_can_be_chosen_by_name(tmp_path: Path) -> None:
+    for name, chart in F.CHARTS.items():
+        F.check(chart)
+        F.main([str(tmp_path / f"{name}.png"), name])
+        assert (tmp_path / f"{name}.png").stat().st_size > 50_000
+    with pytest.raises(SystemExit):
+        F.main([str(tmp_path / "x.png"), "no_such_chart"])

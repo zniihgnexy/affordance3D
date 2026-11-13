@@ -3,7 +3,8 @@
 The drawing is generic (boxes, arrows, contribution tags); `STAGE_1` describes the memory pipeline as it stands
 after phase 1. Each stage report updates the description and renders it again:
 
-    python -m report.pipeline_flowchart helm/rounds/R7_figures/pipeline.png
+    python -m report.pipeline_flowchart helm/rounds/R7_figures/pipeline.png            # the pipeline as it stands
+    python -m report.pipeline_flowchart helm/rounds/R8_figures/target.png target_r8   # another description, by name
 """
 
 from __future__ import annotations
@@ -71,6 +72,9 @@ class Flowchart:
     hints: tuple[tuple[float, float, str], ...] = ()  # (x, y, text) in small grey italics: how to read the chart
     footer: str = ""
     frame_tag: str = ""  # a contribution that is the whole system: a dashed red frame around every box
+    contribution_label: str = "red: proposed contribution (helm's judgement)"
+    panel_title: str = ("If this were a paper: where the contribution lies (red), as the helm judges it today; "
+                        "[brackets] = the helm's judgement of the evidence, not a result")
 
 
 def check(chart: Flowchart) -> None:
@@ -122,8 +126,7 @@ def _draw_arrow(axis: plt.Axes, start: Box, end: Box, arrow: Arrow) -> None:
 
 def _draw_panel(axis: plt.Axes, chart: Flowchart, top: float) -> float:
     """The contribution lines under the drawing; returns the height where the panel ends."""
-    axis.text(-0.1, top, "If this were a paper: where the contribution lies (red), as the helm judges it today; "
-              "[brackets] = the helm's judgement of the evidence, not a result", fontsize=10.5, weight="bold", color=INK)
+    axis.text(-0.1, top, chart.panel_title, fontsize=10.5, weight="bold", color=INK)
     y = top - 0.4
     for contribution in chart.contributions:
         colour = CONTRIBUTION_COLOUR if contribution.kind == "contribution" else MUTED
@@ -147,7 +150,7 @@ def draw(chart: Flowchart) -> plt.Figure:
     bottom = min(box.y for box in chart.boxes)
     panel_lines = sum(c.evidence.count("\n") + 1 for c in chart.contributions)
     panel_height = 1.3 + 0.55 * len(chart.contributions) + 0.3 * panel_lines + 0.3 * (chart.footer.count("\n") + 1)
-    width, height = right + 0.5, top - bottom + 1.9 + panel_height
+    width, height = right + 0.5, top - bottom + 1.9 + panel_height + (0 if right >= 14.5 else 0.3)
     fig, axis = plt.subplots(figsize=(width, height))
     if chart.frame_tag:
         left = min(box.x for box in chart.boxes) - 0.12
@@ -165,14 +168,18 @@ def draw(chart: Flowchart) -> plt.Figure:
         axis.text(x, y, text, fontsize=8, style="italic", color=CONTRIBUTION_COLOUR, va="top")
     for x, y, text in chart.hints:
         axis.text(x, y, text, fontsize=8, style="italic", color=MUTED, va="top")
-    handles = [plt.Line2D([], [], marker="s", ls="", ms=10, color=fill, mec=EDGE, label=label) for fill, label in STATUS.values()]
-    handles.append(FancyBboxPatch((0, 0), 1, 1, fc="white", ec=FED_HATCH, hatch="////", lw=0.8, label="hatched: runs on the ORACLE map"))
+    used = {box.status for box in chart.boxes}  # the legend shows only the colours the chart uses
+    handles = [plt.Line2D([], [], marker="s", ls="", ms=10, color=fill, mec=EDGE, label=label)
+               for status, (fill, label) in STATUS.items() if status in used]
+    if any(box.fed_by_oracle for box in chart.boxes):
+        handles.append(FancyBboxPatch((0, 0), 1, 1, fc="white", ec=FED_HATCH, hatch="////", lw=0.8, label="hatched: runs on the ORACLE map"))
     handles.append(plt.Line2D([], [], marker="s", ls="", ms=10, mfc="white", mec=CONTRIBUTION_COLOUR, mew=2.2,
-                              label="red: proposed contribution (helm's judgement)"))
+                              label=chart.contribution_label))
     legend_y = bottom - 0.45
-    axis.legend(handles=handles, loc="upper left", bbox_to_anchor=(-0.1, legend_y), bbox_transform=axis.transData, ncol=6,
+    columns = len(handles) if right >= 14.5 else (len(handles) + 1) // 2  # a narrow chart gets the legend on two lines
+    axis.legend(handles=handles, loc="upper left", bbox_to_anchor=(-0.1, legend_y), bbox_transform=axis.transData, ncol=columns,
                 fontsize=8.5, frameon=False, handletextpad=0.4, columnspacing=1.2, borderaxespad=0.0)
-    end = _draw_panel(axis, chart, legend_y - 0.75)
+    end = _draw_panel(axis, chart, legend_y - (0.75 if right >= 14.5 else 1.05))
     if chart.footer:
         axis.text(-0.1, end - 0.05, chart.footer, fontsize=8.8, style="italic", color=INK, va="top", linespacing=1.4)
     axis.text(-0.1, top + 1.15, chart.title, fontsize=12, weight="bold", color=INK)
@@ -250,12 +257,72 @@ STAGE_1 = Flowchart(
 )
 
 
+# ---------------------------------------------------------------- the paper the project lead described (round 8, to confirm)
+
+T_WRITE_Y, T_READ_Y, T_BASE_Y, T_BUS_Y = 6.0, 3.3, 0.6, 4.95
+TARGET_R8 = Flowchart(
+    title="The paper you described (2026-11-13), as I read it: to be confirmed, not a plan yet",
+    boxes=(
+        Box("video", 0.0, T_WRITE_Y, "Video (tablet)\nRGB + device pose\n+ LiDAR depth", "real"),
+        Box("keyframes", 2.1, T_WRITE_Y, "1  Keyframes", "real"),
+        Box("depth", 4.2, T_WRITE_Y, "2  Depth per keyframe", "model"),
+        Box("affordance", 6.3, T_WRITE_Y, "4  Build the affordance map\nYOUR NEW METHOD (*)\ntoday: annotations (ORACLE)",
+            "missing", "CA", width=2.1),
+        Box("index", 8.8, T_WRITE_Y, "Functional index\npart tokens + keyframe flags\n+ action types", "real", "CB", width=2.1),
+        Box("memory", 11.3, 5.8, "MEMORY\nwritten once,\nused for every question", "real", width=2.3, height=1.55),
+        Box("question", 0.0, T_READ_Y, "Question in words", "real"),
+        Box("search", 2.4, T_READ_Y, "Search by function\n(not a VLM reading\nevery frame)", "real", "CB", width=2.1),
+        Box("reader", 4.9, T_READ_Y, "Small VLM looks at\na few candidates", "model", width=2.1),
+        Box("answer", 7.4, T_READ_Y, "Answer: keyframe, part\n+ where and how to act", "real", width=2.1),
+        Box("base_input", 0.0, T_BASE_Y, "Question\n+ the raw video", "real"),
+        Box("base_vlm", 2.4, T_BASE_Y, "Traditional vision-language\nmodel reads the frames\nof the video for every question",
+            "model", width=2.6),
+        Box("base_answer", 5.4, T_BASE_Y, "Answer: frame + box", "real", width=2.1),
+    ),
+    arrows=(
+        Arrow("video", "keyframes"), Arrow("keyframes", "depth"), Arrow("depth", "affordance"), Arrow("affordance", "index"),
+        Arrow("index", "memory"),
+        Arrow("question", "search"), Arrow("search", "reader"), Arrow("reader", "answer"),
+        Arrow("memory", "search", dashed=True, via_y=T_BUS_Y), Arrow("memory", "reader", dashed=True, via_y=T_BUS_Y),
+        Arrow("base_input", "base_vlm"), Arrow("base_vlm", "base_answer"),
+    ),
+    contributions=(
+        Contribution("CA", "A new way to build the affordance map from the video (part level, with action types)",
+                     "Not built yet. Phase 1 used the annotations, and the gain shrinks fast when parts are missed (keeping 1/4 of "
+                     "the regions leaves +6.5 points),\nso the method must find most parts. What would be new has to be checked "
+                     "against existing work first.", "to be built"),
+        Contribution("CB", "Search by function, instead of a VLM reading the whole video for each question",
+                     "Phase 1, with annotations only: the keyframe flag +9.0 points; part tokens +7.0 within the same keyframes "
+                     "(depends on the scoring weight);\nencoding the question takes 10-20 ms and ranking under 1 ms.",
+                     "ORACLE upper bound only"),
+        Contribution("CC", "More accurate and faster than a traditional VLM reading the raw video",
+                     "Not measured. Control c (approved, runs first) gives the VLM's numbers now; the fair comparison needs our "
+                     "own affordance maps.", "no evidence yet"),
+        Contribution("CD", "Especially strong on action-related questions",
+                     "Not measured. Which questions count as 'action-related' needs your confirmation; the action types in the "
+                     "map were not used by the search in phase 1.", "no evidence yet"),
+    ),
+    lanes=((T_WRITE_Y + 1.45, "WRITE  (once per video): ours"), (T_READ_Y + 1.35, "READ  (once per question): ours"),
+           (T_BASE_Y + 1.35, "BASELINE: a traditional VLM reads the raw video (once per question)")),
+    notes=((9.9, T_READ_Y - 0.25, ("CC: compare the two answers on accuracy,\ntime per question, and total cost\n"
+                                   "over many questions on one scene")),
+           (9.9, T_READ_Y + 1.2, "CD: action-related questions (meaning to confirm)")),
+    hints=((4.2, T_BUS_Y + 0.28, "dashed: reading looks things up in the memory"),),
+    footer="This is my reading of your words, to be confirmed. (*) marks a point where I inferred something; "
+           "the document lists them as questions.",
+    contribution_label="red: the contribution you described (my reading)",
+    panel_title="The contribution you described, as I read it; [brackets] = the evidence so far, as I judge it",
+)
+
+CHARTS = {"stage_1": STAGE_1, "target_r8": TARGET_R8}
+
+
 def main(argv: Sequence[str]) -> None:
-    if len(argv) != 1:
-        raise SystemExit("usage: python -m report.pipeline_flowchart <out.png>")
+    if len(argv) not in (1, 2) or (len(argv) == 2 and argv[1] not in CHARTS):
+        raise SystemExit(f"usage: python -m report.pipeline_flowchart <out.png> [{' | '.join(CHARTS)}]")
     out = Path(argv[0])
     out.parent.mkdir(parents=True, exist_ok=True)
-    draw(STAGE_1).savefig(out, dpi=150)
+    draw(CHARTS[argv[1] if len(argv) == 2 else "stage_1"]).savefig(out, dpi=150)
     print("wrote", out)
 
 
