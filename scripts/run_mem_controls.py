@@ -39,6 +39,13 @@ The crops around a tool's boxes are encoded once and kept in runs/mem_phase1/too
 
 --model 8b runs Qwen3-VL-8B instead of the 4B model; its records and answers go to runs/mem_phase1/controls_8b/.
 
+--all-tasks (section 27.2) asks every task of the scene, also those whose target no keyframe shows, for the arms p4n,
+c3, sam3q and p4t_sam3; the record goes to controls_8b_all/<visit>.json with the benchmark's description ids, and the
+answer cache stays the one of controls_8b/, so the tasks asked before are answered from it. sam3q then reads
+tool_maps/sam3_tasks_all/ (run_tool_maps.py --tool sam3_tasks --all-tasks).
+
+    python scripts/run_mem_controls.py --visit 421254 --model 8b --all-tasks --arms p4n,c3,sam3q,p4t_sam3
+
 b and d need the vectors of every generic region; they are encoded once per scene, together with every grid level (for
 control a, scored on the CPU by scripts/score_mem_control_a.py), and saved in runs/mem_phase1/controls/features_<visit>.npz.
 
@@ -273,9 +280,43 @@ def tool_arm(reader: H.CachedReader, arm: str, task: H.Task, query: np.ndarray, 
     return numbered_choice(reader, task.text, query, frames, times, keyframe_vectors, candidates, vectors, labels, task.parts, arm)
 
 
-def task_prompts(runs: Path, visit: str, texts: list[str], uniform: list[str]) -> dict:
-    """What SAM 3 found for every task's text on the even frames (scripts/run_tool_maps.py --tool sam3_tasks)."""
-    record = TM.read_tool_map(runs / "tool_maps" / TM.TASK_PROMPTED / f"{visit}.json")
+ALL_TASK_ARMS = ("p4n", "c3", "sam3q", "p4t_sam3")  # the arms of section 27.2, asked every task of the scene
+QUERY_AGREEMENT = 0.999  # lowest cosine between a re-encoded task text and the vector phase 1 saved for it
+
+
+def all_task_queries(tasks: list[H.Task], saved: np.ndarray) -> np.ndarray:
+    """Query vectors for every task: the saved ones for the tasks phase 1 asked (so their answers come from the cache),
+    newly encoded ones for the rest; re-encoding the asked ones must agree with what was saved."""
+    from affordance3d.mem.encoders import ImageTextEncoder
+
+    encoder = ImageTextEncoder()
+    fresh = np.asarray(encoder.texts([task.text for task in tasks]), dtype=np.float32)
+    del encoder
+    asked = [i for i, task in enumerate(tasks) if task.keyframes]
+    if len(asked) != len(saved):
+        raise SystemExit(f"{len(saved)} saved queries for {len(asked)} asked tasks")
+    unit = lambda x: x / np.linalg.norm(x, axis=-1, keepdims=True)  # noqa: E731
+    agreement = float(np.min(np.sum(unit(fresh[asked]) * unit(saved), axis=1))) if asked else 1.0
+    if agreement < QUERY_AGREEMENT:
+        raise SystemExit(f"re-encoded task texts agree with the saved queries only to {agreement:.4f}")
+    queries = fresh.copy()
+    queries[asked] = saved
+    return queries
+
+
+def description_ids(visit: str, texts: list[str]) -> list[str]:
+    """The benchmark's description ids of the scene's tasks, in the order of `texts` (the descriptions file order)."""
+    file = REPO_ROOT / "data" / "scenefun3d" / visit / f"{visit}_descriptions.json"
+    descriptions = json.loads(file.read_text())["descriptions"]
+    if [d["description"] for d in descriptions] != texts:
+        raise SystemExit(f"{file}: the descriptions are not the tasks, in order")
+    return [d["desc_id"] for d in descriptions]
+
+
+def task_prompts(runs: Path, visit: str, texts: list[str], uniform: list[str], all_tasks: bool = False) -> dict:
+    """What SAM 3 found for every task's text on the even frames (scripts/run_tool_maps.py --tool sam3_tasks, with
+    --all-tasks for every task of the scene)."""
+    record = TM.read_tool_map(runs / "tool_maps" / (TM.TASK_PROMPTED + ("_all" if all_tasks else "")) / f"{visit}.json")
     if record["tasks"] != texts or record["times"] != uniform or len(record["frames"]) != len(uniform):
         raise SystemExit(f"{visit}: the {TM.TASK_PROMPTED} file holds other tasks or frames, or is not finished")
     return record
@@ -295,9 +336,13 @@ def main() -> None:
     parser.add_argument("--arms", default=",".join(ARMS))
     parser.add_argument("--runs", type=Path, default=REPO_ROOT / "runs" / "mem_phase1")
     parser.add_argument("--model", choices=sorted(VLMS), default="4b")
+    parser.add_argument("--all-tasks", action="store_true",
+                        help="every task of the scene, not only those phase 1 asked (section 27.2); records go to <folder>_all/")
     args = parser.parse_args()
     model_id, revision = VLMS[args.model]
     arms = [arm for arm in args.arms.split(",") if arm]
+    if args.all_tasks and set(arms) - set(ALL_TASK_ARMS):
+        raise SystemExit(f"--all-tasks runs only the arms {ALL_TASK_ARMS}")
     unknown = set(arms) - set(ARMS) - set(TOOL_ARMS)
     if unknown:
         raise SystemExit(f"unknown arms {sorted(unknown)}; choose from {ARMS + TOOL_ARMS}")
@@ -306,19 +351,26 @@ def main() -> None:
     scene = P.load_scene(REPO_ROOT / "data" / "scenefun3d", args.visit, result["video"])
     steady = keyframes.scene_keyframes(scene, "steady", result["n_keyframes"])
     labels = P.label_maps(scene, P.gt_frames(scene, steady))  # ground truth: scoring only
-    tasks = [task for task in H.tasks_of(scene, labels) if task.keyframes]
+    every_task = H.tasks_of(scene, labels)
+    tasks = [task for task in every_task if task.keyframes]
     if [task.text for task in tasks] != result["tasks"]["texts"]:
         raise SystemExit(f"{args.visit}: the tasks differ from those of the phase-1 run")
     with np.load(args.runs / "diagnostics" / f"{args.visit}.npz") as saved:
         keyframe_vectors, queries = saved["keyframes"], saved["queries"]
+    if args.all_tasks:
+        queries = all_task_queries(every_task, queries)
+        tasks = every_task
         p4_vectors, p4_keyframes, p4_boxes = saved["vectors/P4"], saved["keyframe/P4"], saved["boxes/P4"]
         saved_p3 = {seed: (saved[f"boxes/P3 s{seed}"], saved[f"vectors/P3 s{seed}"]) for seed in P3_SEEDS if f"boxes/P3 s{seed}" in saved.files}
     p4 = [policies.Candidate(int(k), tuple(int(v) for v in box), (0, 0, 0, 0)) for k, box in zip(p4_keyframes, p4_boxes)]
     frames = rgb_frames(scene, steady)
-    out = args.runs / OUT_FOLDERS[args.model]
-    reader = H.CachedReader(out / f"answers_{args.visit}.json", lambda: VisionLanguageModel(model_id=model_id, revision=revision))
+    answers = args.runs / OUT_FOLDERS[args.model]  # one answer cache: the all-tasks run reuses every answer given before
+    out = answers.with_name(answers.name + "_all") if args.all_tasks else answers
+    reader = H.CachedReader(answers / f"answers_{args.visit}.json", lambda: VisionLanguageModel(model_id=model_id, revision=revision))
     record_file = out / f"{args.visit}.json"
     record = json.loads(record_file.read_text()) if record_file.exists() else {"visit": args.visit, "video": result["video"], "arms": {}}
+    if args.all_tasks:
+        record["desc_ids"] = description_ids(args.visit, [task.text for task in tasks])
     pool = generic = None
     if {"b", "d"} & set(arms):
         pool = R.generic_pool(args.runs / "regions" / f"{args.visit}.json", frames[0].image_hw)
@@ -374,7 +426,7 @@ def main() -> None:
                     video = rgb_frames(scene, uniform)
                     uniform_labels = P.label_maps(scene, P.gt_frames(scene, uniform))
                 if arm == "sam3q":
-                    prompted = prompted or task_prompts(args.runs, args.visit, [t.text for t in tasks], uniform)
+                    prompted = prompted or task_prompts(args.runs, args.visit, [t.text for t in tasks], uniform, args.all_tasks)
                     rows.append(task_prompted(reader, prompted, index, task, video, uniform, uniform_labels))
                 else:
                     rows.append(raw_video(reader, task.text, video, uniform, uniform_labels, task.parts))

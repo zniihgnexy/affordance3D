@@ -135,3 +135,35 @@ def test_tool_features_reuse_the_saved_vectors_and_refuse_vectors_of_other_boxes
     assert run.tool_features(file, [], candidates, 3).tolist() == [[1.0, 1.0, 1.0]]
     with pytest.raises(SystemExit):
         run.tool_features(file, [], [policies.Candidate(0, (1, 2, 3, 5), (0, 0, 5, 5))], 3)
+
+
+class _FakeEncoder:
+    def texts(self, texts):
+        return np.array([[1.0, 0.0] if "open" in t else [0.0, 1.0] for t in texts], dtype=np.float32)
+
+
+def test_all_task_queries_keep_the_saved_vectors_and_encode_only_the_unasked_tasks(monkeypatch) -> None:
+    import affordance3d.mem.encoders as encoders
+
+    monkeypatch.setattr(encoders, "ImageTextEncoder", _FakeEncoder)
+    tasks = [H.Task("open it", (1,), frozenset({0})), H.Task("press it", (2,), frozenset()), H.Task("open that", (3,), frozenset({2}))]
+    saved = np.array([[2.0, 0.0], [3.0, 0.0]], dtype=np.float32)  # same direction as the re-encoding, other length
+
+    queries = run.all_task_queries(tasks, saved)
+
+    assert queries.tolist() == [[2.0, 0.0], [0.0, 1.0], [3.0, 0.0]]
+    with pytest.raises(SystemExit):
+        run.all_task_queries(tasks, np.array([[0.0, 1.0], [3.0, 0.0]], dtype=np.float32))  # disagrees with the re-encoding
+
+
+def test_description_ids_follow_the_descriptions_file_and_must_match_the_tasks(monkeypatch, tmp_path) -> None:
+    folder = tmp_path / "data" / "scenefun3d" / "1"
+    folder.mkdir(parents=True)
+    (folder / "1_descriptions.json").write_text(
+        '{"descriptions": [{"desc_id": "a", "description": "open it"}, {"desc_id": "b", "description": "press it"}]}')
+    monkeypatch.setattr(run, "REPO_ROOT", tmp_path)
+
+    assert run.description_ids("1", ["open it", "press it"]) == ["a", "b"]
+    with pytest.raises(SystemExit):
+        run.description_ids("1", ["press it", "open it"])
+

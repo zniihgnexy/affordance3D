@@ -12,7 +12,10 @@ prepare_gt_val_data.py, and stores AP, AP50 and AP25 in <pred_dir>/score.json. C
 
     python -I scripts/scenefun3d_eval.py fun3du --pred_dir <dir> --out <file.json> [--reference <json>] [--fingerprints <json>]
 
-`fun3du` scores by the protocol of the published numbers (affordance3d.mem.scenefun3d_eval, Fun3DU / UniFunc3D):
+    python -I scripts/scenefun3d_eval.py compare --first <dir> --second <dir> --out <file.json>
+
+`compare` takes the paired difference first minus second on every task (section 27.2) and reads it by
+scenefun3d_eval.compare_verdict. `fun3du` scores by the protocol of the published numbers (affordance3d.mem.scenefun3d_eval, Fun3DU / UniFunc3D):
 <pred_dir>/<visit_id>.json holds [{"desc_id": ..., "pred_mask": [sorted cropped-scan indices]}] for every task of the
 30 validation scenes. --reference compares every task with per-task values released by another method (lists keyed
 by metric, with visit_id and desc_id); --fingerprints compares the sha256 of our crop masks, descriptions and
@@ -137,6 +140,37 @@ def fun3du(pred_dir: Path, reference: Path | None, fingerprints: Path | None) ->
             "fingerprints_compared": hashes, "fingerprint_mismatches": fingerprint_errors}
 
 
+def task_rows(pred_dir: Path) -> dict[str, list[dict[str, float]]]:
+    """Per scene, the Fun3DU-protocol scores of every task in the descriptions order."""
+    rows = {}
+    for visit in [line.strip() for line in SCENES.read_text().splitlines() if line.strip()]:
+        folder = DATA / visit
+        crop = np.load(folder / f"{visit}_crop_mask.npy", allow_pickle=False)
+        annotations = json.loads((folder / f"{visit}_annotations.json").read_text())["annotations"]
+        tasks = json.loads((folder / f"{visit}_descriptions.json").read_text())["descriptions"]
+        predicted = {e["desc_id"]: np.asarray(e["pred_mask"], dtype=np.int64) for e in json.loads((pred_dir / f"{visit}.json").read_text())}
+        if set(predicted) != {task["desc_id"] for task in tasks}:
+            raise SystemExit(f"{pred_dir.name}/{visit}: the predictions do not cover exactly the scene's tasks")
+        rows[visit] = [SE.fun3du_scores(SE.task_ground_truth(crop, annotations, t["annot_id"]), predicted[t["desc_id"]]) for t in tasks]
+    return rows
+
+
+def compare(first: Path, second: Path) -> dict:
+    """first minus second on the same tasks, every Fun3DU metric, with 95% intervals from resampling scenes (2,000
+    resamples, seed 0, pooled over tasks), read by the rule of section 27.2 on AP25 and mIoU."""
+    from affordance3d.mem import phase1_stats as A
+
+    a, b = task_rows(first), task_rows(second)
+    diffs = {}
+    for metric in SE.FUN3DU_METRICS:
+        values = A.paired_difference([np.array([r[metric] for r in a[v]]) for v in a], [np.array([r[metric] for r in b[v]]) for v in a])
+        diffs[metric] = tuple(100 * x for x in values)
+    return {"first": str(first.relative_to(REPO_ROOT)) if first.is_relative_to(REPO_ROOT) else first.name,
+            "second": str(second.relative_to(REPO_ROOT)) if second.is_relative_to(REPO_ROOT) else second.name,
+            "tasks": sum(len(r) for r in a.values()), "first_minus_second": {m: dict(zip(("rate", "low", "high"), d)) for m, d in diffs.items()},
+            "verdict": SE.compare_verdict(diffs)}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -151,8 +185,17 @@ def main() -> None:
     graded.add_argument("--out", type=Path, required=True)
     graded.add_argument("--reference", type=Path)
     graded.add_argument("--fingerprints", type=Path)
+    comparing = sub.add_parser("compare")
+    comparing.add_argument("--first", type=Path, required=True)
+    comparing.add_argument("--second", type=Path, required=True)
+    comparing.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
-    if args.command == "fun3du":
+    if args.command == "compare":
+        result = compare(args.first.resolve(), args.second.resolve())
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(result, indent=1))
+        print(json.dumps(result, indent=1))
+    elif args.command == "fun3du":
         result = fun3du(args.pred_dir, args.reference, args.fingerprints)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(result, indent=1))

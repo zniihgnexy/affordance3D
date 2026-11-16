@@ -73,3 +73,13 @@ def test_a_record_made_another_way_is_not_resumed(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         run.start_record(file, fresh)
     assert run.start_record(tmp_path / "none.json", fresh) is fresh
+
+
+def test_all_task_detections_reuse_the_earlier_ones_and_fill_in_the_new_texts_in_order() -> None:
+    earlier, index = [["d-open"], ["d-press"]], {"open it": 0, "press it": 1}
+
+    merged = run.merge_task_detections(["press it", "turn it", "open it"], ["turn it"], [["d-turn"]], earlier, index)
+
+    assert merged == [["d-press"], ["d-turn"], ["d-open"]]
+    assert run.task_prompt_folder(True) == "sam3_tasks_all" and run.task_prompt_folder(False) == "sam3_tasks"
+

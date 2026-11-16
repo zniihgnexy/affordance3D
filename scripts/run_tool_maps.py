@@ -5,6 +5,8 @@
     python scripts/run_tool_maps.py --visit 421254 --tool sam3 --gate   # only the two keyframes shown to the lead at the gate
     python scripts/run_tool_maps.py --visit 421254 --tool sam3_tasks    # SAM 3 prompted with each task's text on c3's 40
                                                                         # even frames (for arm sam3q of run_mem_controls.py)
+    python scripts/run_tool_maps.py --visit 421254 --tool sam3_tasks --all-tasks   # every task of the scene (section 27.2):
+                                    # writes tool_maps/sam3_tasks_all/, reusing sam3_tasks' detections of the tasks it holds
 
 The tools see the 40 steady keyframes of phase 1 (at the working resolution, as every arm does) and the part names only:
 no annotation, no task text (sam3_tasks excepted: its prompt is the task). Writes runs/mem_phase1/tool_maps/<tool>/<visit>.json
@@ -183,26 +185,54 @@ def run_part_names(args: argparse.Namespace, scene: P.Scene, steady: list[str], 
           f"{TM.tool_seconds(record):.0f} s of tool time", flush=True)
 
 
+def task_prompt_folder(all_tasks: bool) -> str:
+    """sam3_tasks holds the tasks phase 1 asked; sam3_tasks_all every task of the scene (section 27.2)."""
+    return TM.TASK_PROMPTED + ("_all" if all_tasks else "")
+
+
+def earlier_task_prompts(runs: Path, visit: str, uniform: list[str]) -> dict | None:
+    """The finished sam3_tasks record of the tasks phase 1 asked, whose detections the all-tasks record reuses."""
+    file = runs / "tool_maps" / TM.TASK_PROMPTED / f"{visit}.json"
+    if not file.exists():
+        return None
+    record = TM.read_tool_map(file)
+    if record["times"] != uniform or record["version"] != TM.VERSION or len(record["frames"]) != len(uniform):
+        raise SystemExit(f"{file} was made with other frames or settings, or is not finished")
+    return {"record": record, "index": {text: i for i, text in enumerate(record["tasks"])}}
+
+
+def merge_task_detections(texts: list[str], missing: list[str], new: list, earlier: list, index: dict[str, int]) -> list:
+    """One frame's detections for every text, in the order of `texts`: earlier ones where the text was prompted before,
+    the new ones (for `missing`, in that order) otherwise."""
+    fresh = dict(zip(missing, new))
+    return [earlier[index[text]] if text in index else fresh[text] for text in texts]
+
+
 def run_task_prompts(args: argparse.Namespace, scene: P.Scene, result: dict) -> None:
     """sam3_tasks: every task's text as a SAM 3 prompt on c3's even frames; KEEP_PER_FRAME best instances per frame and
     task, whatever their score (arm sam3q applies the threshold); the record is saved after every frame."""
     uniform = keyframes.scene_keyframes(scene, "uniform", result["n_keyframes"])
-    texts = result["tasks"]["texts"]
+    texts = [text for text, _ in scene.tasks] if args.all_tasks else result["tasks"]["texts"]
     image_hw = P.frame_hw(scene, uniform[0], P.PIXEL_STEP)
-    file = args.runs / "tool_maps" / TM.TASK_PROMPTED / f"{args.visit}.json"
+    file = args.runs / "tool_maps" / task_prompt_folder(args.all_tasks) / f"{args.visit}.json"
+    earlier = earlier_task_prompts(args.runs, args.visit, uniform) if args.all_tasks else None
     fresh = {"visit": args.visit, "tool": TM.TASK_PROMPTED, "model": "@".join(TM.SAM3), "version": TM.VERSION, "times": uniform,
-             "image_hw": list(image_hw), "tasks": texts, "keep_per_frame": TM.KEEP_PER_FRAME, "frames": {}}
+             "image_hw": list(image_hw), "tasks": texts, "keep_per_frame": TM.KEEP_PER_FRAME, "frames": {},
+             "reused_tasks": sum(text in earlier["index"] for text in texts) if earlier else 0}
     record = start_record(file, fresh)
     if record["tasks"] != texts:
         raise SystemExit(f"{file} holds other tasks; move it away to start again")
     todo = [f for f in range(len(uniform)) if str(f) not in record["frames"]]
-    detector = Sam3Detector() if todo else None
+    missing = [text for text in texts if not earlier or text not in earlier["index"]]
+    detector = Sam3Detector() if todo and missing else None
     if detector is not None:
         record["cut_texts"] = [i for i, text in enumerate(texts) if detector.tokens(text) > TEXT_TOKENS]
     for f in todo:
         rgb = P.input_frame(scene, uniform[f], np.zeros(image_hw, dtype=np.float32)).rgb
         start = time.time()
-        found = detector.detect(rgb, texts, threshold=None, keep=TM.KEEP_PER_FRAME)
+        new = detector.detect(rgb, missing, threshold=None, keep=TM.KEEP_PER_FRAME) if missing else []
+        found = merge_task_detections(texts, missing, new, earlier["record"]["frames"][str(f)]["detections"] if earlier else [],
+                                      earlier["index"] if earlier else {})
         record["frames"][str(f)] = {"time": uniform[f], "seconds": round(time.time() - start, 2), "detections": found}
         save(record, file)
     print(f"{args.visit} {TM.TASK_PROMPTED}: {len(record['frames'])} of {len(uniform)} frames done, {len(texts)} tasks", flush=True)
@@ -224,7 +254,11 @@ def main() -> None:
     parser.add_argument("--keyframes", default="", help="comma-separated keyframe indices (default: all 40)")
     parser.add_argument("--gate", action="store_true", help="only the two keyframes of the gate figure")
     parser.add_argument("--runs", type=Path, default=REPO_ROOT / "runs" / "mem_phase1")
+    parser.add_argument("--all-tasks", action="store_true",
+                        help="sam3_tasks only: every task of the scene, reusing the detections of sam3_tasks (section 27.2)")
     args = parser.parse_args()
+    if args.all_tasks and args.tool != TM.TASK_PROMPTED:
+        raise SystemExit("--all-tasks applies to sam3_tasks only")
     result = json.loads((args.runs / f"{args.visit}.json").read_text())
     scene = P.load_scene(REPO_ROOT / "data" / "scenefun3d", args.visit, result["video"])
     if args.tool == TM.TASK_PROMPTED:

@@ -125,3 +125,23 @@ def fun3du_scores(gt: np.ndarray, pred: np.ndarray) -> dict[str, float]:
 def fun3du_means(rows: Sequence[dict[str, float]]) -> dict[str, float]:
     """Every metric as a mean over tasks, in percent."""
     return {metric: 100 * float(np.mean([row[metric] for row in rows])) for metric in FUN3DU_METRICS}
+
+
+# Section 27.2: how the paired difference "ours minus UniFunc3D 8B" is read, per metric (percentage points):
+# (near, far); roughly a tenth of UniFunc3D 8B's own value (AP25 44.04, mIoU 20.92) and twice that.
+COMPARE_MARGINS = {"AP25": (5.0, 10.0), "mIoU": (2.5, 5.0)}
+
+
+def compare_verdict(differences: dict[str, tuple[float, float, float]]) -> str:
+    """comparable: every lower end above -near; clearly behind: some upper end below -far; behind: some upper end below
+    -near; unclear otherwise. `differences` holds (rate, low, high) in percentage points for every metric of
+    COMPARE_MARGINS."""
+    lows = {m: differences[m][1] for m in COMPARE_MARGINS}
+    highs = {m: differences[m][2] for m in COMPARE_MARGINS}
+    if all(lows[m] > -near for m, (near, _) in COMPARE_MARGINS.items()):
+        return "comparable"
+    if any(highs[m] < -far for m, (_, far) in COMPARE_MARGINS.items()):
+        return "clearly behind"
+    if any(highs[m] < -near for m, (near, _) in COMPARE_MARGINS.items()):
+        return "behind"
+    return "unclear"

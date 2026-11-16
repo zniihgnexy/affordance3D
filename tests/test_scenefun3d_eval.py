@@ -82,3 +82,13 @@ def test_fun3du_scores_threshold_precision_and_recall_per_task() -> None:
     assert loose["AP25"] == 0.0 and loose["AR25"] == 1.0 and loose["mIoU"] == pytest.approx(1 / 11)
     assert all(value == 0.0 for value in empty.values())
     assert SE.fun3du_means([tight, empty])["AP25"] == pytest.approx(50.0)
+
+
+@pytest.mark.parametrize("ap25, miou, verdict", [((1.0, -4.0, 6.0), (0.0, -2.0, 2.0), "comparable"),
+                                                 ((-3.0, -6.0, 0.5), (0.0, -2.0, 2.0), "unclear"),
+                                                 ((-8.0, -11.0, -6.0), (0.0, -2.0, 2.0), "behind"),
+                                                 ((0.0, -3.0, 3.0), (-4.0, -6.0, -3.0), "behind"),
+                                                 ((-14.0, -18.0, -11.0), (0.0, -2.0, 2.0), "clearly behind"),
+                                                 ((0.0, -3.0, 3.0), (-7.0, -9.0, -5.5), "clearly behind")])
+def test_compare_verdict_reads_ap25_and_miou_by_their_own_margins(ap25, miou, verdict) -> None:
+    assert SE.compare_verdict({"AP25": ap25, "mIoU": miou}) == verdict
