@@ -32,6 +32,7 @@
 | 文件 | 内容 |
 | --- | --- |
 | [pipeline 工作 notebook](../../notebooks/mem/pipeline.ipynb) | 只有文字：当前流程（L2 记忆）的总览，15 个环节各自的想法、要求、现在的做法、示例里看到的和缺口；项目负责人直接在里面写更新，逐环节的讨论以它为准 |
+| [当前 pipeline 图](figures/pipeline/README.md) | 此刻真正在跑的流程（写入、读取两段）：每个方块写今天实际用的模型或数据，颜色标出论文要主张的部分和仍用标注代替的部分；每个阶段之后更新，源文件（`pipeline.yaml`）、示例图片的生成脚本和更新方法在同一目录 |
 | [pipeline 示例 notebook](../../notebooks/mem/pipeline_examples.ipynb) | 中文说明、以图为主：按同样的环节编号，在场景 421069 上给每个环节一个真实数据的示例（关键帧、深度、位姿、affordance map、部件 token、跨帧关联、检索、视觉语言模型、现算几何、人形、评测）；代码在 `affordance3d/mem/tokens.py`、`search.py`、`encoders.py`，绘图在 `report/mem_steps_helpers.py` |
 | [阶段 1 结果 notebook](../../notebooks/mem/phase1_results.ipynb) | 中文说明、以图为主：30 个验证场景上五种写法的对照（token 写在哪里）、预算曲线、逐场景的差、视觉语言模型的端到端结果、几个具体任务的画面、重建对照和代价，以及按预先写定的规则对关口 G1 的检查；统计在 `affordance3d/mem/phase1_stats.py`，绘图在 `report/mem_phase1_helpers.py` |
 | [问题定义与讨论稿](mem分支_问题定义与讨论稿_2026-11-10.md) | 问题拆解、查询类型与对照设计、假设、记忆结构；第 11 节起为各轮讨论决定、设计 v0.2 和 S1 步骤 |

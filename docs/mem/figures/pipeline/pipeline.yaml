@@ -1,0 +1,95 @@
+# The current affordance3D memory pipeline, kept up to date after every stage (see README.md here).
+# Render: python3 <cvpr-figure>/scripts/render.py pipeline.yaml -o pipeline -f svg,pdf,png,pptx --dpi 600
+# Crops (make_crops.py): one correct P4 answer, scene 421254,
+# "Open the top left drawer of the cabinet located to the left of the TV".
+figure:
+  id: pipeline
+  venue: neurips
+  width: single
+  font: times
+  pptx_app: office
+  pad_bottom: 13
+
+roles:
+  input: grey.light
+  aux: gold.light
+  core: orange.light
+  encoder: blue.light
+  memory: red.light
+  decoder: green.light
+
+layout: col
+gap: 14
+
+panels:
+  - id: write
+    title: "Write once, per walkthrough video"
+    title_align: left
+    frame: dashed
+    body:
+      - row:
+          gap: 9
+          align: center
+          body:
+            - col:
+                gap: 6
+                align: center
+                body:
+                  - {id: depth, shape: trapezoid, text: "LiDAR-scaled depth", role: encoder, snap: false, caption: "Depth Anything V2", align_x: enc}
+                  - row:
+                      gap: 9
+                      align: center
+                      body:
+                        - {id: img_in, shape: image, w: 40, src: pipeline_input.jpg, caption: "40 keyframes"}
+                        - {id: pm, shape: box, text: "Part map", role: aux, caption: "annotations now"}
+                        - {id: enc, shape: trapezoid, text: "Region encoder", role: encoder, wrap: 36, caption: "SigLIP 2"}
+                        - {id: idx, shape: box, text: "Function index", role: core, bold: true, wrap: 38, caption: "part tokens, flags"}
+            - {id: mem, shape: box, text: "Memory", role: memory, caption: "written once", align_y: idx}
+
+  - id: read
+    title: "Read, per question"
+    title_align: left
+    frame: dashed
+    body:
+      - row:
+          gap: 9
+          align: center
+          body:
+            - {id: q, shape: box, text: "Question", role: input, caption: "task sentence"}
+            - {id: tenc, shape: trapezoid, text: "Text encoder", role: encoder, wrap: 32, caption: "SigLIP 2"}
+            - {id: retr, shape: box, text: "Top-3 keyframes", role: core, bold: true, wrap: 36, caption: "meaning + parts"}
+            - {id: vlm, shape: trapezoid, text: "VLM picks a numbered part", role: encoder, wrap: 44, caption: "Qwen3-VL"}
+            - {id: img_out, shape: image, w: 36, src: pipeline_answer_zoom.jpg, caption: "chosen part"}
+            - {id: act, shape: box, text: "How to move it", role: decoder, dash: true, wrap: 34, caption: "C, in progress"}
+
+edges:
+  - {from: img_in.e, to: pm.w}
+  - {from: pm.e, to: enc.w}
+  - {from: enc.e, to: idx.w}
+  - {from: idx.e, to: mem.w}
+  - {from: img_in.n, to: depth.w, route: vh}
+  - {from: depth.e, to: mem.n, route: hv, label: "3D positions", label_size: 6.5, label_pos: 0.4, label_dy: -5}
+  - {from: q.e, to: tenc.w}
+  - {from: tenc.e, to: retr.w}
+  - {from: mem.s, to: retr.n, color: memory}
+  - {from: retr.e, to: vlm.w}
+  - {from: vlm.e, to: img_out.w}
+  - {from: img_out.e, to: act.w, dash: true}
+
+legend:
+  corner: se
+  dir: row
+  box: false
+  items:
+    - {text: "claimed contribution", color: orange.light, kind: swatch}
+    - {text: "frozen public model", color: blue.light, kind: swatch}
+    - {text: "annotation stand-in", color: gold.light, kind: swatch}
+    - {text: "in progress", kind: dashed, arrow: false}
+
+caption: >-
+  \textbf{The memory pipeline as of 2026-11-16.} Top: each walkthrough video is written once.
+  A part map, taken from the annotations for now (gold; SAM 3 is next), gives region tokens on
+  40 keyframes, and metric depth places each part in 3D. Bottom: a question retrieves three
+  keyframes, their parts are numbered and a small vision-language model picks one. Orange is
+  the claim: in one room it ranks the right keyframe first for 66\% of questions against 46\%
+  for whole-frame meaning, but adds only 4 to 7 points to picking the right part.
