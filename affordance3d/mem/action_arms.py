@@ -48,15 +48,26 @@ EMPTY = A.Prediction(None, None, None, None, None, None, None, None)
 
 # ---------------------------------------------------------------- V: the question and its answer
 
+MIN_ARROW_UNITS = 50  # asked of the model (0-1000 scale); not a scoring threshold
+EXAMPLE_ANSWER = ('{"point": [420, 610], "label": "hook_pull", "motion": "pull", "arrow_end": [420, 700], '
+                  '"hinge_side": "none"}')
+
+
 def action_prompt(task: str) -> str:
-    labels = "; ".join(f"{name} ({hint})" for name, hint in LABEL_HINTS.items())
+    """V's question. After the 4B pilot (2026-11-16) the model gave part names as labels and repeated the point as the
+    arrow's end: the nine labels are now listed as exact strings with an example, and the arrow must be long enough."""
+    labels = "\n".join(f'  "{name}": {hint}' for name, hint in LABEL_HINTS.items())
     return (f"This image is a frame from a video of one room. Task: \"{task}\". Find {PART}, and say how a hand or foot "
-            f"operates it. Answer in JSON as {{\"point\": [x, y], \"label\": \"...\", \"motion\": \"...\", \"arrow_end\": "
-            f"[x, y], \"hinge_side\": \"...\"}}, with coordinates from 0 to 1000 relative to the image. point: where the "
-            f"hand or foot touches the part. label: one of {labels}. motion: push or pull if the part is pressed or slides, "
-            f"rotate if it turns. arrow_end: the end of an arrow drawn from point, showing the way the part moves, or, if it "
-            f"turns, along the axis it turns about. hinge_side: if the part swings on a hinge (a door or a lid), the side of "
-            f"the part where the hinge is in the image (left, right, top or bottom); otherwise none.")
+            f"operates it.\nAnswer with one JSON object with exactly these keys:\n"
+            f"- \"point\": [x, y], where the hand or foot touches the part.\n"
+            f"- \"label\": exactly one of these nine strings, not the name of the part:\n{labels}\n"
+            f"- \"motion\": \"push\" or \"pull\" if the part is pressed or slides, \"rotate\" if it turns.\n"
+            f"- \"arrow_end\": [x, y], a second point showing which way the part moves; for a part that turns, a point along "
+            f"the axis it turns about. It must be at least {MIN_ARROW_UNITS} units away from \"point\".\n"
+            f"- \"hinge_side\": if the part swings on a hinge (a door or a lid), the side of the part where the hinge is in "
+            f"the image: \"left\", \"right\", \"top\" or \"bottom\"; otherwise \"none\".\n"
+            f"All coordinates are from 0 to 1000 relative to the image.\n"
+            f"Example of the format, for a different task (opening a drawer by its handle): {EXAMPLE_ANSWER}")
 
 
 @dataclass(frozen=True)

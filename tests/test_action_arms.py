@@ -48,6 +48,25 @@ def test_the_question_names_the_task_and_every_label() -> None:
     assert len(C.LABEL_HINTS) == 9 and set(C.PUSH_LABELS + C.PULL_LABELS + ("rotate", "hook_turn")) == set(C.LABEL_HINTS)
 
 
+def test_the_question_lists_the_nine_labels_exactly_and_asks_for_a_long_enough_arrow() -> None:
+    prompt = C.action_prompt("Open the drawer")
+    scorer_labels = ("rotate", "key_press", "tip_push", "hook_pull", "pinch_pull", "hook_turn", "foot_push", "plug_in", "unplug")
+
+    assert tuple(C.LABEL_HINTS) == scorer_labels
+    assert all(f'"{label}": {C.LABEL_HINTS[label]}' in prompt for label in scorer_labels)
+    assert "exactly one of these nine strings" in prompt and f"at least {C.MIN_ARROW_UNITS} units away" in prompt
+    assert C.EXAMPLE_ANSWER in prompt
+
+
+def test_the_example_answer_parses_to_a_valid_label_and_a_real_arrow() -> None:
+    example = C.parse_action_answer(C.EXAMPLE_ANSWER)
+    prediction = C.answer_prediction(example, WALL)
+
+    assert example.label in C.LABEL_HINTS and example.motion in C.MOTION_WORDS and example.hinge_side == A.ON_PART
+    assert np.hypot(example.arrow_end[0] - example.point[0], example.arrow_end[1] - example.point[1]) >= C.MIN_ARROW_UNITS
+    assert prediction.arrow is not None and any(prediction.arrow) and prediction.direction is not None
+
+
 def test_the_answer_is_read_through_fences_prose_and_loose_wording() -> None:
     text = ('Sure.\n```json\n{"point": [500, 250], "label": "Tip push", "motion": "push", "arrow_end": [520.5, 260], '
             '"hinge_side": null}\n```')

@@ -55,7 +55,7 @@ from report import mem_steps_helpers as H  # noqa: E402
 from report.mem_demo_helpers import scaled_mono_depths  # noqa: E402
 
 MONO_ID = "depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf"  # as phase 1 (scripts/run_mem_phase1.py)
-C1_VERSION = "c1-v1"  # part of the answer cache key: change it when a prompt or an image changes
+C1_VERSION = "c1-v2"  # v2: V's prompt after the 4B pilot (exact labels, example, arrow >= 50 units); part of the answer cache key: change it when a prompt or an image changes
 ANSWER_TOKENS = {"json": 256, "number": 8}
 MAX_MARKS = 40  # as p4n
 CONTROL_FOLDERS = {"4b": "controls", "8b": "controls_8b"}  # each model's own choices (c3, p4n, c4)
