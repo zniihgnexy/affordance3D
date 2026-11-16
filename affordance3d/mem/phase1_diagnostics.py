@@ -84,6 +84,13 @@ def generic_in_same_keyframes(pool: Sequence[Candidate], like: Sequence[Candidat
     return chosen
 
 
+def memory_keyframes(query: np.ndarray, keyframe_vectors: np.ndarray, vectors: np.ndarray, candidates: Sequence[Candidate],
+                     top_keyframes: int = 3) -> list[int]:
+    """The keyframes the memory ranks best for a query, best first: those the model-reading step shows."""
+    scores = S.score_keyframes(query, keyframe_vectors, vectors, [c.keyframe for c in candidates], [0] * len(candidates))
+    return [int(k) for k in scores.ranking()[:top_keyframes]]
+
+
 def shown_candidates(query: np.ndarray, keyframe_vectors: np.ndarray, vectors: np.ndarray, candidates: Sequence[Candidate],
                      top_keyframes: int = 3, max_marks: int = 40) -> list[Candidate]:
     """The numbered boxes the model-reading step shows for a query: the best-scoring tokens of the best keyframes."""

@@ -17,6 +17,9 @@ CPU only, from the saved boxes and the projected annotations (ground truth, used
                          left out until they exist. Annotated P4 is scored the same way for reference (83.6% by the
                          phase-1 rule)
     write time           seconds the tool took for the 40 keyframes of a scene (model loading not included)
+    carry ceiling        per task, the upper bound of carrying the tool's finds across views (the check before DF-4):
+                         found on any keyframe, and coverage if every find were carried to the keyframes that show the
+                         part, the memory's three keyframes unchanged; read by CARRY_READINGS (fixed before computing)
 
 Intervals come from resampling scenes. The deciding tool is the one with the higher per-part recall at 40 keyframes;
 when the two intervals overlap it is a tie and SAM 3 decides. It is named only when the maps of every tool still in the
@@ -50,6 +53,15 @@ from report import mem_steps_helpers as H
 OUT = "tool_maps_summary.json"
 
 
+CARRY_ROOM, CARRY_NONE = 0.10, 0.05  # section 24.9, the check before DF-4: carried minus coverage, lower end / upper end
+CARRY_READINGS = {  # suggestions only; the lead decides DF-4
+    "room": "carrying finds across views has room: suggest carrying them with depth and poses and measuring the real "
+            "coverage (CPU) before deciding DF-4",
+    "none": "carrying finds across views has little room: the misses are parts the tool never finds, or keyframes the "
+            "memory does not pick; suggest keeping DF-4 deferred",
+    "undetermined": "undetermined"}
+
+
 def triple(values: tuple[float, float, float]) -> dict:
     return {"rate": values[0], "low": values[1], "high": values[2]}
 
@@ -63,7 +75,7 @@ def scene_measures(record: dict, labels: list[np.ndarray]) -> dict:
     outcomes = {used: TM.part_outcomes(found, TM.budget_keyframes(n, used)) for used in TM.BUDGETS}
     return {"outcomes": outcomes, "false_alarms": np.array([TM.false_alarms(labels[k], boxes[k]) for k in range(n)], dtype=float),
             "boxes": np.array([len(boxes[k]) for k in range(n)], dtype=float), "seconds": TM.tool_seconds(record),
-            "sightings_found": np.array(list(found.values()), dtype=float), "detections": detections}
+            "sightings_found": np.array(list(found.values()), dtype=float), "detections": detections, "sightings": found}
 
 
 def coverage(candidates: list[policies.Candidate], vectors: np.ndarray, saved: dict, tasks: list[H.Task],
@@ -77,6 +89,26 @@ def coverage(candidates: list[policies.Candidate], vectors: np.ndarray, saved: d
     return {"common": rows[:, 0], "phase1": rows[:, 1]}
 
 
+def carry_ceiling(candidates: list[policies.Candidate], vectors: np.ndarray, saved: dict, tasks: list[H.Task],
+                  found: dict[tuple[int, int], bool], covered: np.ndarray) -> dict[str, np.ndarray]:
+    """Per task: whether a target part was found on any keyframe, and coverage if every find were carried to the
+    keyframes that show it (the memory's three keyframes unchanged; tool_maps.carried_coverage)."""
+    rows = [TM.carried_coverage(found, task.parts, D.memory_keyframes(query, saved["keyframes"], vectors, candidates,
+                                                                        TM.TOP_FRAMES), bool(now))
+            for query, task, now in zip(saved["queries"], tasks, covered, strict=True)]
+    rows = np.array(rows, dtype=float).reshape(len(tasks), 2)
+    return {"found_anywhere": rows[:, 0], "carried": rows[:, 1]}
+
+
+def carry_summary(covered: list[np.ndarray], anywhere: list[np.ndarray], carried: list[np.ndarray]) -> dict:
+    """The carry ceiling over scenes, read by the rule fixed before computing it (CARRY_ROOM, CARRY_NONE)."""
+    gain = A.paired_difference(carried, covered)
+    verdict = "room" if gain[1] > CARRY_ROOM else "none" if gain[2] < CARRY_NONE else "undetermined"
+    return {"coverage": triple(A.bootstrap(covered)), "found_anywhere": triple(A.bootstrap(anywhere)),
+            "carried": triple(A.bootstrap(carried)), "carried_minus_coverage": triple(gain), "verdict": verdict,
+            "reading": CARRY_READINGS[verdict]}
+
+
 def tool_coverage(runs: Path, tool: str, visit: str, measures: dict, saved: dict, tasks: list[H.Task], labels: list[np.ndarray],
                   image_hw: tuple[int, int]) -> dict[str, np.ndarray] | None:
     """Coverage of a tool's map, from the crop vectors run_mem_controls.py saved; None until they exist."""
@@ -88,7 +120,8 @@ def tool_coverage(runs: Path, tool: str, visit: str, measures: dict, saved: dict
         if not np.array_equal(features["boxes"], np.array([c.box for c in candidates], dtype=np.int64).reshape(-1, 4)):
             raise SystemExit(f"{file} was encoded from other boxes than the {tool} map holds now")
         vectors, measures["encode_seconds"] = features["vectors"], float(features["seconds"])
-    return coverage(candidates, vectors, saved, tasks, labels)
+    rows = coverage(candidates, vectors, saved, tasks, labels)
+    return {**rows, **carry_ceiling(candidates, vectors, saved, tasks, measures["sightings"], rows["common"])}
 
 
 def annotated_coverage(saved: dict, tasks: list[H.Task], labels: list[np.ndarray]) -> dict[str, np.ndarray]:
@@ -144,6 +177,8 @@ def summarise_tool(scenes: list[dict], tool: str) -> dict:
     if all(item is not None for item in covered):
         summary["coverage"] = {rule: triple(A.bootstrap([item[rule] for item in covered])) for rule in ("common", "phase1")}
         summary["encode_seconds_per_scene"] = float(np.median([row["encode_seconds"] for row in rows]))
+        summary["carry_ceiling"] = carry_summary([item["common"] for item in covered], [item["found_anywhere"] for item in covered],
+                                                 [item["carried"] for item in covered])
     else:
         summary["coverage"] = "not yet: run the tool arms of scripts/run_mem_controls.py, which encode the crops"
     return summary
@@ -213,6 +248,11 @@ def report(summary: dict) -> None:
         if isinstance(row["coverage"], dict):
             cell = row["coverage"]["common"]
             print(f"    a shown box on the target: {100 * cell['rate']:.1f}% [{100 * cell['low']:.1f}, {100 * cell['high']:.1f}]")
+        if "carry_ceiling" in row:
+            carry = row["carry_ceiling"]
+            cells = {key: carry[key] for key in ("found_anywhere", "carried", "carried_minus_coverage")}
+            print("    carry ceiling: " + "; ".join(f"{key} {100 * c['rate']:.1f} [{100 * c['low']:.1f}, {100 * c['high']:.1f}]"
+                                             for key, c in cells.items()) + f" -> {carry['reading']}")
     deciding = summary["deciding_tool"]
     print(f"  deciding tool: {deciding['tool']} ({deciding['reason']})" if deciding else "  deciding tool: not named (maps incomplete)")
 

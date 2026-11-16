@@ -182,3 +182,13 @@ def test_gate_keyframes_are_the_two_showing_most_parts_in_time_order() -> None:
 
     assert TM.gate_keyframes([one, two, _labels({}), two]) == [1, 3]
     assert TM.gate_keyframes([_labels({}), one, _labels({})]) == [0, 1]  # ties: the earlier
+
+
+def test_carried_coverage_needs_a_find_somewhere_and_the_part_on_a_shown_keyframe() -> None:
+    found = {(3, 0): False, (3, 5): True, (4, 2): False}  # part 3 found only in keyframe 5; part 4 never found
+
+    assert TM.carried_coverage(found, (3,), [0, 1, 2], covered=False) == (True, True)  # carried into keyframe 0
+    assert TM.carried_coverage(found, (3,), [1, 2, 6], covered=False) == (True, False)  # part 3 on no shown keyframe
+    assert TM.carried_coverage(found, (4,), [2], covered=False) == (False, False)  # nothing to carry
+    assert TM.carried_coverage(found, (4,), [2], covered=True) == (False, True)  # covered already stays covered
+

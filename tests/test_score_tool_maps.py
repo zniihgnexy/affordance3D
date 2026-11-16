@@ -100,3 +100,37 @@ def test_coverage_asks_whether_a_box_shown_by_the_memory_lies_on_the_target() ->
     assert rows["common"].tolist() == [1.0] and rows["phase1"].tolist() == [1.0]
     off = [policies.Candidate(2, (40, 40, 50, 50), (0, 0, 1, 1)), candidates[1]]
     assert score.coverage(off, vectors, saved, [task], labels)["common"].tolist() == [0.0]
+
+
+def test_carry_ceiling_keeps_the_memory_keyframes_and_carries_a_find_from_another_keyframe() -> None:
+    labels = [np.full((60, 60), -1) for _ in range(4)]
+    labels[1][20:30, 20:30] = 7
+    labels[2][20:30, 20:30] = 7  # part 7 shows in keyframes 1 and 2
+    saved = {"queries": np.array([[0.0, 0.0, 1.0, 0.0]]), "keyframes": np.eye(4)}
+    candidates = [policies.Candidate(1, (20, 20, 30, 30), (0, 0, 1, 1)), policies.Candidate(2, (0, 0, 5, 5), (0, 0, 1, 1))]
+    vectors = np.array([[0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]])
+    task = H.Task("open it", (7,), frozenset({1, 2}))
+    found = score.TM.sightings(labels, {0: [], 1: [(20, 20, 30, 30)], 2: [(0, 0, 5, 5)], 3: []})
+
+    rows = score.carry_ceiling(candidates, vectors, saved, [task], found, np.array([0.0]))  # not covered now
+    missed = score.TM.sightings(labels, {1: [(0, 0, 5, 5)], 2: [(0, 0, 5, 5)]})
+    none = score.carry_ceiling(candidates, vectors, saved, [task], missed, np.array([0.0]))
+
+    assert found == {(7, 1): True, (7, 2): False}
+    assert rows["found_anywhere"].tolist() == [1.0] and rows["carried"].tolist() == [1.0]
+    assert none["found_anywhere"].tolist() == [0.0] and none["carried"].tolist() == [0.0]
+    assert score.D.memory_keyframes(saved["queries"][0], saved["keyframes"], vectors, candidates, 1) == [2]
+
+
+@pytest.mark.parametrize("carried, verdict", [([[1.0] * 4] * 6, "room"),
+                                             ([[0.0] * 4] * 3 + [[0.0, 0.0, 0.0, 1.0]] * 3, "undetermined"),  # wide
+                                             ([[0.0] * 4] * 6, "none")])
+def test_carry_summary_reads_the_gain_over_coverage_by_the_fixed_thresholds(carried: list, verdict: str) -> None:
+    covered = [np.zeros(4) for _ in carried]
+    rows = [np.array(row) for row in carried]
+
+    summary = score.carry_summary(covered, [np.ones(4) for _ in carried], rows)
+
+    assert summary["verdict"] == verdict and summary["reading"] == score.CARRY_READINGS[verdict]
+    assert summary["carried_minus_coverage"]["rate"] == pytest.approx(np.mean(np.concatenate(rows)))
+
