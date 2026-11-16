@@ -53,7 +53,7 @@ def queue(config: dict, run: Path, scenes: list[str]) -> None:
         visits = todo[j::q["jobs"]]
         if not visits:
             continue
-        job = folder / f"{q['priority']}_{config['name']}_{j}.sh"
+        job = folder / f"{q['priority']}_{config['name']}_{visits[0]}_{len(visits)}.sh"  # unique per batch in the queue log
         if job.exists():
             raise SystemExit(f"{job} is already queued")
         steps = (f'for v in {" ".join(visits)}; do\n'
