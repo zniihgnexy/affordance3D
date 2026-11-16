@@ -73,9 +73,28 @@ def write_oracle_fun3du(out: Path) -> int:
     return count
 
 
+# Two NumPy 2 incompatibilities of the toolkit, bridged without changing its code: it calls np.in1d, which NumPy 2
+# removed (np.isin on the flattened input is the documented replacement, same result); and its loader passes each
+# confidence as a one-element array, which NumPy 2 will not write into a single slot (the same values are passed as
+# plain numbers). The loading and the scoring otherwise run unchanged.
+RUN_OFFICIAL = ("import numpy as np, runpy\n"
+                "if not hasattr(np, 'in1d'):\n"
+                "    np.in1d = lambda a, b, **kw: np.isin(np.ravel(a), b, **kw)\n"
+                "import eval.affordance_grounding.eval_utils.eval_script as es\n"
+                "_evaluate = es.evaluate\n"
+                "def evaluate(preds, gt_path, print_result=True):\n"
+                "    for item in preds.values():\n"
+                "        item['pred_scores'] = np.asarray(item['pred_scores'], dtype=float).ravel()\n"
+                "    return _evaluate(preds, gt_path, print_result)\n"
+                "es.evaluate = evaluate\n"
+                "runpy.run_module('eval.affordance_grounding.evaluate', run_name='__main__', alter_sys=True)\n")
+
+
 def score(pred_dir: Path, gt_dir: Path) -> dict:
-    result = subprocess.run([sys.executable, "-m", "eval.affordance_grounding.evaluate", "--pred_dir", str(pred_dir.resolve()),
-                             "--gt_dir", str(gt_dir.resolve())], cwd=TOOLKIT, capture_output=True, text=True, check=True)
+    result = subprocess.run([sys.executable, "-c", RUN_OFFICIAL, "--pred_dir", str(pred_dir.resolve()), "--gt_dir", str(gt_dir.resolve())],
+                            cwd=TOOLKIT, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise SystemExit(f"the official scorer failed:\n{result.stderr[-3000:]}")
     match = re.search(r"^average\s*:\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)", result.stdout, flags=re.MULTILINE)
     if match is None:
         raise SystemExit(f"could not read the scorer's output:\n{result.stdout[-2000:]}\n{result.stderr[-2000:]}")
