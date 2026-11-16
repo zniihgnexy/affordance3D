@@ -191,4 +191,5 @@ def test_carried_coverage_needs_a_find_somewhere_and_the_part_on_a_shown_keyfram
     assert TM.carried_coverage(found, (3,), [1, 2, 6], covered=False) == (True, False)  # part 3 on no shown keyframe
     assert TM.carried_coverage(found, (4,), [2], covered=False) == (False, False)  # nothing to carry
     assert TM.carried_coverage(found, (4,), [2], covered=True) == (False, True)  # covered already stays covered
+    assert TM.carried_coverage(found, (3, 4), [2], covered=False) == (True, False)  # part 3's find does not carry part 4
 

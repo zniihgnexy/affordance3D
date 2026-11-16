@@ -261,13 +261,14 @@ def shown_on_target(shown: Sequence[policies.Candidate], labels: Sequence[np.nda
 def carried_coverage(found: Mapping[tuple[int, int], bool], parts: Sequence[int], shown_keyframes: Sequence[int],
                      covered: bool) -> tuple[bool, bool]:
     """The upper bound of carrying a tool's finds across views for one task (section 24.9, the check before DF-4):
-    (found anywhere: a target part found on some keyframe that shows it; carried: covered already, or found anywhere and
-    a target part visible on one of the shown keyframes, where a perfect carry would put a box on it). `found` is
-    sightings(); the shown keyframes stay those the memory picked."""
+    (found anywhere: a target part found on some keyframe that shows it; carried: covered already, or a target part
+    that was found somewhere is visible on one of the shown keyframes, where a perfect carry would put a box on it; the
+    same part must be both, so a find of one target part never carries another). `found` is sightings(); the shown
+    keyframes stay those the memory picked."""
     targets = set(int(part) for part in parts)
-    anywhere = any(hit for (part, _), hit in found.items() if part in targets)
-    visible_shown = any((part, int(k)) in found for part in targets for k in shown_keyframes)
-    return bool(anywhere), bool(covered or (anywhere and visible_shown))
+    found_parts = {part for (part, _), hit in found.items() if part in targets and hit}
+    visible_shown = any((part, int(k)) in found for part in found_parts for k in shown_keyframes)
+    return bool(found_parts), bool(covered or visible_shown)
 
 
 def deciding_tool(recall: Mapping[str, tuple[float, float, float]], tie: str = TIE_TOOL) -> dict:
