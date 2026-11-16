@@ -7,16 +7,8 @@ display or evaluation, never an input.
 
 from __future__ import annotations
 
-import hashlib
-import io
-import json
-import pickle
-import time
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
-from pathlib import Path
+from collections.abc import Sequence
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -30,16 +22,17 @@ from affordance3d.mem import search as S
 from affordance3d.mem import tokens as T
 from report.mem_demo_helpers import (
     ACTION_COLOUR,
-    ScanView,
-    _draw_entry,
     contact_error_cm,
     pick_keyframes,
-    stand_free_in_scan,
 )
 
-MARK_COLOUR, CHOSEN_COLOUR, RIGHT_COLOUR = (255, 60, 60), (40, 220, 90), (60, 140, 255)
-MARKS_VERSION = "marks-v2"  # part of the answer cache key: change it when the drawing of the marks changes
-BOX_PAD_PX = 8
+# Moved by responsibility and re-exported here, so the callers of these names keep working.
+from affordance3d.mem.reading import (  # noqa: E402, F401
+    BOX_PAD_PX, CHOSEN_COLOUR, MARK_COLOUR, MARKS_VERSION, RIGHT_COLOUR, Box, CachedReader, Task, label_spot,
+    mark_boxes, marked_keyframes, reading_key, tasks_of,
+)
+from report.mem_steps_readout import _png_bytes, readout_entry, readout_figure, readout_memory, storage_table  # noqa: E402, F401
+
 STATUS_COLOUR = {"real": "#d7f0d2", "oracle": "#ffe2b8", "missing": "#e3e3e3", "model": "#d5e6fb"}
 
 
@@ -383,23 +376,6 @@ def pair_figure(memory: T.L2Memory, frames: Sequence[Frame], truth: np.ndarray) 
 
 # ---------------------------------------------------------------- block 10: search, then the vision-language model
 
-@dataclass(frozen=True)
-class Task:
-    text: str
-    parts: tuple[int, ...]  # ground-truth parts the task names
-    keyframes: frozenset[int]  # keyframes that show one of them (ground truth, for scoring)
-
-
-def tasks_of(scene: P.Scene, part_labels: Sequence[np.ndarray]) -> list[Task]:
-    tasks = []
-    for text, annot_ids in scene.tasks:
-        parts = tuple(i for i, element in enumerate(scene.elements) if element.annot_id in annot_ids)
-        shown = frozenset(k for k, labels in enumerate(part_labels)
-                          if any((labels == p).sum() >= P.MIN_PART_PIXELS for p in parts))
-        tasks.append(Task(text, parts, shown))
-    return tasks
-
-
 def search_table(hits: dict[str, Sequence[int | None]], ks: Sequence[int] = (1, 3, 5)) -> pd.DataFrame:
     rows = {name: {f"a right keyframe in the top {k}": f"{share:.0%}" for k, share in S.recall_at(values, ks).items()}
             for name, values in hits.items()}
@@ -435,85 +411,6 @@ def search_figure(frames: Sequence[Frame], memory: T.L2Memory, results: Sequence
     return fig
 
 
-Box = tuple[int, int, int, int]  # left, top, right, bottom
-
-
-def _overlap(a: Box, b: Box) -> int:
-    return max(0, min(a[2], b[2]) - max(a[0], b[0])) * max(0, min(a[3], b[3]) - max(a[1], b[1]))
-
-
-def label_spot(box: Box, size: tuple[int, int], taken: Sequence[Box], image_hw: tuple[int, int]) -> Box:
-    """Where to write a mark's number: beside its box, on the side that covers least of the other boxes and numbers."""
-    (left, top, right, bottom), (width, height) = box, size
-    spots = [(left, top - height, left + width, top), (left, bottom, left + width, bottom + height),
-             (left - width, top, left, top + height), (right, top, right + width, top + height)]
-
-    def cost(spot: Box) -> int:
-        outside = spot[0] < 0 or spot[1] < 0 or spot[2] > image_hw[1] or spot[3] > image_hw[0]
-        return sum(_overlap(spot, other) for other in taken) + (10 ** 9 if outside else 0)
-
-    return min(spots, key=cost)
-
-
-def marked_keyframes(frames: Sequence[Frame], memory: T.L2Memory, keyframe_ids: Sequence[int], chosen: int | None = None,
-                     right: Sequence[int] = ()) -> tuple[list[np.ndarray], list[int]]:
-    """Copies of the keyframes with every affordance region boxed and numbered 1, 2, ...; and the token behind each number.
-
-    `chosen` and `right` only colour the display copy (the model's pick, the true part); the model sees neither.
-    """
-    return mark_boxes(frames, [(token.region.keyframe, token.region.box) for token in memory.tokens], keyframe_ids, chosen, right)
-
-
-def mark_boxes(frames: Sequence[Frame], regions: Sequence[tuple[int, Box]], keyframe_ids: Sequence[int],
-               chosen: int | None = None, right: Sequence[int] = ()) -> tuple[list[np.ndarray], list[int]]:
-    """Copies of the keyframes with the given (keyframe, box) regions numbered 1, 2, ...; and the region behind each number."""
-    images, tokens = [], []
-    for k in keyframe_ids:
-        image = frames[k].rgb.copy()
-        here = [i for i, (keyframe, _) in enumerate(regions) if keyframe == k]
-        boxes = [(b[0] - BOX_PAD_PX, b[1] - BOX_PAD_PX, b[2] + BOX_PAD_PX, b[3] + BOX_PAD_PX)
-                 for b in (regions[i][1] for i in here)]
-        taken = list(boxes)
-        for index, box in zip(here, boxes):
-            tokens.append(index)
-            number = len(tokens)
-            colour = CHOSEN_COLOUR if number == chosen else RIGHT_COLOUR if number in right else MARK_COLOUR
-            cv2.rectangle(image, box[:2], box[2:], colour, 4 if colour != MARK_COLOUR else 2)
-            (width, height), _ = cv2.getTextSize(str(number), cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-            spot = label_spot(box, (width + 6, height + 8), [other for other in taken if other != box], frames[k].image_hw)
-            taken.append(spot)
-            cv2.rectangle(image, spot[:2], spot[2:], colour, -1)
-            cv2.putText(image, str(number), (spot[0] + 3, spot[3] - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
-        images.append(image)
-    return images, tokens
-
-
-def reading_key(model: str, prompt: str, keyframe_ids: Sequence[int], boxes: Sequence[Box]) -> str:
-    """Cache key of one question to the model: it changes with the model, the wording, the keyframes shown,
-    the numbered boxes and the way the marks are drawn."""
-    payload = json.dumps([MARKS_VERSION, model, prompt, [int(k) for k in keyframe_ids], [list(map(int, box)) for box in boxes]])
-    return hashlib.sha256(payload.encode()).hexdigest()[:16]
-
-
-class CachedReader:
-    """Asks the vision-language model once per question and keeps the answers (and how long they took) on disk."""
-
-    def __init__(self, cache: Path, make_model: Callable[[], object]) -> None:
-        self._cache, self._make_model, self._model = cache, make_model, None
-        self.answers: dict[str, dict] = json.loads(cache.read_text()) if cache.exists() else {}
-
-    def ask(self, key: str, images: Sequence[np.ndarray], prompt: str, **options: object) -> dict:
-        """The model's answer for `key`, asked now if it is not on disk; `options` go to the model (e.g. labels, max_new_tokens)."""
-        if key not in self.answers:
-            self._model = self._model or self._make_model()
-            start = time.time()
-            answer = self._model.ask(images, prompt, **options)
-            self.answers[key] = {"prompt": prompt, "answer": answer, "seconds": round(time.time() - start, 1)}
-            self._cache.parent.mkdir(parents=True, exist_ok=True)
-            self._cache.write_text(json.dumps(self.answers, indent=1))
-        return self.answers[key]
-
-
 def reading_figure(images: Sequence[np.ndarray], task: str, answer: str, verdict: str) -> plt.Figure:
     fig, axes = plt.subplots(1, len(images), figsize=(4.3 * len(images), 6.3), squeeze=False)
     for axis, image in zip(axes[0], images):
@@ -523,76 +420,6 @@ def reading_figure(images: Sequence[np.ndarray], task: str, answer: str, verdict
                  fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     return fig
-
-
-# ---------------------------------------------------------------- blocks 7, 8, 13: geometry read at query time
-
-def readout_entry(scene: P.Scene, memory: T.L2Memory, readout: T.Readout, truth_part: int) -> P.MemoryEntry:
-    """A read-out in the shape the display and scoring helpers expect.
-
-    `truth_part` (ground truth) is used only to score the contact point and to draw the oracle motion.
-    """
-    token, element = memory.tokens[readout.token], scene.elements[truth_part]
-    seen = tuple(memory.times[memory.tokens[i].region.keyframe] for i in memory.tokens_of(int(memory.part_of[readout.token])))
-    return P.MemoryEntry(truth_part, element.annot_id, T.ACTIONS[token.region.action], scene.task_of(element.annot_id),
-                         memory.times[token.region.keyframe], readout.pixel, token.region.pixels, seen, readout.contact,
-                         readout.normal, readout.stand, scene.motions.get(element.annot_id))
-
-
-def readout_memory(scene: P.Scene, memory: T.L2Memory, frames: Sequence[Frame], truth: np.ndarray) -> P.Memory:
-    """Every part of the L2 memory read out from its evidence token, for the entry figure and the scoreboard."""
-    entries = []
-    for part in range(memory.n_parts):
-        token = memory.evidence(part)
-        readout = T.read_geometry(memory, token, frames, scene.up)
-        if readout is not None:
-            entries.append(readout_entry(scene, memory, readout, int(truth[token])))
-    return P.Memory(memory.times, tuple(entries), memory.floor, np.zeros((0, 3)))
-
-
-def readout_figure(scene: P.Scene, titles: Sequence[str], entries: Sequence[P.MemoryEntry], frames: dict[str, Frame],
-                   view: ScanView) -> plt.Figure:
-    """Geometry read for each chosen token, drawn on its evidence keyframe: whole frame above, zoom below."""
-    fig, axes = plt.subplots(2, len(entries), figsize=(3.5 * len(entries), 8.0), squeeze=False)
-    for column, (title, entry) in enumerate(zip(titles, entries)):
-        frame = frames[entry.keyframe]
-        for axis in axes[:, column]:
-            axis.imshow(frame.rgb)
-            _draw_entry(axis, scene, entry, frame, stand_free_in_scan(entry, view))
-            axis.axis("off")
-        u, v = entry.pixel
-        axes[1, column].set_xlim(u - 90, u + 90)
-        axes[1, column].set_ylim(v + 90, v - 90)
-        axes[0, column].set_title(title, fontsize=8)
-        axes[1, column].set_title(f"zoom · {entry.action} · evidence keyframe {entry.keyframe} s\n"
-                                  f"contact {contact_error_cm(scene, entry):.1f} cm from the part it marks", fontsize=8)
-    fig.suptitle("red: contact point   cyan: surface normal   yellow: part motion (ORACLE)   ring: stand point", fontsize=9)
-    fig.tight_layout(rect=(0, 0, 1, 0.97), h_pad=2.2)
-    return fig
-
-
-def _png_bytes(image: np.ndarray) -> int:
-    return len(cv2.imencode(".png", image)[1])
-
-
-def storage_table(scene: P.Scene, scan_path: Path, keyframes: Sequence[str], frames: Sequence[Frame],
-                  action_maps: Sequence[np.ndarray], memory: T.L2Memory, explicit: P.Memory) -> pd.DataFrame:
-    """Measured sizes: what the L2 memory keeps, next to the explicit entries of v1 and the laser scan."""
-    index_bytes = len(pickle.dumps([(t.time_s, t.region) for t in memory.tokens] + [memory.part_of]))
-    poses = np.array([np.concatenate([f.cam_to_world.ravel(), f.intrinsics.ravel()]) for f in frames])
-    buffer = io.BytesIO()
-    np.save(buffer, poses)
-    rows = [("L2 memory", "keyframe images (as in the dataset)", sum(Path(scene.vid.rgb_path(t)).stat().st_size for t in keyframes)),
-            ("L2 memory", "depth maps (16-bit PNG, millimetres)", sum(_png_bytes((f.depth_m * 1000).astype(np.uint16)) for f in frames)),
-            ("L2 memory", "affordance maps (PNG)", sum(_png_bytes((a + 1).astype(np.uint8)) for a in action_maps)),
-            ("L2 memory", "camera poses, intrinsics", buffer.getbuffer().nbytes),
-            ("L2 memory", f"part tokens: features of {len(memory.tokens)} tokens (16-bit)", memory.feature_bytes()),
-            ("L2 memory", "part tokens: thin index", index_bytes),
-            ("for comparison", f"v1 explicit entries ({len(explicit.entries)} parts)", len(pickle.dumps(explicit.entries))),
-            ("for comparison", "laser scan of the room (ground truth, never an input)", scan_path.stat().st_size)]
-    table = pd.DataFrame(rows, columns=["group", "what", "bytes"])
-    table["size"] = [f"{b / 1e6:.2f} MB" if b >= 1e5 else f"{b / 1e3:.1f} KB" for b in table["bytes"]]
-    return table.drop(columns="bytes").set_index(["group", "what"])
 
 
 # ---------------------------------------------------------------- blocks 14, 15: illustration only

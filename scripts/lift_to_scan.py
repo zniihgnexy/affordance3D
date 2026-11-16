@@ -1,6 +1,6 @@
 """Lift the chosen masks to the laser scan, as fixed in the discussion draft, section 27.2 (CPU).
 
-    python scripts/lift_to_scan.py --visit 421254
+    python scripts/lift_to_scan.py --visit 421254 [--masks <folder>] [--out <folder>] [--rel-tol 0.25] [--memory-arm p4t_sam3]
 
 For every arm of runs/scenefun3d_eval/box_masks/<visit>.npz (scripts/run_box_masks.py) and every task: the mask, made
 twice as large by nearest neighbour, is lifted with affordance3d.mem.scan_lifting on the frame's camera at its native
@@ -9,7 +9,7 @@ and UniFunc3D do. A frame needs its pose within 0.05 s and depth of the same tim
 ("no camera"). Two upper bounds of the lifting go the same way with the annotated target as the mask: on the frame the
 memory arm (p4t_sam3) chose ("oracle_chosen") and on the keyframe that shows most target points ("oracle_best").
 
-Writes, under runs/scenefun3d_eval/: lifted/<arm>/<visit>.json (the Fun3DU format: desc_id and cropped-scan indices),
+Writes, under --out (default runs/scenefun3d_eval/): lifted/<arm>/<visit>.json (the Fun3DU format: desc_id and cropped-scan indices),
 official/<arm>/ (the official submission format: run-length masks over the full scan with SAM 3's score as confidence)
 and lifted/causes_<visit>.json (why a prediction is empty, per arm; for oracle_chosen, "no box" means the memory arm
 gave no usable frame).
@@ -58,13 +58,13 @@ class Cameras:
         return cache[t]
 
 
-def lift(points: np.ndarray, cameras: Cameras, t: str, working_mask: np.ndarray) -> np.ndarray:
+def lift(points: np.ndarray, cameras: Cameras, t: str, working_mask: np.ndarray, rel_tol: float) -> np.ndarray:
     """Cropped-scan indices kept by the working-resolution mask of frame t."""
     frame = cameras.frame(t, native=True)
     factor = frame.image_hw[0] // working_mask.shape[0]
     if (working_mask.shape[0] * factor, working_mask.shape[1] * factor) != frame.image_hw:
         raise SystemExit(f"frame {t}: mask {working_mask.shape} does not scale to {frame.image_hw}")
-    return np.flatnonzero(L.lift_mask(points, frame, L.upsample(working_mask, factor)))
+    return np.flatnonzero(L.lift_mask(points, frame, L.upsample(working_mask, factor), rel_tol))
 
 
 def task_parts(scene: P.Scene) -> list[tuple[int, ...]]:
@@ -74,6 +74,10 @@ def task_parts(scene: P.Scene) -> list[tuple[int, ...]]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--visit", required=True)
+    parser.add_argument("--masks", type=Path, default=EVAL / "box_masks", help="folder of <visit>.npz from run_box_masks.py")
+    parser.add_argument("--out", type=Path, default=EVAL)
+    parser.add_argument("--rel-tol", type=float, default=L.REL_DEPTH_TOL)
+    parser.add_argument("--memory-arm", default=MEMORY_ARM)
     args = parser.parse_args()
     visit = args.visit
     result = json.loads((REPO_ROOT / "runs" / "mem_phase1" / f"{visit}.json").read_text())
@@ -81,7 +85,7 @@ def main() -> None:
     kept_full = np.flatnonzero(scene.crop == 1)
     points, n_full = scene.scan_xyz[kept_full], len(scene.crop)
     cameras = Cameras(scene)
-    with np.load(EVAL / "box_masks" / f"{visit}.npz") as saved:
+    with np.load(args.masks / f"{visit}.npz") as saved:
         masks = {key: saved[key] for key in saved.files}
     desc_ids = [str(d) for d in masks["desc_ids"]]
     if len(desc_ids) != len(scene.tasks):
@@ -97,7 +101,7 @@ def main() -> None:
             indices = np.empty(0, dtype=np.int64)
             if cause is None:
                 mask = np.unpackbits(masks[f"{arm}/masks"][i], count=hw[0] * hw[1]).astype(bool).reshape(hw)
-                indices = lift(points, cameras, t, mask)
+                indices = lift(points, cameras, t, mask, args.rel_tol)
                 cause = None if indices.size else "no point"
             if cause:
                 counts[cause] += 1
@@ -106,7 +110,7 @@ def main() -> None:
     # the two upper bounds of the lifting itself (27.2, item 5): the annotated target as the mask
     steady = keyframes.scene_keyframes(scene, "steady", result["n_keyframes"])
     working = [cameras.frame(t, native=False) if cameras.usable(t) else None for t in steady]
-    chosen_frames = [row[3] for row in predictions[MEMORY_ARM]] if MEMORY_ARM in predictions else [None] * len(desc_ids)
+    chosen_frames = [row[3] for row in predictions[args.memory_arm]] if args.memory_arm in predictions else [None] * len(desc_ids)
     for name in ("oracle_chosen", "oracle_best"):
         rows, counts = [], dict.fromkeys(CAUSES, 0)
         for i, (desc_id, parts) in enumerate(zip(desc_ids, task_parts(scene))):
@@ -115,28 +119,28 @@ def main() -> None:
                 t = chosen_frames[i]
             else:
                 usable = [k for k, frame in enumerate(working) if frame is not None]
-                best = L.most_visible(target, [working[k] for k in usable]) if len(target) else None
+                best = L.most_visible(target, [working[k] for k in usable], args.rel_tol) if len(target) else None
                 t = steady[usable[best]] if best is not None else None
             indices = np.empty(0, dtype=np.int64)
             if t is None or not cameras.usable(t):
                 counts["no camera" if t is not None else "no box"] += 1
             else:
-                region = L.region_mask(target, cameras.frame(t, native=False))
-                indices = lift(points, cameras, t, region) if region.any() else indices
+                region = L.region_mask(target, cameras.frame(t, native=False), args.rel_tol)
+                indices = lift(points, cameras, t, region, args.rel_tol) if region.any() else indices
                 if not indices.size:
                     counts["no point"] += 1
             rows.append((desc_id, indices, 1.0, t))
         predictions[name], causes[name] = rows, counts
     for arm, rows in predictions.items():
-        folder = EVAL / "lifted" / arm
+        folder = args.out / "lifted" / arm
         folder.mkdir(parents=True, exist_ok=True)
         (folder / f"{visit}.json").write_text(json.dumps([{"desc_id": d, "pred_mask": idx.tolist()} for d, idx, _, _ in rows]))
-        official = EVAL / "official" / arm
+        official = args.out / "official" / arm
         for desc_id, idx, score, _ in rows:
             full = np.zeros(n_full, dtype=bool)
             full[kept_full[idx]] = True
             SE.write_task(official, visit, desc_id, [full] if idx.size else [], [score] if idx.size else [], n_full)
-    (EVAL / "lifted" / f"causes_{visit}.json").write_text(json.dumps(causes, indent=1))
+    (args.out / "lifted" / f"causes_{visit}.json").write_text(json.dumps(causes, indent=1))
     print(visit, json.dumps(causes), flush=True)
 
 

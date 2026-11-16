@@ -1,0 +1,34 @@
+# Score our answers by the protocol of the published SceneFun3D Task 2 numbers (discussion draft, section 27.2).
+# Every value below was fixed in that section before anything ran; a different setting needs a new config file
+# with another name, so that its results land in their own folder.
+#
+#   python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage queue    # GPU stages, via the queue
+#   python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage lift     # CPU
+#   python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage score    # CPU
+#   python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage status
+
+name: public_eval_split0_8b
+outputs: runs/public_eval            # results go to runs/public_eval/public_eval_split0_8b/
+scenes: third_party/scenefun3d/benchmark_file_lists/val_scenes.txt   # split0: the 30 validation scenes, 445 tasks
+
+reading:
+  model: 8b                          # Qwen3-VL-8B (affordance3d.mem.encoders.VLMS)
+  arms: [p4t_sam3, c3, sam3q, p4n]   # tool P4 (the memory, SAM 3 map), raw video, SAM 3 with the task text, annotated P4
+  memory_arm: p4t_sam3               # the arm whose chosen frame the first lifting upper bound uses
+
+lifting:
+  rel_depth_tol: 0.25                # Fun3DU: keep a point when |d - z| <= 0.25 d
+  max_pose_gap_s: 0.05               # a frame needs its scan-registered pose within this gap (fixed in the scene index)
+
+compare:
+  reference: third_party/unifunc3d/predictions/8b_val   # UniFunc3D 8B, released predictions
+  margins: {AP25: [5.0, 10.0], mIoU: [2.5, 5.0]}        # (near, far) in percentage points: comparable / behind / clearly behind
+  resamples: 2000
+  seed: 0
+
+queue:                               # GPU jobs go through the shared queue only (cards 0, 1, 4, 5, 6, 7)
+  folder_env: AFFORDANCE3D_QUEUE     # environment variable naming the queue folder (the one that holds pending/)
+  priority: 100
+  jobs: 3
+  minmb: 36000
+  share: 2

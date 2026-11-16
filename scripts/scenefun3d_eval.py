@@ -174,7 +174,7 @@ def task_rows(pred_dir: Path) -> dict[str, list[dict[str, float]]]:
     return rows
 
 
-def compare(first: Path, second: Path) -> dict:
+def compare(first: Path, second: Path, margins: dict | None = None, resamples: int = 2000, seed: int = 0) -> dict:
     """first minus second on the same tasks, every Fun3DU metric, with 95% intervals from resampling scenes (2,000
     resamples, seed 0, pooled over tasks), read by the rule of section 27.2 on AP25 and mIoU."""
     from affordance3d.mem import phase1_stats as A
@@ -182,12 +182,14 @@ def compare(first: Path, second: Path) -> dict:
     a, b = task_rows(first), task_rows(second)
     diffs = {}
     for metric in SE.FUN3DU_METRICS:
-        values = A.paired_difference([np.array([r[metric] for r in a[v]]) for v in a], [np.array([r[metric] for r in b[v]]) for v in a])
+        values = A.paired_difference([np.array([r[metric] for r in a[v]]) for v in a], [np.array([r[metric] for r in b[v]]) for v in a],
+                                     resamples=resamples, seed=seed)
         diffs[metric] = tuple(100 * x for x in values)
     return {"first": str(first.relative_to(REPO_ROOT)) if first.is_relative_to(REPO_ROOT) else first.name,
             "second": str(second.relative_to(REPO_ROOT)) if second.is_relative_to(REPO_ROOT) else second.name,
             "tasks": sum(len(r) for r in a.values()), "first_minus_second": {m: dict(zip(("rate", "low", "high"), d)) for m, d in diffs.items()},
-            "verdict": SE.compare_verdict(diffs)}
+            "margins": margins or SE.COMPARE_MARGINS, "resamples": resamples, "seed": seed,
+            "verdict": SE.compare_verdict(diffs, {m: tuple(v) for m, v in (margins or SE.COMPARE_MARGINS).items()})}
 
 
 def main() -> None:
@@ -208,9 +210,12 @@ def main() -> None:
     comparing.add_argument("--first", type=Path, required=True)
     comparing.add_argument("--second", type=Path, required=True)
     comparing.add_argument("--out", type=Path, required=True)
+    comparing.add_argument("--margins", type=json.loads, default=None, help='JSON, e.g. {"AP25": [5, 10], "mIoU": [2.5, 5]}')
+    comparing.add_argument("--resamples", type=int, default=2000)
+    comparing.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     if args.command == "compare":
-        result = compare(args.first.resolve(), args.second.resolve())
+        result = compare(args.first.resolve(), args.second.resolve(), args.margins, args.resamples, args.seed)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(result, indent=1))
         print(json.dumps(result, indent=1))

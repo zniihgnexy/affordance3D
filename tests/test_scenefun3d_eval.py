@@ -92,3 +92,10 @@ def test_fun3du_scores_threshold_precision_and_recall_per_task() -> None:
                                                  ((0.0, -3.0, 3.0), (-7.0, -9.0, -5.5), "clearly behind")])
 def test_compare_verdict_reads_ap25_and_miou_by_their_own_margins(ap25, miou, verdict) -> None:
     assert SE.compare_verdict({"AP25": ap25, "mIoU": miou}) == verdict
+
+
+def test_compare_verdict_takes_the_margins_of_the_config() -> None:
+    differences = {"AP25": (-3.0, -6.0, 0.5), "mIoU": (0.0, -1.0, 1.0)}
+
+    assert SE.compare_verdict(differences) == "unclear"  # section 27.2: AP25's lower end must be above -5
+    assert SE.compare_verdict(differences, {"AP25": (7.0, 12.0), "mIoU": (2.5, 5.0)}) == "comparable"

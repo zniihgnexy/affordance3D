@@ -73,6 +73,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--visit", required=True)
     parser.add_argument("--arms", default=",".join(ARMS))
+    parser.add_argument("--out", type=Path, default=OUT, help="folder for <visit>.npz (default: runs/scenefun3d_eval/box_masks)")
     args = parser.parse_args()
     arms = [arm for arm in args.arms.split(",") if arm]
     if set(arms) - set(ARMS):
@@ -113,9 +114,9 @@ def main() -> None:
         counts = {how: status.count(how) for how in ("mask", "box", "none")}
         print(f"{args.visit} {arm}: {counts}", flush=True)
     saved["desc_ids"] = np.array(record["desc_ids"])
-    OUT.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(OUT / f"{args.visit}.tmp.npz", **saved)
-    (OUT / f"{args.visit}.tmp.npz").rename(OUT / f"{args.visit}.npz")
+    args.out.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(args.out / f"{args.visit}.tmp.npz", **saved)
+    (args.out / f"{args.visit}.tmp.npz").rename(args.out / f"{args.visit}.npz")
     print(f"{args.visit}: {len(images)} frames, {time.time() - started:.0f} s", flush=True)
 
 

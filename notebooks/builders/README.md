@@ -7,6 +7,8 @@ python notebooks/builders/build_mem_demo.py report/2026-11-10_mem_pipeline_demo.
 jupyter nbconvert --to notebook --execute --inplace report/2026-11-10_mem_pipeline_demo.ipynb
 ```
 
+Long builders keep their cells in `<builder>_parts/part_NN.py` (each under 500 lines); the builder runs the parts in order, in its own namespace, exactly as when they were one file.
+
 | builder | notebook |
 |---|---|
 | `build_01_step_by_step_demo.py` | `notebooks/01_step_by_step_demo.ipynb` |
