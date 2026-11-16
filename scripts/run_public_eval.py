@@ -32,6 +32,7 @@ from affordance3d.experiment import load_config, log_stage, run_folder  # noqa: 
 
 FIXED_POSE_GAP_S = 0.05  # affordance3d.scenefun3d.index_sequence matches poses within this gap; not a free setting
 ORACLES = ("oracle_chosen", "oracle_best")
+CPU_THREADS = "8"  # the server is shared: CPU stages use at most this many threads
 
 
 def scenes_of(config: dict, chosen: str) -> list[str]:
@@ -76,7 +77,7 @@ def lift(config: dict, run: Path, scenes: list[str]) -> None:
             continue
         subprocess.run([sys.executable, "scripts/lift_to_scan.py", "--visit", v, "--masks", str(run / "box_masks"), "--out", str(run),
                         "--rel-tol", str(config["lifting"]["rel_depth_tol"]), "--memory-arm", config["reading"]["memory_arm"]],
-                       cwd=REPO_ROOT, check=True)
+                       cwd=REPO_ROOT, check=True, env={**os.environ, "OMP_NUM_THREADS": CPU_THREADS})
 
 
 def score(config: dict, run: Path, official: bool) -> None:
