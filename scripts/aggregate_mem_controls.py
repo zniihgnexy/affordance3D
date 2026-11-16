@@ -79,7 +79,8 @@ UNDETERMINED = "undetermined: the interval is too wide to call it close"
 
 STOP_READING = ("stop: indexing by function shows no advantage under real conditions; options B and C do not hold; "
                 "stop and discuss with the lead")
-GO_READING = "no stop: none of the three conditions of section 24.9, point 1, holds"
+GO_READING = ("no stop: tool P4 is above both c3 and SAM 3 prompted with the task text (lower ends above zero); "
+              "tool P4 minus tool c4 is reported, not a reason to stop (section 24.9, round 10, question 3)")
 GAP_READINGS = {  # section 24.9, point 2; suggestions only, the lead decides
     "small": "the off-the-shelf tools suffice: supports option B; a new way of building the map is no contribution for now (DF-4)",
     "large": "building the map has work to do: suggest reconsidering DF-4",
@@ -152,16 +153,16 @@ def difference(records: list[dict], first: str, second: str) -> tuple[float, flo
 
 
 def stop_reading(records: list[dict], tool: str) -> dict:
-    """Section 24.9, point 1: stop when tool P4 minus tool c4 is close (lower end below 5 points; a difference above 10
-    points with a wide interval is undetermined and does not stop), or when tool P4 minus c3 or minus sam3q has a lower
-    end at or below zero."""
+    """Section 24.9, point 1, as changed before any tool ran (round 10, question 3, the lead's "b"): stop only when tool
+    P4 minus c3 or tool P4 minus sam3q has a lower end at or below zero. Tool P4 minus tool c4 is still computed and
+    read as close, behind or undetermined, but it no longer stops the work."""
     missing = ran_everywhere(records, (f"p4t_{tool}", f"c4t_{tool}", "c3", "sam3q"))
     if missing:
         return {"reading": f"not read: arms {missing} have not run in every scene"}
     memory = difference(records, f"p4t_{tool}", f"c4t_{tool}")
     raw_video, task_text = difference(records, f"p4t_{tool}", "c3"), difference(records, f"p4t_{tool}", "sam3q")
     memory_verdict = A.closeness(memory)
-    stop = memory_verdict == "close" or raw_video[1] <= 0 or task_text[1] <= 0
+    stop = raw_video[1] <= 0 or task_text[1] <= 0
     return {"tool_p4_minus_tool_c4": {**triple(memory), "verdict": memory_verdict},
             "tool_p4_minus_c3": {**triple(raw_video), "lower_end_above_zero": raw_video[1] > 0},
             "tool_p4_minus_sam3q": {**triple(task_text), "lower_end_above_zero": task_text[1] > 0},

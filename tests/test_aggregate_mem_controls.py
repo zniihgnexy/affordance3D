@@ -113,13 +113,20 @@ def test_no_stop_when_the_tool_memory_beats_its_own_boxes_without_memory_c3_and_
     assert "not read" in readings["tools"]["qwen8b"]["stop"]["reading"]  # its arms did not run
 
 
-@pytest.mark.parametrize("change", [{"c4t_sam3": [True, True, False, False]},  # same candidates without memory: close
-                                    {"sam3q": [True, True, False, False]},  # SAM 3 with the task text as good
+@pytest.mark.parametrize("change", [{"sam3q": [True, True, False, False]},  # SAM 3 with the task text as good
                                     {"c3": [True, True, True, False]}])  # the raw video better
-def test_stop_when_the_tool_memory_is_close_to_its_boxes_without_memory_or_no_better_than_c3_or_sam3q(change: dict) -> None:
+def test_stop_when_the_tool_memory_is_no_better_than_c3_or_sam3q(change: dict) -> None:
     stop = agg.tool_map_readings(_tool_records({**TOOL_ARMS, **change}), TOOL_SUMMARY)["verdict"]["stop"]
 
     assert stop["stop"] and stop["reading"] == agg.STOP_READING
+
+
+def test_tool_memory_close_to_its_boxes_without_memory_is_reported_but_does_not_stop() -> None:
+    """Round 10, question 3 ("b"): only the two comparisons of prediction 1 stop the work."""
+    stop = agg.tool_map_readings(_tool_records({**TOOL_ARMS, "c4t_sam3": TOOL_ARMS["p4t_sam3"]}), TOOL_SUMMARY)["verdict"]["stop"]
+
+    assert stop["tool_p4_minus_tool_c4"]["verdict"] == "close" and stop["tool_p4_minus_tool_c4"]["rate"] == pytest.approx(0.0)
+    assert not stop["stop"] and stop["reading"] == agg.GO_READING
 
 
 def test_a_wide_interval_on_the_memory_comparison_alone_does_not_stop() -> None:

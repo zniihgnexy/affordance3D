@@ -19,7 +19,9 @@ CPU only, from the saved boxes and the projected annotations (ground truth, used
     write time           seconds the tool took for the 40 keyframes of a scene (model loading not included)
 
 Intervals come from resampling scenes. The deciding tool is the one with the higher per-part recall at 40 keyframes;
-when the two intervals overlap it is a tie and SAM 3 decides. It is named only when both maps are complete in every scene.
+when the two intervals overlap it is a tie and SAM 3 decides. It is named only when the maps of every tool still in the
+plan are complete in every scene; a tool the lead dropped (tool_maps.DROPPED_TOOLS) is not waited for, and when one
+tool is left it decides.
 """
 
 import argparse
@@ -157,7 +159,8 @@ def score_scene(runs: Path, result: dict, tools: dict[str, dict]) -> dict:
     return scene
 
 
-def summarise(scenes: list[dict], incomplete: dict[str, list[str]], all_visits: list[str]) -> dict:
+def summarise(scenes: list[dict], incomplete: dict[str, list[str]], all_visits: list[str],
+              dropped: tuple[str, ...] = TM.DROPPED_TOOLS) -> dict:
     tools = [tool for tool in TM.TOOLS if all(tool in scene["tools"] for scene in scenes)]
     summary = {"scenes": len(scenes), "visits": [scene["visit"] for scene in scenes], "incomplete": incomplete,
                "choices": {"score_threshold": TM.SCORE_THRESHOLD, "duplicates_merged_at_iou": TM.MERGE_IOU,
@@ -166,11 +169,14 @@ def summarise(scenes: list[dict], incomplete: dict[str, list[str]], all_visits: 
                "annotated_coverage": {rule: triple(A.bootstrap([scene["annotated_coverage"][rule] for scene in scenes]))
                                       for rule in ("common", "phase1")},
                "tools": {tool: summarise_tool(scenes, tool) for tool in tools}}
-    complete = len(tools) == len(TM.TOOLS) and len(scenes) == len(all_visits)
-    if complete:
-        recall = {tool: tuple(summary["tools"][tool]["recall"]["40"][key] for key in ("rate", "low", "high")) for tool in tools}
+    expected = [tool for tool in TM.TOOLS if tool not in dropped]
+    complete = set(expected) <= set(tools) and len(scenes) == len(all_visits)
+    if complete and len(expected) == 1:
+        summary["deciding_tool"] = {"tool": expected[0], "reason": TM.SOLE_TOOL_REASON}
+    elif complete:
+        recall = {tool: tuple(summary["tools"][tool]["recall"]["40"][key] for key in ("rate", "low", "high")) for tool in expected}
         summary["deciding_tool"] = TM.deciding_tool(recall)
-        first, second = tools
+        first, second = expected
         summary["recall_difference"] = {"pair": f"{first} minus {second}", **triple(A.paired_difference(
             [scene["tools"][first]["outcomes"][40]["found"].astype(float) for scene in scenes],
             [scene["tools"][second]["outcomes"][40]["found"].astype(float) for scene in scenes]))}
@@ -226,7 +232,8 @@ def main() -> None:
             print(f"{result['visit']}: scored {sorted(maps)}", flush=True)
     if not scenes:
         raise SystemExit(f"no finished tool map in {args.runs / 'tool_maps'}")
-    summary = summarise([scene for scene in scenes if set(scene["tools"]) == set(TM.TOOLS)] or scenes, incomplete,
+    kept = set(TM.TOOLS) - set(TM.DROPPED_TOOLS)
+    summary = summarise([scene for scene in scenes if kept <= set(scene["tools"])] or scenes, incomplete,
                         [result["visit"] for result in results])
     (args.runs / OUT).write_text(json.dumps(summary, indent=1, ensure_ascii=False))
     report(summary)

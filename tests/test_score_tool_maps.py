@@ -58,7 +58,7 @@ def _scenes(n: int = 4) -> list[dict]:
 def test_summary_pools_the_scenes_and_names_the_deciding_tool_only_when_every_map_is_complete() -> None:
     scenes = _scenes()
 
-    summary = score.summarise(scenes, {}, [scene["visit"] for scene in scenes])
+    summary = score.summarise(scenes, {}, [scene["visit"] for scene in scenes], dropped=())
 
     sam3, qwen = summary["tools"]["sam3"], summary["tools"]["qwen8b"]
     assert sam3["parts"] == 12 and sam3["recall"]["40"]["rate"] == pytest.approx(1.0)
@@ -71,7 +71,19 @@ def test_summary_pools_the_scenes_and_names_the_deciding_tool_only_when_every_ma
     assert sam3["write_seconds_per_scene"]["median"] == pytest.approx(20.0) and "not yet" in sam3["coverage"]
     assert summary["deciding_tool"]["tool"] == "sam3" and summary["recall_difference"]["rate"] == pytest.approx(1 / 3)
     assert summary["annotated_coverage"]["phase1"]["rate"] == pytest.approx(1.0)
-    assert score.summarise(scenes, {"qwen8b": ["9"]}, [*(s["visit"] for s in scenes), "9"])["deciding_tool"] is None
+    assert score.summarise(scenes, {"qwen8b": ["9"]}, [*(s["visit"] for s in scenes), "9"], dropped=())["deciding_tool"] is None
+
+
+def test_when_the_lead_dropped_the_other_tool_the_one_left_decides_once_its_maps_are_complete() -> None:
+    scenes = [{**scene, "tools": {"sam3": scene["tools"]["sam3"]}} for scene in _scenes()]
+    visits = [scene["visit"] for scene in scenes]
+
+    summary = score.summarise(scenes, {"qwen8b": visits}, visits)
+
+    assert summary["deciding_tool"] == {"tool": "sam3", "reason": score.TM.SOLE_TOOL_REASON}
+    assert "recall_difference" not in summary and list(summary["tools"]) == ["sam3"]
+    assert score.summarise(scenes[1:], {}, visits)["deciding_tool"] is None  # a scene still without its map
+    assert score.summarise(scenes, {"qwen8b": visits}, visits, dropped=())["deciding_tool"] is None
 
 
 def test_coverage_asks_whether_a_box_shown_by_the_memory_lies_on_the_target() -> None:
