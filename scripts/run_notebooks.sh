@@ -16,6 +16,7 @@ if [ "$#" -gt 0 ]; then NOTEBOOKS=("$@"); else NOTEBOOKS=(
   report/2026-11-10_mem_pipeline_demo.ipynb
   notebooks/mem/pipeline_examples.ipynb  # needs the models from scripts/remote/fetch_models.py; ~15 min extra on a first run
   notebooks/mem/phase1_results.ipynb  # needs the phase-1 results in runs/mem_phase1 (GPU queue jobs, then scripts/aggregate_mem_phase1.py)
+  report/2026-11-16_weekly_summary.ipynb  # needs the result files it reads under runs/ (phase 1, controls, 2b, HD-EPIC, C-0, the C-1 preview, the tool-map gate figure)
 ); fi
 failed=0
 for notebook in "${NOTEBOOKS[@]}"; do

@@ -66,6 +66,20 @@ def test_a_frame_tag_and_a_design_line_are_drawn_and_checked() -> None:
         F.check(replace(SMALL, contributions=(F.Contribution("C1", "x", "y", "z", kind="other"),)))
 
 
+def test_the_round_10_chart_marks_each_prediction_today_and_in_the_target_row(tmp_path: Path) -> None:
+    chart = F.NOW_TARGET_R10
+    F.check(chart)
+    claimed = {c.tag for c in chart.contributions if c.kind == "contribution"}
+    targets = [box for box in chart.boxes if box.key.startswith("tgt_")]
+
+    F.main([str(tmp_path / "r10.png"), "now_target_r10"])
+
+    assert claimed == {box.tag for box in chart.boxes if box.tag} == {"Pred1", "Pred2", "Pred3"}
+    assert targets and all(box.status == "missing" for box in targets)  # the target row is drawn as not built yet
+    assert {box.tag for box in targets if box.tag} == claimed  # every prediction shows what it would change
+    assert (tmp_path / "r10.png").stat().st_size > 50_000
+
+
 def test_every_named_chart_is_consistent_and_can_be_chosen_by_name(tmp_path: Path) -> None:
     for name, chart in F.CHARTS.items():
         F.check(chart)

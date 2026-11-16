@@ -5,6 +5,9 @@ after phase 1. Each stage report updates the description and renders it again:
 
     python -m report.pipeline_flowchart helm/rounds/R7_figures/pipeline.png            # the pipeline as it stands
     python -m report.pipeline_flowchart helm/rounds/R8_figures/target.png target_r8   # another description, by name
+
+`NOW_TARGET_R10` (name `now_target_r10`) shows the pipeline as it stands after round 10 together with the round-10 target,
+one red mark per prediction; the weekly report of 2026-11-16 draws it.
 """
 
 from __future__ import annotations
@@ -348,7 +351,81 @@ TARGET_R9 = Flowchart(
     panel_title="Each claim after the survey; [brackets] = novelty and evidence as I judge them, not a result",
 )
 
-CHARTS = {"stage_1": STAGE_1, "target_r8": TARGET_R8, "target_r9": TARGET_R9}
+# ---------------------------------------------------------------- the pipeline today and the round-10 target (2026-11-16)
+
+TARGET_Y, TARGET_VIA_Y = 7.7, 6.95
+NOW_TARGET_R10 = Flowchart(
+    title="Functional memory pipeline today (2026-11-16) and the round-10 target: where each claim sits, and the state of its evidence",
+    boxes=(
+        Box("tgt_opponents", 0.0, TARGET_Y, "Main-table opponents, same tasks:\nVLM reads the raw video (8B);\nSAM 3 prompted with the question;\n"
+            "UniFunc3D, cheap version", "missing", width=3.0, height=1.25),
+        Box("tgt_builder", 6.3, TARGET_Y, "Off-the-shelf part map:\nSAM 3 prompted with\n8 part names\n(phase 2a; gate passed)",
+            "missing", "Pred1", width=2.1, height=1.25),
+        Box("tgt_pool", 10.5, TARGET_Y, "Harder retrieval: many\nrooms, long video, similar\nparts (2b pools 30 scenes;\n"
+            "later a public benchmark)", "missing", "Pred2", width=2.3, height=1.25),
+        Box("tgt_cost", 13.1, TARGET_Y, "Cost with the write:\nseconds per scene and\nper question; break-even\nvs re-reading video",
+            "missing", "Pred3", width=1.9, height=1.25),
+        Box("video", 0.0, WRITE_Y, "Video (tablet)\nRGB + device pose\n+ LiDAR depth", "real"),
+        Box("keyframes", 2.1, WRITE_Y, "1  Keyframes\n40 steadiest frames", "real"),
+        Box("depth", 4.2, WRITE_Y, "2  Depth per keyframe\nmonocular model,\nscaled by LiDAR", "model"),
+        Box("affordance", 6.3, WRITE_Y, "4  Part map\ntoday: annotations\n(ORACLE)", "oracle", "Pred1"),
+        Box("index", 8.4, WRITE_Y, "9  Function index\nregion tokens +\nkeyframe flag\n(action key dropped)", "real", "Pred2",
+            fed_by_oracle=True),
+        Box("memory", 10.5, 4.4, "MEMORY of one scene\nkeyframes, depth, pose\n+ region tokens,\nwritten once", "real", "Pred3",
+            width=2.3, height=1.55, fed_by_oracle=True),
+        Box("query", 0.0, READ_Y, "Question in words\n\"open the top drawer\"", "real"),
+        Box("search", 2.4, READ_Y, "10a  Find 3 keyframes\nwhole-frame meaning\n+ flag + region tokens", "real", "Pred2",
+            width=2.1, fed_by_oracle=True),
+        Box("reader", 4.9, READ_Y, "10b  VLM (Qwen3-VL-8B)\npicks one numbered\nbox in the 3 keyframes", "model", width=2.1,
+            fed_by_oracle=True),
+        Box("answer", 7.4, READ_Y, "Answer: keyframe + part\n(C: + how to move,\nscored, never executed)", "real", width=2.1,
+            fed_by_oracle=True),
+    ),
+    arrows=(
+        Arrow("video", "keyframes"), Arrow("keyframes", "depth"), Arrow("depth", "affordance"), Arrow("affordance", "index"),
+        Arrow("index", "memory"),
+        Arrow("query", "search"), Arrow("search", "reader"), Arrow("reader", "answer"),
+        Arrow("memory", "search", dashed=True, via_y=BUS_Y), Arrow("memory", "reader", dashed=True, via_y=BUS_Y),
+        Arrow("tgt_builder", "affordance", dashed=True, via_y=TARGET_VIA_Y), Arrow("tgt_pool", "memory", dashed=True, via_y=TARGET_VIA_Y),
+        Arrow("tgt_cost", "memory", dashed=True, via_y=TARGET_VIA_Y),
+    ),
+    contributions=(
+        Contribution("Pred1", "Prediction 1: a part map built by off-the-shelf tools beats the VLM reading the raw video and SAM 3 "
+                     "prompted with the question",
+                     "Untested. Upper bound with annotated maps (8B, 390 tasks): P4 54.4% vs raw video 27.7%. Phase 2a (GPU cap 7 h): the lead "
+                     "saw the gate (6 keyframes)\non 11-16 and chose SAM 3 only (Qwen3-VL-8B detection dropped); the full SAM 3 runs are at "
+                     "the front of the queue. It stops if tool P4 minus c3, or minus prompted SAM 3, has a lower end <= 0.",
+                     "untested; ORACLE upper bound only"),
+        Contribution("Pred2", "Prediction 2: with the same part boxes, the function index's lead over semantic frame choice grows as "
+                     "retrieval gets harder",
+                     "One room (8B, annotated boxes): P4 - c4 = +6.7 [+1.8, +11.5], 'close' by the pre-set rule. Phase 2b, retrieval only "
+                     "(annotated maps, top 3 keyframes):\n+13.8 with 1 scene, +11.8 with 16 pooled scenes; slope -0.7 points per doubling "
+                     "[-2.2, +0.7]: the gap stays but does not grow. End-to-end version (8B; 1, 4, 16 scenes) queued.",
+                     "retrieval step: not supported; end-to-end: pending"),
+        Contribution("Pred3", "Prediction 3: counting the write, one memory costs less than re-reading the video once a scene gets enough "
+                     "questions",
+                     "Only reading is measured (8B, median model call): P4 0.7 s and 3 images vs raw video 3.5 s and 41 images per "
+                     "question (8B ran faster than 4B, cause unchecked).\nThe write (24 s per scene) leaves out keyframes, depth and the "
+                     "part map. Break-even tentatively 15 questions per scene, to be fixed before measuring.", "not measured"),
+        Contribution("", "Not claimed: numbered part boxes for the VLM (a known mechanism: Set-of-Mark, AffordBot)",
+                     "The week's most reliable result: the right part goes from 27-31% with no part boxes to 48-54% with annotated part "
+                     "boxes (4B and 8B). Reported as a baseline result.", "reliable, ORACLE boxes", kind="design"),
+    ),
+    lanes=((TARGET_Y + 1.55, "ROUND-10 TARGET (adopted 2026-11-13): what would change; grey = not built yet"),
+           (WRITE_Y + 1.45, "WRITE  (once per video): today"), (READ_Y + 1.35, "READ  (once per question): today")),
+    notes=((6.3, WRITE_Y - 0.12, ("biggest risk: tool maps miss small parts\n(keeping 1/4 of the parts, smallest dropped\n"
+                                  "first, erased the retrieval gain)")),),
+    hints=((4.2, BUS_Y + 0.28, "dashed: reading looks things up in the memory"),
+           (3.3, TARGET_VIA_Y + 0.55, "dashed from the top row: the box below it would change")),
+    footer="Stopped in round 10: the action-type key as a claim (+0.8 points; even the true type adds +3.8) and B, the event memory "
+           "(B-1 found 27.6% of pick-ups and put-downs\nat 15.5% precision; whether '4D' stays in the title is gate G3). Charter change "
+           "P-4 is on hold. Numbers on our side use annotated part maps (ORACLE upper bounds) unless marked.",
+    contribution_label="red: a prediction of the round-10 claim",
+    panel_title="The round-10 claim, one line per prediction; [brackets] = the state of its evidence on 2026-11-16 as the record reads, "
+                "not a new result",
+)
+
+CHARTS = {"stage_1": STAGE_1, "target_r8": TARGET_R8, "target_r9": TARGET_R9, "now_target_r10": NOW_TARGET_R10}
 
 
 def main(argv: Sequence[str]) -> None:
