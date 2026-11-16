@@ -357,11 +357,11 @@ def main() -> None:
         raise SystemExit(f"{args.visit}: the tasks differ from those of the phase-1 run")
     with np.load(args.runs / "diagnostics" / f"{args.visit}.npz") as saved:
         keyframe_vectors, queries = saved["keyframes"], saved["queries"]
+        p4_vectors, p4_keyframes, p4_boxes = saved["vectors/P4"], saved["keyframe/P4"], saved["boxes/P4"]
+        saved_p3 = {seed: (saved[f"boxes/P3 s{seed}"], saved[f"vectors/P3 s{seed}"]) for seed in P3_SEEDS if f"boxes/P3 s{seed}" in saved.files}
     if args.all_tasks:
         queries = all_task_queries(every_task, queries)
         tasks = every_task
-        p4_vectors, p4_keyframes, p4_boxes = saved["vectors/P4"], saved["keyframe/P4"], saved["boxes/P4"]
-        saved_p3 = {seed: (saved[f"boxes/P3 s{seed}"], saved[f"vectors/P3 s{seed}"]) for seed in P3_SEEDS if f"boxes/P3 s{seed}" in saved.files}
     p4 = [policies.Candidate(int(k), tuple(int(v) for v in box), (0, 0, 0, 0)) for k, box in zip(p4_keyframes, p4_boxes)]
     frames = rgb_frames(scene, steady)
     answers = args.runs / OUT_FOLDERS[args.model]  # one answer cache: the all-tasks run reuses every answer given before
