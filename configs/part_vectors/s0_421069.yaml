@@ -1,0 +1,32 @@
+# S0 of the 2026-11-18 proposal (docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md, 4.9 and 7; PI "1 b"): one scene,
+# CPU only, no model. Question: can rules turn a part (mask + affordance label) and depth into a 3D action vector
+# (motion type, axis, origin) in world coordinates? Part masks and labels come from the annotation (ORACLE): this
+# bounds the vector step from above and leaves out the detector (SAM 3) and the type step (VLM).
+# Scene 421069 is the only scene on the Mac (a training scene, used before for debugging; the server is unreachable).
+# Every value below was fixed before the first run; a different setting needs a new config name.
+#
+#   python scripts/run_part_vectors.py --config configs/part_vectors/s0_421069.yaml
+
+name: s0_421069
+outputs: runs/part_vectors
+data_root: data/scenefun3d
+visit: "421069"
+video: "42444490"
+keyframes: {kind: steady, n: 40}     # the 40 steadiest frames, as in every earlier run
+
+depths: [lidar, rendered]            # lidar: ARKit pose + device LiDAR (inputs); rendered: scan-registered pose + depth rendered from the scan (upper bound)
+rules: [c1, geometric, oracle_kind]  # see affordance3d/mem/part_vectors.py
+frames: [best, fused]                # best: the keyframe with most part pixels (as C-1); fused: all keyframes that show the part
+
+scoring:                             # SceneFun3D Task 3, paper definition, per part (masks are oracle, so AP25 is not in play)
+  axis_deg: 15                       # +A: axis within 15 degrees, compared as a line (decision 2a: signs are unreliable)
+  origin_m: 0.25                     # +O: rotation origin within 0.25 m of the true axis line; translations have no origin to score
+
+hinge:
+  plane_tol_m: 0.02                  # a pixel is on the part's flat surface when its point is this close to the plane
+  gap_px: 8                          # holes in the depth up to this long do not end the surface (about two LiDAR pixels)
+  door_asymmetry: 0.5                # geometric rule: a pulled part this far off the centre of its surface is on a door
+
+figure:
+  keyframes: 6                       # chosen greedily so that each part shows once where possible (figure only)
+  arrow_m: 0.2                       # drawn length of a direction (the SceneFun3D viewer's length)

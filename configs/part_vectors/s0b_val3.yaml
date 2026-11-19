@@ -1,0 +1,31 @@
+# S0b of the 2026-11-18 proposal (docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md, 7.8; PI "1 c", step b first):
+# the S0 test (s0_421069.yaml) rerun unchanged on three validation scenes, to see whether its findings hold beyond
+# the one training scene. CPU only, no model; part masks and labels are the annotation (ORACLE), as in S0.
+#
+# Scenes, fixed before any of them was downloaded: the three of the 30 validation scenes with the most annotated
+# rotations off the part (doors, windows, lids: label hook_pull, pinch_pull or hook_turn with motion type rot), counted
+# from the annotation files alone (ties would go to the order of val_scenes.txt). Doors are the weak point S0 found, so
+# the scenes are chosen to hold many of them; they also hold drawers (pulled, translated) and in-place parts.
+#   422842: 34 moving parts, 18 off-part rotations (15 pulled), 12 pulled drawers
+#   467115: 54 moving parts, 16 off-part rotations (16 pulled), 13 pulled drawers
+#   466916: 21 moving parts, 13 off-part rotations (10 pulled),  0 pulled drawers
+# Every other value is S0's, unchanged; a different setting needs a new config name.
+#
+#   python scripts/run_part_vectors.py --config configs/part_vectors/s0b_val3.yaml
+
+name: s0b_val3
+outputs: runs/part_vectors
+data_root: data/scenefun3d
+scenes:                              # fetched with scripts/download_scenefun3d_keyframes.py (keyframes only)
+  - {visit: "422842", video: "42897547"}
+  - {visit: "467115", video: "47333319"}
+  - {visit: "466916", video: "47331617"}
+keyframes: {kind: steady, n: 40}
+
+depths: [lidar, rendered]
+rules: [c1, geometric, oracle_kind]
+frames: [best, fused]
+
+scoring: {axis_deg: 15, origin_m: 0.25}
+hinge: {plane_tol_m: 0.02, gap_px: 8, door_asymmetry: 0.5}
+figure: {keyframes: 6, arrow_m: 0.2}
