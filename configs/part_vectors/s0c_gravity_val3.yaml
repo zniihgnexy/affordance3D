@@ -1,0 +1,47 @@
+# S0c of the 2026-11-18 proposal (docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md, 8.7 and 9; PI "1 b"): a check,
+# fixed before the run, of the door rule that the S0b diagnostic (8.5) found after the fact. A part that turns about an
+# axis off the part (door, window, lid) turns about the vertical (the device's gravity), and the axis passes through
+# the far end (from the handle) of its flat surface along the image line that runs most nearly level in the world.
+# Two new rule sets (affordance3d.mem.part_vectors): `gravity` (geometric's door-or-drawer call with the new axis and
+# origin) and `oracle_gravity` (the annotated motion type with the new axis and origin). c1, geometric and oracle_kind
+# stay for comparison. CPU only, no model; part masks and labels are the annotation (ORACLE), as in S0 and S0b.
+#
+# Scenes, fixed in 8.7 before this run: the 4th to 6th of the 30 validation scenes by the count of annotated rotations
+# of hook_pull, pinch_pull and hook_turn parts (S0b took the 1st to 3rd; ties go to the order of val_scenes.txt),
+# counted from the annotation files alone. They hold fewer doors and more drawers than S0b's:
+#   466880: 25 moving parts, 9 such rotations (7 pulled),  8 pulled drawers
+#   466437: 26 moving parts, 8 such rotations (6 pulled), 13 pulled drawers
+#   466841: 25 moving parts, 8 such rotations (3 pulled), 15 pulled drawers
+#
+# Predictions, written before the run. LiDAR depth, best keyframe, the scored parts whose true axis is off the part:
+#   P1  most of their true axes are vertical: at least 80% within 15 degrees of gravity (S0b: 42 of 44)
+#   P2  axis: oracle_gravity +MA at least 15 points above oracle_kind +MA (S0b, after the fact: 39 against 24 of 44)
+#   P3  origin: oracle_gravity +MAO not below oracle_kind +MAO (S0b, after the fact: 13 against 9 of 44)
+# (The S0b numbers are this code's oracle_gravity on S0b's scenes, run once as an implementation check: it equals the
+# diagnostic's "vertical + far end" way, plus 3 parts without a level line that fall back to the vertical through the
+# handle.)
+#   P4  check by construction: parts of other labels, and pulled parts called drawers, score the same under gravity as
+#       under geometric (and under oracle_gravity as under oracle_kind)
+# Decision rule: "axis = gravity" goes into the recommended pipeline if P1 and P2 hold; "origin = far end" only if P3
+# holds as well. Every other value is S0b's; a different setting needs a new config name.
+#
+#   python scripts/run_part_vectors.py --config configs/part_vectors/s0c_gravity_val3.yaml
+#   python scripts/diagnose_door_hinges.py --config configs/part_vectors/s0c_gravity_val3.yaml   # P1, and the side-given bound
+
+name: s0c_gravity_val3
+outputs: runs/part_vectors
+data_root: data/scenefun3d
+scenes:
+  - {visit: "466880", video: "47331711"}
+  - {visit: "466437", video: "45260951"}
+  - {visit: "466841", video: "47331591"}
+keyframes: {kind: steady, n: 40}
+
+depths: [lidar, rendered]
+rules: [c1, geometric, oracle_kind, gravity, oracle_gravity]
+frames: [best, fused]
+main: [lidar, gravity, best]         # the part table and the figure: inputs only, apart from the oracle masks
+
+scoring: {axis_deg: 15, origin_m: 0.25}
+hinge: {plane_tol_m: 0.02, gap_px: 8, door_asymmetry: 0.5}
+figure: {keyframes: 6, arrow_m: 0.2}

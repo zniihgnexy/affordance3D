@@ -2,6 +2,7 @@
 
     python scripts/run_part_vectors.py --config configs/part_vectors/s0_421069.yaml [--set key=value ...]
     python scripts/run_part_vectors.py --config configs/part_vectors/s0b_val3.yaml
+    python scripts/run_part_vectors.py --config configs/part_vectors/s0c_gravity_val3.yaml
 
 CPU only, no model. Part masks and affordance labels come from the annotation (ORACLE); depth is either the device's
 LiDAR with the ARKit pose (inputs) or the depth rendered from the laser scan with its registered pose (upper bound).
@@ -14,6 +15,8 @@ several:
     summary.json      rates per variant and per label group, baselines, frame-to-frame spread, type-filter sizes
     part_table.json   the main variant's part table in the device's world (ARKit) frame: the robot-ready form
     keyframes.png     the main variant drawn on the keyframes that show the most parts (prediction and truth)
+
+The main variant is the config's `main` [depth, rule, frames], by default MAIN.
 
 and, for several scenes, <outputs>/<name>/summary.json: the rates and baselines over the parts of all scenes.
 """
@@ -43,7 +46,7 @@ from affordance3d.mem import keyframes  # noqa: E402
 from affordance3d.mem import part_vectors as V  # noqa: E402
 from affordance3d.mem import pipeline as P  # noqa: E402
 
-MAIN = ("lidar", "geometric", "fused")  # the variant of the part table and the figure: inputs only, apart from the oracle masks
+MAIN = ("lidar", "geometric", "fused")  # default variant of the part table and the figure: inputs only, apart from the oracle masks
 GROUPS = {"pressed": ("key_press", "tip_push", "plug_in", "foot_push"), "pulled": ("hook_pull", "pinch_pull", "unplug"),
           "rotate": ("rotate",), "hook_turn": ("hook_turn",)}
 PRED_COLOUR, TRUE_COLOUR = "#D55E00", "#009E73"  # Okabe-Ito vermilion and green
@@ -55,6 +58,13 @@ def _list(vector: np.ndarray | None) -> list[float] | None:
 
 def _round(value: float | None, digits: int = 3) -> float | None:
     return None if value is None else round(float(value), digits)
+
+
+def main_variant(config: dict) -> tuple[str, str, str]:
+    variant = tuple(config.get("main", MAIN))
+    if variant[0] not in config["depths"] or variant[1] not in config["rules"] or variant[2] not in config["frames"]:
+        raise SystemExit(f"the main variant {list(variant)} is not among the run's depths, rules and frames")
+    return variant
 
 
 def scene_list(config: dict) -> list[tuple[str, str]]:
@@ -193,12 +203,12 @@ def truth_notes(scene: P.Scene, seen: dict[int, list], parts: list[int]) -> list
     return notes
 
 
-def part_table(scene: P.Scene, times: list[str], vectors: dict, parts: list[int]) -> list[dict]:
+def part_table(scene: P.Scene, times: list[str], vectors: dict, parts: list[int], variant: tuple[str, str, str]) -> list[dict]:
     """The main variant in the device's world frame (ARKit; z is up): one rigid transform from the scan frame."""
     to_world = scene.vid.faro_to_arkit
     table = []
     for p in parts:
-        vector = vectors.get((*MAIN, p))
+        vector = vectors.get((*variant, p))
         if vector is None:
             continue
         point = lambda x: _list(transform_points(to_world, x[None])[0])  # noqa: E731
@@ -245,8 +255,8 @@ def _zoom(ax, points: list[np.ndarray], image_hw: tuple[int, int], pad: int = 70
 def draw(path: Path, config: dict, scene: P.Scene, times: list[str], frames: list, labels: list[np.ndarray], vectors: dict, parts: list[int]) -> list[str]:
     """The main variant on keyframes chosen to show every part once where possible: prediction (a rotation's axis through
     its origin, a translation's direction from the contact) and the annotation, 2 x arrow_m long."""
-    length = config["figure"]["arrow_m"]
-    shown = [[p for p in parts if (lab == p).sum() >= P.MIN_PART_PIXELS and (*MAIN, p) in vectors] for lab in labels]
+    length, variant = config["figure"]["arrow_m"], main_variant(config)
+    shown = [[p for p in parts if (lab == p).sum() >= P.MIN_PART_PIXELS and (*variant, p) in vectors] for lab in labels]
     order = pick_keyframes(shown, config["figure"]["keyframes"])
     columns = (len(order) + 1) // 2
     figure, axes = plt.subplots(2, columns, figsize=(3.6 * columns, 7.6))
@@ -254,7 +264,7 @@ def draw(path: Path, config: dict, scene: P.Scene, times: list[str], frames: lis
         frame, drawn = frames[k], []
         ax.imshow(frame.rgb)
         for p in shown[k]:
-            vector, truth = vectors[(*MAIN, p)], truth_of(scene, p)
+            vector, truth = vectors[(*variant, p)], truth_of(scene, p)
             for start, direction, kind, colour in ((vector.origin, vector.axis, vector.kind, PRED_COLOUR),
                                                    (truth.anchor, truth.direction, truth.kind, TRUE_COLOUR)):
                 uv = None if direction is None else _segment(frame, start, direction, kind, length)
@@ -273,7 +283,7 @@ def draw(path: Path, config: dict, scene: P.Scene, times: list[str], frames: lis
         ax.set_axis_off()
     for ax in list(axes.flat)[len(order):]:
         ax.set_axis_off()
-    figure.legend(handles=[plt.Line2D([], [], color=PRED_COLOUR, lw=2, label="computed by rules from LiDAR depth"),
+    figure.legend(handles=[plt.Line2D([], [], color=PRED_COLOUR, lw=2, label=f"computed by the {variant[1]} rules from {'LiDAR' if variant[0] == 'lidar' else 'rendered'} depth"),
                            plt.Line2D([], [], color=TRUE_COLOUR, lw=2, label="annotated motion"),
                            plt.Line2D([], [], color="grey", lw=2, label="line: rotation axis    arrow: translation")],
                   loc="lower center", ncol=3, fontsize=8, frameon=False)
@@ -292,10 +302,11 @@ def run_scene(config: dict, visit: str, video: str, out: Path) -> tuple[list[dic
     observations = {d: {p: V.observe(p, frames[d], labels) for p in parts} for d in config["depths"]}
     summary = summarise(config, rows, scene, observations, parts, counts)
     out.mkdir(parents=True, exist_ok=True)
-    summary["figure_keyframes"] = draw(out / "keyframes.png", config, scene, times, frames["lidar"], labels, vectors, parts)
+    variant = main_variant(config)
+    summary["figure_keyframes"] = draw(out / "keyframes.png", config, scene, times, frames[variant[0]], labels, vectors, parts)
     (out / "parts.json").write_text(json.dumps(rows, indent=1, ensure_ascii=False))
     (out / "summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))
-    (out / "part_table.json").write_text(json.dumps(part_table(scene, times, vectors, parts), indent=1, ensure_ascii=False))
+    (out / "part_table.json").write_text(json.dumps(part_table(scene, times, vectors, parts, variant), indent=1, ensure_ascii=False))
     return rows, summary
 
 
@@ -314,6 +325,7 @@ def main() -> None:
     parser.add_argument("--set", dest="overrides", action="append", default=[], help="key.sub=value override")
     args = parser.parse_args()
     config = load_config(args.config, args.overrides)
+    main_variant(config)  # stop before any work if the figure's variant is not run
     folder = run_folder(config, REPO_ROOT)
     log_stage(folder, "run", REPO_ROOT)
     scenes = scene_list(config)

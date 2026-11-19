@@ -12,6 +12,10 @@ direction of a translation or the axis of a rotation, and a point on that axis (
   surface's far edge (the hinge): the axis lies in the surface, across the direction in which the part is most off
   centre, and the origin is that edge (a light version of REACT3D's rule).
 - ``oracle_kind``: geometric's hinge rule with the annotated motion type (diagnostic: the geometry given the right type).
+- ``gravity``: geometric's door-or-drawer call, but a door (and every hook_turn part) turns about the vertical (the
+  device's gravity) through the far end of its flat surface along the image line that runs most nearly level in the
+  world (S0c, pre-registered after the S0b diagnostic found 42 of 44 door axes vertical).
+- ``oracle_gravity``: gravity's axis and origin with the annotated motion type.
 
 Scoring follows the SceneFun3D Task 3 definition in the paper, per part: +M type right, +A axis within the angle
 (compared as a line, signs being unreliable, section 25.4), +O a rotation's origin within the distance of the true
@@ -31,7 +35,9 @@ from affordance3d.mem import action_records as A
 from affordance3d.mem.action_arms import rule_motion
 from affordance3d.mem.pipeline import MIN_PART_PIXELS, contact_and_normal
 
-RULES = ("c1", "geometric", "oracle_kind")
+RULES = ("c1", "geometric", "oracle_kind", "gravity", "oracle_gravity")
+ORACLE_RULES = ("oracle_kind", "oracle_gravity")  # the motion type is the annotation's
+GRAVITY_RULES = ("gravity", "oracle_gravity")  # a hinge's axis is the vertical
 FRAME_MODES = ("best", "fused")
 DOOR_LABELS = ("hook_pull", "pinch_pull")  # pulled by a handle: a drawer (translation) or a door (rotation)
 HINGED_LABELS = DOOR_LABELS + ("hook_turn",)
@@ -213,14 +219,26 @@ def level_scan(frame: Frame, label_map: np.ndarray, part: int, pixel: A.Pixel, c
     return min(scans, key=lambda found: abs(float(in_plane(found[1][0] - found[0][0], normal) @ A.unit(up))))
 
 
+def gravity_hinge(frame: Frame, label_map: np.ndarray, part: int, pixel: A.Pixel, contact: np.ndarray, normal: np.ndarray,
+                  up: np.ndarray, config: HingeConfig) -> Hinge | None:
+    """The vertical through the end of the level line (level_scan) farther from the contact; its asymmetry is that
+    line's, for the record only (the door-or-drawer call stays geometric's)."""
+    ends = level_scan(frame, label_map, part, pixel, contact, normal, up, config)
+    if ends is None:
+        return None
+    distances = [float(np.linalg.norm(end - contact)) for end, _ in ends]
+    far, border = ends[int(np.argmax(distances))]
+    return Hinge(far, A.unit(up), abs(distances[0] - distances[1]) / sum(distances), bool(border))
+
+
 # ---------------------------------------------------------------- the vector
 
 def rule_kind(rule: str, label: str, door: bool | None, true_kind: str | None) -> str | None:
     """Motion type under a rule set; `door` is the geometric door-or-drawer call (None when no hinge was found)."""
-    if rule == "oracle_kind":
+    if rule in ORACLE_RULES:
         return true_kind
     c1 = rule_motion(label, np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, 1.0])).kind
-    if rule == "geometric" and label in DOOR_LABELS and door is not None:
+    if rule in ("geometric", "gravity") and label in DOOR_LABELS and door is not None:
         return "rot" if door else "trans"
     return c1
 
@@ -240,7 +258,11 @@ def part_vector(part: int, label: str, observations: Sequence[Observation], fram
     door = None if found is None else found.asymmetry >= config.door_asymmetry
     kind = rule_kind(rule, label, door, true_kind)
     evidence = tuple(sorted(o.keyframe for o in observations))
-    if kind == "rot" and label in HINGED_LABELS and found is not None and rule != "c1":
+    if kind == "rot" and label in HINGED_LABELS and rule in GRAVITY_RULES:
+        level = gravity_hinge(frames[best.keyframe], labels[best.keyframe], part, best.pixel, best.contact, best.normal, up, config)
+        if level is not None:
+            return PartVector(part, label, kind, contact, normal, level.axis, level.origin, best.keyframe, evidence, level)
+    elif kind == "rot" and label in HINGED_LABELS and found is not None and rule != "c1":
         return PartVector(part, label, kind, contact, normal, found.axis, found.origin, best.keyframe, evidence, found)
     motion = rule_motion(label, normal, up)
     axis = motion.direction

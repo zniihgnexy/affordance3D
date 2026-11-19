@@ -96,6 +96,26 @@ def test_oracle_kind_takes_the_annotated_type() -> None:
     assert vector.kind == "rot" and vector.hinge is not None
 
 
+def test_gravity_rule_takes_the_axis_from_gravity_and_the_origin_from_the_far_end() -> None:
+    tilted_up = A.unit(np.array([0.3, -1.0, 0.0]))  # the camera rolled: gravity is not along the image columns
+    frame, labels = _door((108, 112))
+    seen = V.observe(PART, [frame], [labels])
+    door = V.part_vector(PART, "hook_pull", seen, [frame], [labels], tilted_up, "gravity", "best", CONFIG)
+    assert door.kind == "rot" and V.line_angle_deg(door.axis, tilted_up) == pytest.approx(0.0, abs=1e-6)
+    assert door.origin[0] == pytest.approx(_x_of_column(DOOR_COLUMNS[0]), abs=0.03)
+    surface = V.part_vector(PART, "hook_pull", seen, [frame], [labels], tilted_up, "geometric", "best", CONFIG)
+    assert V.line_angle_deg(surface.axis, tilted_up) > 10  # the old hinge lies in the surface, along the image column
+
+
+def test_oracle_gravity_takes_the_annotated_type_with_the_vertical_axis() -> None:
+    frame, labels = _door((72, 78))
+    seen = V.observe(PART, [frame], [labels])
+    drawer = V.part_vector(PART, "hook_pull", seen, [frame], [labels], UP, "gravity", "best", CONFIG)
+    door = V.part_vector(PART, "hook_pull", seen, [frame], [labels], UP, "oracle_gravity", "best", CONFIG, true_kind="rot")
+    assert drawer.kind == "trans"
+    assert door.kind == "rot" and V.line_angle_deg(door.axis, UP) == pytest.approx(0.0, abs=1e-6) and door.hinge is not None
+
+
 def test_unknown_rule_is_refused() -> None:
     frame, labels = _door((108, 112))
     seen = V.observe(PART, [frame], [labels])
