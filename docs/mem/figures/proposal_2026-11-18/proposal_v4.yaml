@@ -1,0 +1,133 @@
+# Recommended pipeline, v4: the framework-freeze candidate (2026-11-20, week-2 notebook 7.9 and 7.11). Changes from v3:
+# the memory is ONE scene map per room (3D Gaussians fitted from the phone's depth, features lifted without training,
+# per-Gaussian visibility and last-confirmed time, part vectors attached to the parts), a next video relocalises into
+# it and updates it, and the read path queries the map for candidate positions and the best or rendered views.
+# Same colour roles and crops as proposal_v3.yaml; a voxel map with the same interface is the control (caption only).
+# Render: python3 <cvpr-figure>/scripts/render.py proposal_v4.yaml -o proposal_v4 -f svg,pdf,png,pptx --dpi 600
+figure:
+  id: proposal_v4
+  venue: neurips
+  width: single
+  font: times
+  pptx_app: office
+  pad_bottom: 13
+
+roles:
+  input: grey.light
+  core: orange.light
+  encoder: blue.light
+  memory: red.light
+  decoder: green.light
+
+layout: col
+gap: 14
+
+panels:
+  - id: write
+    title: "Write, per walkthrough video"
+    title_align: left
+    frame: dashed
+    body:
+      - row:
+          gap: 9
+          align: center
+          body:
+            - {id: img_in, shape: image, w: 46, src: pipeline_input.jpg, caption: "40 keyframes"}
+            - col:
+                gap: 9
+                align: center
+                body:
+                  - {id: pm, shape: trapezoid, text: "Part masks", role: encoder, wrap: 40, caption: "SAM 3", align_y: typ}
+                  - {id: depth, shape: trapezoid, text: "Depth, poses", role: encoder, wrap: 40, caption: "LiDAR, ARKit", align_y: gs}
+            - col:
+                gap: 9
+                align: center
+                body:
+                  - {id: typ, shape: trapezoid, text: "Type and host", role: encoder, wrap: 46, dash: true, caption: "VLM: mounted on"}
+                  - {id: avb, shape: box, text: "Affordance vector per part", role: core, bold: true, wrap: 52, caption: "rules"}
+                  - {id: gs, shape: trapezoid, text: "Fit 3D Gaussians", role: encoder, wrap: 46, dash: true, caption: "gsplat"}
+            - col:
+                align: center
+                body:
+                  - {id: lift, shape: trapezoid, text: "Lift features", role: encoder, wrap: 34, dash: true, caption: "SigLIP 2", align_y: gs}
+            - col:
+                align: center
+                body:
+                  - {id: smap, shape: box, text: "Scene map", role: core, bold: true, wrap: 34, dash: true, caption: "one per room", align_y: gs}
+            - col:
+                gap: 9
+                align: center
+                body:
+                  - {id: nxt, shape: box, text: "Next video", role: input, wrap: 34, caption: "same room", align_y: avb}
+                  - {id: reloc, shape: box, text: "Relocalize, update", role: core, wrap: 40, dash: true, caption: "if changed", align_y: gs}
+
+  - id: read
+    title: "Read, per question"
+    title_align: left
+    frame: dashed
+    body:
+      - row:
+          gap: 9
+          align: center
+          body:
+            - {id: q, shape: box, text: "Question", role: input, caption: "free text"}
+            - {id: qp, shape: trapezoid, text: "Query parser", role: encoder, wrap: 30, dash: true, caption: "object + type"}
+            - {id: retr, shape: box, text: "Map query, best views", role: core, bold: true, wrap: 46, dash: true, caption: "close-up render"}
+            - col:
+                gap: 9
+                align: start
+                body:
+                  - row:
+                      gap: 9
+                      align: center
+                      body:
+                        - {id: hqa, shape: invtrapezoid, text: "Open-QA head", role: decoder, wrap: 60, dash: true, caption: "VLM, free text"}
+                        - {id: ans, shape: box, text: "Free-form answer", role: input, wrap: 44, dash: true, caption: "OpenEQA"}
+                  - row:
+                      gap: 9
+                      align: center
+                      body:
+                        - {id: hact, shape: invtrapezoid, text: "Action head", role: decoder, wrap: 60, caption: "pick part, read vector"}
+                        - {id: img_out, shape: image, w: 28, src: pipeline_answer_zoom.jpg, caption: "chosen part"}
+                        - {id: act, shape: box, text: "3D action vector", role: input, wrap: 30, dash: true, caption: "grasp, then motion"}
+
+edges:
+  - {from: img_in.e, to: pm.w, route: hv}
+  - {from: img_in.e, to: depth.w, route: hv}
+  - {from: pm.e, to: typ.w, dash: true}
+  - {from: typ.s, to: avb.n, dash: true}
+  - {from: depth.e, to: avb.w, route: hv, label: "3D lift", label_size: 6.5, label_pos: 0.5, label_rotate: -90, label_dx: -5}
+  - {from: depth.e, to: gs.w, dash: true}
+  - {from: gs.e, to: lift.w, dash: true}
+  - {from: avb.e, to: smap.n, route: hv}
+  - {from: lift.e, to: smap.w, dash: true}
+  - {from: nxt.s, to: reloc.n}
+  - {from: reloc.w, to: smap.e, dash: true}
+  - {from: q.e, to: qp.w, dash: true}
+  - {from: qp.e, to: retr.w, dash: true}
+  - {from: smap.s, to: retr.n, color: memory, dash: true, label: "read", label_size: 6.5, label_pos: 0.15, label_dx: 4, label_anchor: start}
+  - {from: retr.e, to: hqa.w, route: hv, dash: true}
+  - {from: retr.e, to: hact.w, route: hv}
+  - {from: hqa.e, to: ans.w, dash: true}
+  - {from: hact.e, to: img_out.w}
+  - {from: img_out.e, to: act.w, dash: true}
+
+legend:
+  corner: se
+  dir: row
+  box: false
+  items:
+    - {text: "claimed contribution", color: orange.light, kind: swatch}
+    - {text: "frozen public model", color: blue.light, kind: swatch}
+    - {text: "not built yet", kind: dashed, arrow: false}
+
+caption: >-
+  \textbf{Recommended pipeline, v4: framework-freeze candidate (2026-11-20).} Top: each walkthrough video is
+  written once. SAM 3 masks each part, a vision-language model gives its type and what it is mounted on, and rules on
+  LiDAR depth and the device poses give each part an interpretable affordance vector (contact, grasp axis, motion
+  direction or axis, origin). The scene map, one per room, holds 3D Gaussians fitted from the phone's depth with
+  features lifted onto them without training; each Gaussian keeps which frames saw it and when it was last confirmed,
+  and the part vectors sit on their parts. A next video of the room is relocalised by appearance and overwrites the
+  map only where it sees clearly and the geometry changed. Bottom: the map gives candidate positions and the best or
+  rendered close-up views, a vision-language model picks the part, and two heads read it. A voxel map with the same
+  interface is the control. Orange is the claim, blue are frozen public models, dashed is not built yet.

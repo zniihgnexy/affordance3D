@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Put a Gaussian-map fit (scripts/fit_gaussians.py) into the shared GPU queue (GPU work never starts outside the queue).
-#   AFFORDANCE3D_QUEUE=<queue folder> bash scripts/remote/queue_fit_gaussians.sh <config> [priority] [minmb]
+#   AFFORDANCE3D_QUEUE=<queue folder> bash scripts/remote/queue_fit_gaussians.sh <config> [priority] [minmb] [cards]
 # <queue folder> is the one that holds pending/. One job, one card; a lower [priority] number runs earlier (default 100).
-# [minmb] is the free memory the card must have (default 14000). gsplat's CUDA code is built once on the NAS
-# (TORCH_EXTENSIONS_DIR, see scripts/remote/env.sh).
+# [minmb] is the free memory the card must have (default 14000). [cards] replaces the allowed cards for this one job,
+# only when the project lead names a card (2026-11-20: the Gaussian trial goes to GPU 3, "这个任务优先用GPU3").
+# gsplat's CUDA code is built once on the NAS (TORCH_EXTENSIONS_DIR, see scripts/remote/env.sh).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CARDS="$(cat "$ROOT/scripts/remote/allowed_cards")"  # the only GPUs this project may use (never 2 or 3)
+CARDS="${4:-$CARDS}"  # a card the project lead names for one job
 QUEUE="${AFFORDANCE3D_QUEUE:?set AFFORDANCE3D_QUEUE to the queue folder (the one that holds pending/)}"
 CONFIG="$1"
 PRIORITY="${2:-100}"

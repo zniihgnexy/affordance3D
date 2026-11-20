@@ -16,6 +16,8 @@ md(r"""
 | 公开评测 | `python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage <queue / lift / score --official>` |
 | 阶段 0（第 6 节） | `python scripts/diagnose_task2_losses.py --config configs/stage0/task2_losses.yaml`；`python scripts/run_part_vectors.py --config configs/part_vectors/t3_val30.yaml`；`python scripts/openeqa_fit.py --config configs/stage0/openeqa_fit.yaml --stage <count / correct>` |
 | 覆盖模拟（第 7 节） | `python scripts/simulate_overwrite.py --config configs/stage0/overwrite_sim.yaml` |
+| 高斯试拟合（第 8 节，GPU 队列） | 一次性安装 `bash scripts/remote/setup_gaussians.sh`；排队 `bash scripts/remote/queue_fit_gaussians.sh configs/gaussians/fit_trial.yaml 100 11000 3`（最后的 3 是你指定的 3 号卡） |
+| 其余 52 段验证视频 | `python scripts/download_revisit_videos.py --scenes third_party/scenefun3d/benchmark_file_lists/val_scenes.txt` |
 | 这份 notebook | `python notebooks/builders/build_report_2026_11_20_week2.py report/week2_2026-11-16_to_11-22.ipynb`，再用 `jupyter nbconvert --to notebook --execute --inplace` 执行 |
 
 **文档：** 推荐 pipeline 和三轮检验 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`；理解差异 `docs/mem/理解差异记录.md`；实验索引 `EXPERIMENTS.md`。
@@ -45,6 +47,14 @@ checks = [
     check("overwrite last view erases %", round(100 * ow["erased"]["last_view"]["all"], 1), 14.4),
     check("overwrite last view erases, shown twice+ %", round(100 * ow["erased"]["last_view"]["shown_twice_or_more"], 1), 17.2),
     check("overwrite largest view erases %", round(100 * ow["erased"]["largest_view"]["all"], 1), 10.3),
+    check("Gaussian fit minutes (validation)", round(fit["scenes"][0]["fit_s"] / 60, 1), 14.7),
+    check("Gaussian test PSNR (validation)", round(fit["scenes"][0]["test_psnr_db"], 1), 25.4),
+    check("Gaussian test PSNR (demo)", round(fit["scenes"][1]["test_psnr_db"], 1), 20.3),
+    check("Gaussian depth median cm (validation)", round(100 * fit["scenes"][0]["test_depth_median_m"], 1), 1.6),
+    check("Gaussian peak GPU GB (validation)", round(fit["scenes"][0]["peak_gpu_gb"], 1), 3.7),
+    check("Gaussian file MB (validation)", round(fit["scenes"][0]["file_mb"], 1), 201.5),
+    check("Gaussian file MB (demo)", round(fit["scenes"][1]["file_mb"]), 379),
+    check("Gaussian frames (validation)", fit["scenes"][0]["frames"], 80),
 ]
 mine = {rule: [r for r in rows_c if (r["depth"], r["rule"], r["frames"]) == ("lidar", rule, "best") and drawer(r)] for rule in ("c1", "geometric")}
 checks += [check("S0c drawers", len(mine["c1"]), 35), check("S0c drawers right, label only", sum(r["score"]["m"] for r in mine["c1"]), 31),
