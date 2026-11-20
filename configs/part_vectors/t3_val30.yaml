@@ -1,6 +1,6 @@
 # Stage 0, test T3 of the plan agreed on 2026-11-20 (proposal section 13): the part-vector rules on all 30 validation
 # scenes, to see whether the motion vectors are good enough for Task 3 to be a candidate benchmark. Same code and
-# settings as S0c, only more scenes; LiDAR depth and the best keyframe only (the inputs a robot has). Part masks and
+# settings as S0c, only more scenes; the best keyframe only; predictions read LiDAR depth (the input a robot has). Part masks and
 # labels are the annotation (ORACLE): this asks "given the part, is the motion right", not "is the part found".
 # CPU only, no model. Fixed before the run, with the predictions below; a different setting needs a new config name.
 #
@@ -57,7 +57,7 @@ scenes:
   - {visit: "468476", video: "45261686"}
 keyframes: {kind: steady, n: 40}
 
-depths: [lidar]
+depths: [lidar, rendered]       # rendered depth is needed by the script's truth notes; the predictions read the LiDAR rows
 rules: [c1, geometric, oracle_kind, gravity, oracle_gravity]
 frames: [best]
 main: [lidar, gravity, best]
