@@ -1,0 +1,693 @@
+[
+ {
+  "index": 6,
+  "flagged": true,
+  "words": [
+   "door",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "hm3d",
+  "question": "Is the front door open?",
+  "answer": "No",
+  "relevant": true
+ },
+ {
+  "index": 16,
+  "flagged": true,
+  "words": [
+   "door",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "hm3d",
+  "question": "Is the bedroom door open?",
+  "answer": "Yes",
+  "relevant": true
+ },
+ {
+  "index": 37,
+  "flagged": true,
+  "words": [
+   "door",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "hm3d",
+  "question": "Is the patio door open?",
+  "answer": "No.",
+  "relevant": true
+ },
+ {
+  "index": 71,
+  "flagged": true,
+  "words": [
+   "turned on"
+  ],
+  "category": "object state recognition",
+  "source": "hm3d",
+  "question": "Are the ceiling lights in the living room turned on?",
+  "answer": "Yes",
+  "relevant": false,
+  "note": "light on/off: object state, not a part"
+ },
+ {
+  "index": 188,
+  "flagged": true,
+  "words": [
+   "turned on"
+  ],
+  "category": "object state recognition",
+  "source": "hm3d",
+  "question": "Is the light above the sink turned on?",
+  "answer": "Yes",
+  "relevant": false,
+  "note": "light on/off"
+ },
+ {
+  "index": 335,
+  "flagged": true,
+  "words": [
+   "closed",
+   "door",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "hm3d",
+  "question": "is the outside home door open or closed?",
+  "answer": "closed",
+  "relevant": true
+ },
+ {
+  "index": 388,
+  "flagged": true,
+  "words": [
+   "drawer"
+  ],
+  "category": "attribute recognition",
+  "source": "hm3d",
+  "question": "what color is the drawer in the bedroom",
+  "answer": "light brown",
+  "relevant": false,
+  "note": "colour of a drawer"
+ },
+ {
+  "index": 390,
+  "flagged": true,
+  "words": [
+   "closed",
+   "door",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "hm3d",
+  "question": "is the door to the balcony open or closed",
+  "answer": "open",
+  "relevant": true
+ },
+ {
+  "index": 564,
+  "flagged": true,
+  "words": [
+   "open"
+  ],
+  "category": "functional reasoning",
+  "source": "scannet",
+  "question": "How do I crack open the windows?",
+  "answer": "Turn the window knob",
+  "relevant": true
+ },
+ {
+  "index": 703,
+  "flagged": true,
+  "words": [
+   "drawers",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Are the drawers next to the clothing rack stand open?",
+  "answer": "No",
+  "relevant": true
+ },
+ {
+  "index": 723,
+  "flagged": true,
+  "words": [
+   "door"
+  ],
+  "category": "object recognition",
+  "source": "scannet",
+  "question": "What is hanging on the hooks next to the door?",
+  "answer": "bathrobes",
+  "relevant": false,
+  "note": "door as landmark"
+ },
+ {
+  "index": 814,
+  "flagged": true,
+  "words": [
+   "door"
+  ],
+  "category": "object recognition",
+  "source": "scannet",
+  "question": "Whats located on the wall right by the door?",
+  "answer": "A hook",
+  "relevant": false,
+  "note": "door as landmark"
+ },
+ {
+  "index": 830,
+  "flagged": true,
+  "words": [
+   "door"
+  ],
+  "category": "spatial understanding",
+  "source": "scannet",
+  "question": "What is on each side of the wall where the door is located?",
+  "answer": "shelves",
+  "relevant": false,
+  "note": "door as landmark"
+ },
+ {
+  "index": 853,
+  "flagged": true,
+  "words": [
+   "door"
+  ],
+  "category": "attribute recognition",
+  "source": "scannet",
+  "question": "What color is the piece of paper by the door?",
+  "answer": "bright green",
+  "relevant": false,
+  "note": "door as landmark"
+ },
+ {
+  "index": 854,
+  "flagged": true,
+  "words": [
+   "outlet"
+  ],
+  "category": "spatial understanding",
+  "source": "scannet",
+  "question": "Where is the outlet?",
+  "answer": "Behind the soap dispenser by the sink",
+  "relevant": true
+ },
+ {
+  "index": 860,
+  "flagged": true,
+  "words": [
+   "turn on"
+  ],
+  "category": "world knowledge",
+  "source": "scannet",
+  "question": "How do I turn on the sink?",
+  "answer": "Lift the handle ",
+  "relevant": true
+ },
+ {
+  "index": 905,
+  "flagged": true,
+  "words": [
+   "closed",
+   "door",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the door near the brown paper box open or closed?",
+  "answer": "closed",
+  "relevant": true
+ },
+ {
+  "index": 911,
+  "flagged": true,
+  "words": [
+   "outlet"
+  ],
+  "category": "object recognition",
+  "source": "scannet",
+  "question": "What is next to the wooden chair (near the electric outlet)",
+  "answer": "a backpack",
+  "relevant": false,
+  "note": "outlet as landmark"
+ },
+ {
+  "index": 967,
+  "flagged": true,
+  "words": [
+   "closed",
+   "door",
+   "doors",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "There are two doors in the scene. Is either of the door open or closed?",
+  "answer": "both doors are closed",
+  "relevant": true
+ },
+ {
+  "index": 1025,
+  "flagged": true,
+  "words": [
+   "remote"
+  ],
+  "category": "object localization",
+  "source": "scannet",
+  "question": "Where is tv remote?",
+  "answer": "on the edge of the right bed",
+  "relevant": false,
+  "note": "remote is an object"
+ },
+ {
+  "index": 1129,
+  "flagged": true,
+  "words": [
+   "turned on"
+  ],
+  "category": "spatial understanding",
+  "source": "scannet",
+  "question": "Is the computer monitor on the middle work desk turned on or off?",
+  "answer": "It's turned off",
+  "relevant": false,
+  "note": "monitor on/off"
+ },
+ {
+  "index": 1130,
+  "flagged": true,
+  "words": [
+   "turned on"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the computer monitor on the work desk closest to the whiteboard turned on or off?",
+  "answer": "It's turned on.",
+  "relevant": false,
+  "note": "monitor on/off"
+ },
+ {
+  "index": 1131,
+  "flagged": true,
+  "words": [
+   "closed",
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the filing cabinet closest to the white board open or closed?",
+  "answer": "It's open",
+  "relevant": true
+ },
+ {
+  "index": 1181,
+  "flagged": true,
+  "words": [
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the window open to let in light?",
+  "answer": "Yes",
+  "relevant": true
+ },
+ {
+  "index": 1207,
+  "flagged": true,
+  "words": [
+   "drawer"
+  ],
+  "category": "object recognition",
+  "source": "scannet",
+  "question": "What is the green object on top the 3-drawer white cart?",
+  "answer": "An umbrella ",
+  "relevant": false,
+  "note": "drawer cart as landmark"
+ },
+ {
+  "index": 1255,
+  "flagged": true,
+  "words": [
+   "drawer"
+  ],
+  "category": "object localization",
+  "source": "scannet",
+  "question": "Where is the brown two-level drawer?",
+  "answer": "under the desk",
+  "relevant": false,
+  "note": "drawer unit located as furniture"
+ },
+ {
+  "index": 1262,
+  "flagged": true,
+  "words": [
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the fridge open?",
+  "answer": "no",
+  "relevant": true
+ },
+ {
+  "index": 1327,
+  "flagged": true,
+  "words": [
+   "open"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the bathroom window open?",
+  "answer": "yes",
+  "relevant": true
+ },
+ {
+  "index": 1363,
+  "flagged": true,
+  "words": [
+   "closed",
+   "lid"
+  ],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the toilet lid closed?",
+  "answer": "yes",
+  "relevant": true
+ },
+ {
+  "index": 1559,
+  "flagged": true,
+  "words": [
+   "remote"
+  ],
+  "category": "object localization",
+  "source": "scannet",
+  "question": "Where is the remote?",
+  "answer": "Over the bed",
+  "relevant": false,
+  "note": "remote is an object"
+ },
+ {
+  "index": 124,
+  "flagged": false,
+  "words": [],
+  "category": "spatial understanding",
+  "source": "hm3d",
+  "question": "Is there space on the dining table to work on my laptop?",
+  "answer": "Yes",
+  "relevant": false
+ },
+ {
+  "index": 229,
+  "flagged": false,
+  "words": [],
+  "category": "object localization",
+  "source": "hm3d",
+  "question": "What is the chandelier hanging over?",
+  "answer": "The staircase.",
+  "relevant": false
+ },
+ {
+  "index": 420,
+  "flagged": false,
+  "words": [],
+  "category": "object localization",
+  "source": "hm3d",
+  "question": "Where is the map of the united states?",
+  "answer": "Above the black couch",
+  "relevant": false
+ },
+ {
+  "index": 511,
+  "flagged": false,
+  "words": [],
+  "category": "spatial understanding",
+  "source": "hm3d",
+  "question": "Can you fit a large pizza on the table next to the downstairs couch?",
+  "answer": "Yes",
+  "relevant": false
+ },
+ {
+  "index": 534,
+  "flagged": false,
+  "words": [],
+  "category": "spatial understanding",
+  "source": "hm3d",
+  "question": "Where is \"Bless this home\" written?",
+  "answer": "Above the dinner room entrance",
+  "relevant": false
+ },
+ {
+  "index": 561,
+  "flagged": false,
+  "words": [],
+  "category": "spatial understanding",
+  "source": "scannet",
+  "question": "Where are the paper towels?",
+  "answer": "Above the trashcan",
+  "relevant": false
+ },
+ {
+  "index": 590,
+  "flagged": false,
+  "words": [],
+  "category": "functional reasoning",
+  "source": "scannet",
+  "question": "What can I eat?",
+  "answer": "banana in the fruit bowl on dining table",
+  "relevant": false
+ },
+ {
+  "index": 614,
+  "flagged": false,
+  "words": [],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Are there objects on the table?",
+  "answer": "No",
+  "relevant": false
+ },
+ {
+  "index": 631,
+  "flagged": false,
+  "words": [],
+  "category": "object localization",
+  "source": "scannet",
+  "question": "Where is the fire extinguisher?",
+  "answer": "By the vacuum cleaner",
+  "relevant": false
+ },
+ {
+  "index": 689,
+  "flagged": false,
+  "words": [],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Are the window blinds in the room down?",
+  "answer": "Yes",
+  "relevant": true,
+  "note": "blinds down: state of an operable part (borderline)"
+ },
+ {
+  "index": 788,
+  "flagged": false,
+  "words": [],
+  "category": "attribute recognition",
+  "source": "scannet",
+  "question": "What is the color of the thickest book on the shelf?",
+  "answer": "red",
+  "relevant": false
+ },
+ {
+  "index": 828,
+  "flagged": false,
+  "words": [],
+  "category": "attribute recognition",
+  "source": "scannet",
+  "question": "What color is the stapler?",
+  "answer": "blue",
+  "relevant": false
+ },
+ {
+  "index": 856,
+  "flagged": false,
+  "words": [],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the trash full?",
+  "answer": "no",
+  "relevant": false
+ },
+ {
+  "index": 871,
+  "flagged": false,
+  "words": [],
+  "category": "functional reasoning",
+  "source": "scannet",
+  "question": "Where can I have a seat?",
+  "answer": "Either on the green bench, the blue chair, or the bed",
+  "relevant": false
+ },
+ {
+  "index": 938,
+  "flagged": false,
+  "words": [],
+  "category": "attribute recognition",
+  "source": "scannet",
+  "question": "What shape is the mirror?",
+  "answer": "round",
+  "relevant": false
+ },
+ {
+  "index": 940,
+  "flagged": false,
+  "words": [],
+  "category": "spatial understanding",
+  "source": "scannet",
+  "question": "Is there a poster roll next to a white mini fridge?",
+  "answer": "yes",
+  "relevant": false
+ },
+ {
+  "index": 983,
+  "flagged": false,
+  "words": [],
+  "category": "object recognition",
+  "source": "scannet",
+  "question": "What is the red object on the washing machine?",
+  "answer": "a foldable laundry basket",
+  "relevant": false
+ },
+ {
+  "index": 1052,
+  "flagged": false,
+  "words": [],
+  "category": "object recognition",
+  "source": "scannet",
+  "question": "What leans on the wall on the right?",
+  "answer": "a poster",
+  "relevant": false
+ },
+ {
+  "index": 1100,
+  "flagged": false,
+  "words": [],
+  "category": "object localization",
+  "source": "scannet",
+  "question": "Where is the backpack?",
+  "answer": "near sofa",
+  "relevant": false
+ },
+ {
+  "index": 1112,
+  "flagged": false,
+  "words": [],
+  "category": "world knowledge",
+  "source": "scannet",
+  "question": "What is displayed on the walls that don't contain shelves?",
+  "answer": "Scientific posters",
+  "relevant": false
+ },
+ {
+  "index": 1140,
+  "flagged": false,
+  "words": [],
+  "category": "attribute recognition",
+  "source": "scannet",
+  "question": "what color is the work desk?",
+  "answer": "white",
+  "relevant": false
+ },
+ {
+  "index": 1172,
+  "flagged": false,
+  "words": [],
+  "category": "object localization",
+  "source": "scannet",
+  "question": "I'm looking for my yellow backpack. Where is it?",
+  "answer": "On the chair",
+  "relevant": false
+ },
+ {
+  "index": 1174,
+  "flagged": false,
+  "words": [],
+  "category": "object recognition",
+  "source": "scannet",
+  "question": "Which object is closest to the AC unit?",
+  "answer": "Tissue box",
+  "relevant": false
+ },
+ {
+  "index": 1183,
+  "flagged": false,
+  "words": [],
+  "category": "world knowledge",
+  "source": "scannet",
+  "question": "Can I take the toiletries on the table on an airplane carry on luggage?",
+  "answer": "Yes, they appear to be small bottles and in clear plastic bag",
+  "relevant": false
+ },
+ {
+  "index": 1260,
+  "flagged": false,
+  "words": [],
+  "category": "spatial understanding",
+  "source": "scannet",
+  "question": "what is in between of the black pot and the pan?",
+  "answer": "grey pot",
+  "relevant": false
+ },
+ {
+  "index": 1364,
+  "flagged": false,
+  "words": [],
+  "category": "object state recognition",
+  "source": "scannet",
+  "question": "Is the towel on the toilet used?",
+  "answer": "no",
+  "relevant": false
+ },
+ {
+  "index": 1378,
+  "flagged": false,
+  "words": [],
+  "category": "functional reasoning",
+  "source": "scannet",
+  "question": "What can I use to carry some snacks on a hike?",
+  "answer": "the backpack",
+  "relevant": false
+ },
+ {
+  "index": 1424,
+  "flagged": false,
+  "words": [],
+  "category": "world knowledge",
+  "source": "scannet",
+  "question": "I need to get rid of the stack of papers on my desk. Where should I put it?",
+  "answer": "Place it in the recycling bin to the right of the desk with the monitor",
+  "relevant": false
+ },
+ {
+  "index": 1456,
+  "flagged": false,
+  "words": [],
+  "category": "functional reasoning",
+  "source": "scannet",
+  "question": "The printer ran out of paper, where can I get more?",
+  "answer": "Open one of the green boxes of paper",
+  "relevant": false
+ },
+ {
+  "index": 1523,
+  "flagged": false,
+  "words": [],
+  "category": "functional reasoning",
+  "source": "scannet",
+  "question": "Where should I put the wire to charge my computer if I'm sitting at the desk with the backpack on it?",
+  "answer": "Pass the wire through the silver latch",
+  "relevant": true,
+  "note": "where to plug in to charge: socket location (missed by the words)"
+ }
+]
