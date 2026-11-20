@@ -1,0 +1,90 @@
+# Week 1 as one notebook: every notebook of Monday 9 to Sunday 15 November 2026 (London time), outputs kept.
+#
+#   python scripts/merge_notebooks.py --config configs/report/week1.yaml
+#
+# The parts are read from source_commit (the last commit that still had them as separate files); they were removed from
+# the working tree when this notebook was made. The weekly summary was generated on Monday 16 November but covers this
+# week, so it opens this notebook. Work before 9 November (from 29 October) has documents only, no notebook.
+
+output: report/week1_2026-11-09_to_11-15.ipynb
+title: "第 1 周：2026-11-09（周一）到 11-15（周日）"
+source_commit: 3f2baae
+intro: |
+  **视频功能记忆（部件级，记忆方向）** · 伦敦时间的自然周，一周只有这一份 notebook · 2026-11-20 整理
+
+  这一周的所有 notebook 都合在这一份里：最前面是 11-16 写的周报（这一周的总结），后面按时间放各个 notebook 的全文。
+  每一部分原样并入，图和数字是当时运行的结果，没有重跑。只改了两处：标题降了一级；指向别的 notebook 的链接改成指向本文件里对应的部分。
+  原来的单独文件已从仓库里删掉，在提交 `3f2baae` 里还能找到。11-09 以前（10-29 起）的工作只有文档，见 `docs/research/`。
+  下一周的内容在 [第 2 周 notebook](week2_2026-11-16_to_11-22.ipynb)。
+
+parts:
+  - key: summary
+    anchor: w1-summary
+    path: report/2026-11-16_weekly_summary.ipynb
+    title: 周报：11-09 到 11-15
+    date: 11-16 生成
+    builder: "`notebooks/builders/build_report_2026_11_16_weekly.py`"
+    about: 这一周的总结：时间线、阶段 1 的结果、关口 G1、要你决定的事
+  - key: datasets
+    anchor: w1-datasets
+    path: report/2026-11-09_datasets_report.ipynb
+    title: 组会的数据报告
+    date: 11-09
+    builder: "`notebooks/builders/build_report_2026_11_09.py`"
+    about: 英文；候选数据集，SceneFun3D 和 EPIC-KITCHENS + VISOR 各一个场景
+  - key: demo
+    anchor: w1-demo
+    path: notebooks/01_step_by_step_demo.ipynb
+    title: E0/E1 的逐步演示
+    date: 11-09
+    builder: "`notebooks/builders/build_01_step_by_step_demo.py`"
+    about: 投影、对齐、DINOv2 特征、体素记忆、读取；用 Redwood 小样本，不是 SceneFun3D
+  - key: e0
+    anchor: w1-e0
+    path: notebooks/02_scenefun3d_e0.ipynb
+    title: SceneFun3D 的数据链路检查（E0）
+    date: 11-09
+    builder: "`notebooks/builders/build_02_scenefun3d_e0.py`"
+    about: 场景 421069 的数据、方向、深度单位和跨帧对齐
+  - key: memdemo
+    anchor: w1-memdemo
+    path: report/2026-11-10_mem_pipeline_demo.ipynb
+    title: 记忆 pipeline 的演示
+    date: 11-10
+    builder: "`notebooks/builders/build_mem_demo.py`"
+    about: 英文；视频 → 记忆 → 查询 → 人形走近并操作
+  - key: s1-01
+    anchor: w1-s1-01
+    path: notebooks/mem/S1_01_video_inputs_to_actionable_affordance.ipynb
+    title: S1-01 从视频到可执行的 affordance
+    date: 11-10
+    builder: "`notebooks/builders/build_mem_s1_01.py`"
+    about: 只用视频、深度和位姿算接触点、法向、站立点（ORACLE 版）
+  - key: s1-02
+    anchor: w1-s1-02
+    path: notebooks/mem/S1_02_humanoid_approach.ipynb
+    title: S1-02 人形走近并操作
+    date: 11-10
+    builder: "`notebooks/builders/build_mem_s1_02.py`"
+    about: 用 S1-01 的结果摆人形（ORACLE 版）
+  - key: pipeline
+    anchor: w1-pipeline
+    path: notebooks/mem/pipeline.ipynb
+    title: pipeline 工作文档
+    date: 11-11 建，11-13 最后修改
+    builder: 手写，没有 builder
+    about: 各环节的想法、要求、缺口，以及你的批注格（✏️）
+  - key: examples
+    anchor: w1-examples
+    path: notebooks/mem/pipeline_examples.ipynb
+    title: 每个环节的示例
+    date: 11-11
+    builder: "`notebooks/builders/build_mem_pipeline_examples.py`"
+    about: 每个环节在场景 421069 上的一个真实数据示例
+  - key: phase1
+    anchor: w1-phase1
+    path: notebooks/mem/phase1_results.ipynb
+    title: 阶段 1 结果
+    date: 11-12 到 11-13
+    builder: "`notebooks/builders/build_mem_phase1_results.py`"
+    about: token 写在哪里：30 个验证场景上五种写法的对照，关口 G1

@@ -1,4 +1,4 @@
-# Cells of build_report_2026_11_20_week2.py, part 5 (main-idea check, decisions, commands, number checks).
+# Cells of build_report_2026_11_20_week2.py, part 5 (main-idea check, decisions, future directions, 2026 papers, notes).
 
 md(r"""
 ---
@@ -9,7 +9,7 @@ md(r"""
 | 你的主旨 | 这一周 |
 | --- | --- |
 | M1 可解释的三维向量，能给机器人用 | **符合。** 每个部件一条三维向量，在世界坐标里，视频和点云里都能画出来（第 1 节）。下一步加抓握轴，每条记录就能解码成"抓哪里、怎么抓、抓住以后怎么动"。 |
-| M2 用向量帮忙挑关键帧 | **没覆盖。** 相关的发现：40 张关键帧漏掉 15% 到 21% 的部件，要先保证关键帧能覆盖部件。 |
+| M2 用向量帮忙挑关键帧 | **还没测，有了方案。** 40 张关键帧漏掉 15% 到 21% 的部件，要先保证关键帧能覆盖部件。11-20 提出用三维表面 affordance map 按"哪一帧看得清"挑帧（决定 6）。 |
 | M3 affordance 加深度算出动作向量 | **符合**，三轮检验测的就是这一步。但见下面第一条提醒。 |
 | M4 两个头 | **部分。** 动作头的"选部件"在公开评测上评了（第 3.4 节）：用 SAM 3 的部件图时明显落后于 UniFunc3D 8B，用标注的部件图时和它差不多。读向量和问答头还没做。 |
 | M5 现成模型加规则，不训练 | **符合。** 这一周全是规则和现成模型，没有训练。 |
@@ -53,48 +53,75 @@ md(r"""
 
    我推荐 **(b)**：不花 GPU，先弄清差在哪类部件。部件找不找得到，新 pipeline 也绕不开：Task 3 也要先定位对。
 
-**完整的背景和理由**在 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`：第 9 节（S0c）、第 10 节（对照 VLA 的 map）和第 11 节（公开评测）。
+6. **affordance map 做成三维表面图吗？**（11-20 提出，读了 AROS 以后；目的是帮忙搜索目标，物体和动作的可能性都要能搜）
+   - **做法：** 表面用关键帧的深度加位姿算出来（跑分时也可以用数据集给的激光扫描），每个表面点记住"哪些帧看见过它"。上面叠三层：
+     - 几何层：朝向、高度、前面有没有空地，用规则判断；
+     - 语义层：SAM 3 的掩码投到表面上，多帧投票；
+     - 向量层：部件的动作向量挂到这个部件的点上。
+
+     搜索时三层取交集，得到一小块三维掩码；再按"哪一帧看得清"挑帧，画到帧上给 VLM 看。
+   - **已有的证据：** 阶段 1 把 40 张深度图融合以后读接触点，并没有更准（中位误差 5.4 cm，单帧 4.1 cm；第 1 周 notebook 第 10 部分）。所以三维图负责"在哪、哪一帧看得清"，精确的接触点和门轴仍从单帧读。
+   - (a) 全场景粗体素（2 到 5 cm），三层都做。在公开评测的 30 个场景上验两件事：多帧投票能把 Task 2 的差距缩小多少；按三维可见性挑帧，离"最好的帧"上限（标注掩码投在选中的帧上 AP25 51.5，投在最好的帧上 88.1）近多少，先用标注掩码测。要排一次 GPU，把已存的 SAM 3 框转成掩码。
+   - (b) 只做几何层和向量层：只用 CPU，但搜不了物体。
+   - (c) 先不做。
+
+   我推荐 **(a)**。它给决定 3 多了一个选项"三维表面图"，决定 5 的诊断也能并进去。**要你确认：** 这会推翻 11-11 第 3 轮的"不融合稠密几何"（虽然是粗的融合）。
+
+**完整的背景和理由**在 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`：第 9 节（S0c）、第 10 节（对照 VLA 的 map）和第 11 节（公开评测）。决定 6 的讨论在聊天里（11-20），这里是完整的选项。
 """)
+
 
 md(r"""
 ---
-# 附录
+# 5. 未来方向（先存起来，按实验结果再定）
 
-## A. 命令（都在仓库根目录，服务器上跑；除公开评测的 GPU 一步外都只用 CPU）
+## 5.1 横向对比的候选卖点
 
-| 内容 | 命令 |
-| --- | --- |
-| S0、S0b、S0c | `python scripts/run_part_vectors.py --config configs/part_vectors/<s0_421069 / s0b_val3 / s0c_gravity_val3>.yaml` |
-| 门窗诊断 | `python scripts/diagnose_door_hinges.py --config configs/part_vectors/<s0b_val3 / s0c_gravity_val3>.yaml` |
-| 演示用的向量（场景 421069） | `python scripts/run_part_vectors.py --config configs/part_vectors/demo_421069_gravity.yaml` |
-| 两个视频 | `python scripts/make_week2_media.py --config configs/report/week2_media.yaml` |
-| 标签和运动类型、部件形状 | `python scripts/count_label_motions.py --scenes third_party/scenefun3d/benchmark_file_lists/val_scenes.txt`；`count_part_shapes.py` 同样的参数 |
-| 公开评测 | `python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage <queue / lift / score --official>` |
-| 这份 notebook | `python notebooks/builders/build_report_2026_11_20_week2.py report/2026-11-20_week2_summary.ipynb`，再用 `jupyter nbconvert --to notebook --execute --inplace` 执行 |
+先全部记下，之后看实验结果，挑数据最有力的几项做主表。为了让主表站得住，每个 bench 跑过的结果都留在 `runs/` 和 `EXPERIMENTS.md` 里，包括没放进主表的；论文里写明挑选的理由。
 
-**文档：** 推荐 pipeline 和三轮检验 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`；理解差异 `docs/mem/理解差异记录.md`；实验索引 `EXPERIMENTS.md`。
+**最可能占优的任务：** 在一段长视频里，按一句话找到要动的小部件，并给出怎么动。下面这些条件越多，affordance map 帮得越多：
+- 目标小，只在少数帧里出现（把手、旋钮、开关）；
+- 要知道"怎么做"，不只是"是什么"；
+- 同类部件很多，要靠空间关系区分（"电视下面柜子最下层的抽屉"）；
+- 问可行性（"门开得开吗""前面站得下人吗"）；
+- 同一个场景反复提问（记忆建一次，问很多次）。
 
-## B. 数字核对
+**不占优：** 时间顺序、事件、外观这类通用视频问答；场景会变；户外。
 
-正文里引用的数字，下面逐个从结果文件里重新算一遍；对不上时这一格会报错。
+| 卖点 | bench | 对比对象（文献数字） | 指标 |
+| --- | --- | --- | --- |
+| 找得到部件 | SceneFun3D Task 2（split0） | Fun3DU 33.3；UniFunc3D 8B 44.0、30B 51.0；AffordMem 41.7 | AP25、mIoU，加读了几帧、GPU 时间 |
+| 动作做得对 | SceneFun3D Task 3；OPDMulti | SceneFun3D 基线 +MAO 8.1（测试集）；AffordBot；REACT3D | +M、+MA、+MAO，轴的角度误差，原点距离；可加 AFUN 用的轨迹误差和"接触点落在掩码里"的比例（5.2 节） |
+| 答得对 | OpenEQA EM-EQA：以功能推理、物体定位、物体状态三类为主，全部类别也报 | 3D-Mem 57.2；SpatialMem 62.0；ConceptGraphs 类方法；同一个 VLM 加均匀抽帧 | LLM 打分 |
+| 挑帧更省（M2） | 上面这些 bench，帧数预算相同 | 均匀抽帧；按文字相似度挑帧 | 预算相同时的准确率 |
+| 空间问题（可选） | VSI-Bench 的相对距离、相对方向、路线规划、计数 | 同一个 VLM 加均匀抽帧 | 准确率 |
+
+文献数字见 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md` 第 2.5 节。OpenEQA 的数据带深度和位姿，我们的 pipeline 能直接跑；VSI-Bench 的视频有一部分来自 ARKitScenes，和 SceneFun3D 同源。
+
+**一个只有我们能报的指标：** 在 SceneFun3D 同一批任务上，部件找对（IoU 至少 0.25）并且运动对（类型、轴、原点）才算成功。别的方法要拼两个系统才能比。
+
+**每个 bench 都做同一组对照：** 不用 map（均匀帧）、标注的 map（上限）、SAM 3 的 map；每张表加资源列（读了几帧、GPU 时间、记忆多大）。
+
+**现在的提醒：** Task 2 用 SAM 3 的 map 时明显落后（第 3.4 节）。决定 5、6 定下来以前，它不适合当卖点。
 """)
 
-code(r"""
-s0b_doors = H.run_json("s0b_val3", "door_hinges.json")["counts"]["lidar"]
-checks = [
-    check("S0c parts", s0c["counts"]["elements"], 80), check("S0c scored", s0c["counts"]["scored"], 64),
-    check("S0c never in keyframes", s0c["counts"]["not_seen"], 12),
-    check("S0c true door axes vertical", doors["true_axis_vertical"], 16), check("S0c doors", doors["doors"], 19),
-    check("S0c oracle_kind door +MA %", round(off["oracle_kind"]["ma"]), 68), check("S0c oracle_gravity door +MA %", round(off["oracle_gravity"]["ma"]), 84),
-    check("S0c oracle_kind door +MAO %", round(off["oracle_kind"]["mao"]), 16), check("S0c oracle_gravity door +MAO %", round(off["oracle_gravity"]["mao"]), 21),
-    check("S0b doors", s0b_doors["doors"], 44), check("S0b true axes vertical", s0b_doors["true_axis_vertical"], 42),
-    check("S0b old rule axis right", s0b_doors["rule"]["axis_ok"], 21), check("S0b vertical+handle axis right", s0b_doors["up_handle"]["axis_ok"], 39),
-    check("S0b side given, axis+origin", s0b_doors["up_right_end"]["axis_and_origin_ok"], 21),
-    check("label-only ceiling %", round(100 * best / sum(pairs.values()), 1), 80.3),
-    check("walkthrough frames", media["walkthrough"]["frames"], 1025),
-]
-mine = {rule: [r for r in rows_c if (r["depth"], r["rule"], r["frames"]) == ("lidar", rule, "best") and drawer(r)] for rule in ("c1", "geometric")}
-checks += [check("S0c drawers", len(mine["c1"]), 35), check("S0c drawers right, label only", sum(r["score"]["m"] for r in mine["c1"]), 31),
-           check("S0c drawers right, geometric", sum(r["score"]["m"] for r in mine["geometric"]), 20)]
-print(f"{len(checks)} numbers checked, all match the result files")
+md(r"""
+## 5.2 2026 年的新工作（11-20 读）
+
+| 工作 | 做什么 | 和我们的关系 | 能借的 |
+| --- | --- | --- | --- |
+| **AFUN**（arXiv 2606.02551，2026-06，预印本） | 一帧 RGB-D 加一句任务，输出部件掩码（用 SAM 3）和接触以后的三维运动轨迹。冻结 Qwen3-VL-8B、SAM 3 和点云编码器，训练一个 3200 万参数的小解码器 | **最相关。** 它在 SceneFun3D 上只评运动（721 条，场景不在它的训练集里），用轨迹误差 ADE/FDE 和"接触点落在掩码里"的比例 CIM，不评 Task 2，也没和 Fun3DU、UniFunc3D 比。在 8 个部件分割测试集上，"Qwen3-VL-8B 加 SAM 3"的平均 gIoU 只有 42.5，AFUN 是 69.3：现成模型找部件确实弱，和我们 Task 2 落后的原因一致 | ① 轨迹误差和 CIM 可以作为动作向量的辅助指标；② 让 VLM 把提示交给 SAM 3 的接法，可以用来补部件图（决定 5 的 (c)）。它是单帧、没有记忆、要训练，不是必须打败的基线 |
+| **AffordMatcher**（arXiv 2603.27970，2026-03，预印本） | 给一张"示意图"（图像加动作短语），在场景点云上找能做这个动作的区域；要训练 | 新建了 AffordBridge 数据集：31.8 万个样本，约 690 个场景（论文里写 685 和 689 两种），扫描来自 SceneFun3D，逐点掩码，指标 mAP 和 mAP@0.25。没评 SceneFun3D Task 2；代码和数据是否公开，没找到明确的说法 | 逐点的场景掩码正是三维表面图要的格式。如果数据公开，可以作为三维表面图的 bench 候选。拿查询去和场景点做特征匹配的思路也可以借 |
+| **Embodied3DBench**（arXiv 2605.29074，2026-05，写的是投 ACM MM 2026） | 考 VLM 的底层空间能力；其中 affordance 类问"作用点在哪"和"往哪个方向动" | 仿真渲染的单帧，物体级（抽屉），不是小部件；没有视频和位姿，我们没法直接跑 | 作用点用距离、方向用余弦相似度分开打分，适合打我们的原点和轴。Qwen3-VL-4B 不训练时，三维位置 31.7、方向 25.2，可以作为"VLM 直接回答"的参考 |
+| **VideoAfford / VIDA**（arXiv 2602.09638，2026-02） | 用人和物体交互的视频，在单个物体的点云上预测 affordance 热图；要训练 | 物体级，没有运动，数据还没公开。不适合做我们的 bench 或基线 | 只有一个很弱的旁证：用 8 帧比 16 帧好（mIoU 28.2 对 18.5，只跑了一次） |
+
+**结论：** 这四篇都不能取代 5.1 的组合，没有一篇同时做"不训练、写一次的记忆、三维动作向量、开放问答"。AFUN 的结果从侧面支持决定 5 和 6：差距出在"现成模型找部件"这一步，多帧合并和更好的部件图是关键。
+""")
+
+md(r"""
+## ✏️ 你的批注
+
+这一周的意见和更新写在这一格里，我读到以后逐条回复。上一周的 pipeline 工作文档已并入第 1 周 notebook 第 8 部分；以后的批注都写在当周 notebook 的这一格里。
+
+（空）
 """)

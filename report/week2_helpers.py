@@ -1,4 +1,4 @@
-"""Figures and tables of the week-2 report (report/2026-11-20_week2_summary.ipynb, builder
+"""Figures and tables of the week-2 report (report/week2_2026-11-16_to_11-22.ipynb, builder
 notebooks/builders/build_report_2026_11_20_week2.py). They read finished part-vector runs (runs/part_vectors/) and the
 keyframes of one scene; English figure labels, as in the other reports."""
 

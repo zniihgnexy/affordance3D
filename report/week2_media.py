@@ -1,4 +1,4 @@
-"""Videos of the week-2 report (report/2026-11-20_week2_summary.ipynb), made by scripts/make_week2_media.py.
+"""Videos of the week-2 report (report/week2_2026-11-16_to_11-22.ipynb), made by scripts/make_week2_media.py.
 
 1. walkthrough: the part-vector memory of one scene drawn on every frame of its video, so that one sees the vectors
    stay on their parts while the camera moves (the memory was written once, from 40 keyframes);

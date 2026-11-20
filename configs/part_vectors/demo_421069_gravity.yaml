@@ -1,4 +1,4 @@
-# Week-2 report demo (report/2026-11-20_week2_summary.ipynb): the rules as recommended after S0c (proposal
+# Week-2 report demo (report/week2_2026-11-16_to_11-22.ipynb): the rules as recommended after S0c (proposal
 # docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md, 9.6) on scene 421069, the scene of S0 and the only one whose whole
 # video is on the server, so that the report's videos show the current rule set. A DEMO, NOT A TEST: those rules were
 # fixed after S0 had already run on this scene, so its scores are no evidence (S0c is the test). Part masks and labels

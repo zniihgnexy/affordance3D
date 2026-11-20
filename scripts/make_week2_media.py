@@ -1,4 +1,4 @@
-"""Videos of the week-2 report (report/2026-11-20_week2_summary.ipynb): the part-vector memory of one scene drawn on
+"""Videos of the week-2 report (report/week2_2026-11-16_to_11-22.ipynb): the part-vector memory of one scene drawn on
 its whole walkthrough, and an orbit around its laser scan with every part's vector (report/week2_media.py).
 
     python scripts/make_week2_media.py --config configs/report/week2_media.yaml [--only walkthrough|orbit]

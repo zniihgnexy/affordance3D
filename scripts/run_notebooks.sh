@@ -1,22 +1,16 @@
 #!/usr/bin/env bash
-# Execute the committed notebooks, in dependency order, into runs/notebook_check/ (the committed
-# copies are left untouched). Pass notebook paths to run only some of them.
+# Execute notebooks into runs/notebook_check/ (the committed copies are left untouched): by default the current
+# week's notebook; pass notebook paths to run others.
 # On the server, `source scripts/remote/env.sh` first; everything here runs on the CPU.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 OUT="runs/notebook_check"
 mkdir -p "$OUT"
+# One notebook per week (notebooks/builders/README.md). Week 1 is a merge of saved outputs and is not re-run as a whole:
+# to re-run one of its parts, take the part back with `git show 3f2baae:<path> > <path>` and pass that path here.
 if [ "$#" -gt 0 ]; then NOTEBOOKS=("$@"); else NOTEBOOKS=(
-  notebooks/01_step_by_step_demo.ipynb
-  notebooks/02_scenefun3d_e0.ipynb
-  report/2026-11-09_datasets_report.ipynb
-  notebooks/mem/S1_01_video_inputs_to_actionable_affordance.ipynb
-  notebooks/mem/S1_02_humanoid_approach.ipynb
-  report/2026-11-10_mem_pipeline_demo.ipynb
-  notebooks/mem/pipeline_examples.ipynb  # needs the models from scripts/remote/fetch_models.py; ~15 min extra on a first run
-  notebooks/mem/phase1_results.ipynb  # needs the phase-1 results in runs/mem_phase1 (GPU queue jobs, then scripts/aggregate_mem_phase1.py)
-  report/2026-11-16_weekly_summary.ipynb  # needs the result files it reads under runs/ (phase 1, controls, 2b, HD-EPIC, C-0, the C-1 preview, the tool-map gate figure)
+  report/week2_2026-11-16_to_11-22.ipynb  # needs the part-vector runs, the public-evaluation run and the two week-2 videos
 ); fi
 failed=0
 for notebook in "${NOTEBOOKS[@]}"; do

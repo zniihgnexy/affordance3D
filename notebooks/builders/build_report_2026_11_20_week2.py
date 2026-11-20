@@ -1,4 +1,5 @@
-"""Generate report/2026-11-20_week2_summary.ipynb: the week-2 report (2026-11-16 to 2026-11-20) for the project lead (Chinese).
+"""Generate report/week2_2026-11-16_to_11-22.ipynb: the one notebook of week 2 (Monday 16 to Sunday 22 November, London
+time) for the project lead (Chinese).
 
 It reads only result files that already exist under runs/ (no model runs, CPU only) and checks every number quoted in its
 text against them (appendix); it needs the part-vector runs, the public-evaluation run and the two videos named in the notebook.
