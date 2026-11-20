@@ -1,0 +1,17 @@
+# Overwrite check for the memory-form discussion (decisions 3 and 6; week-2 notebook section 7; proposal section 15).
+# NOT pre-registered: a descriptive count with no predictions, first run as a scratch script on 2026-11-20 while
+# discussing the project lead's idea "one feature map per scene, the newest observation overwrites the old"; this
+# config and scripts/simulate_overwrite.py re-run the same count from the repository.
+#
+# Within one video (the scene does not change), for every part the 40 steady keyframes show: on how many of those
+# keyframes SAM 3 finds it (tool-map rule of stage 0: a box centred on the part), and whether it would stay in the map
+# if one keyframe decided: the newest that shows it (last_view) or the one where it is largest (largest_view).
+# Any part found somewhere but not on the deciding keyframe would be erased although nothing changed.
+#
+#   python scripts/simulate_overwrite.py --config configs/stage0/overwrite_sim.yaml
+
+name: overwrite_sim
+outputs: runs/stage0
+tool_maps: runs/mem_phase1/tool_maps/sam3              # SAM 3 boxes on the 40 keyframes (as in task2_losses)
+scenes: third_party/scenefun3d/benchmark_file_lists/val_scenes.txt
+keyframes: 40

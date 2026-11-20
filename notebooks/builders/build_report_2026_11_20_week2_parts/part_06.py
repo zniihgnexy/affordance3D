@@ -14,6 +14,8 @@ md(r"""
 | 两个视频 | `python scripts/make_week2_media.py --config configs/report/week2_media.yaml` |
 | 标签和运动类型、部件形状 | `python scripts/count_label_motions.py --scenes third_party/scenefun3d/benchmark_file_lists/val_scenes.txt`；`count_part_shapes.py` 同样的参数 |
 | 公开评测 | `python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage <queue / lift / score --official>` |
+| 阶段 0（第 6 节） | `python scripts/diagnose_task2_losses.py --config configs/stage0/task2_losses.yaml`；`python scripts/run_part_vectors.py --config configs/part_vectors/t3_val30.yaml`；`python scripts/openeqa_fit.py --config configs/stage0/openeqa_fit.yaml --stage <count / correct>` |
+| 覆盖模拟（第 7 节） | `python scripts/simulate_overwrite.py --config configs/stage0/overwrite_sim.yaml` |
 | 这份 notebook | `python notebooks/builders/build_report_2026_11_20_week2.py report/week2_2026-11-16_to_11-22.ipynb`，再用 `jupyter nbconvert --to notebook --execute --inplace` 执行 |
 
 **文档：** 推荐 pipeline 和三轮检验 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`；理解差异 `docs/mem/理解差异记录.md`；实验索引 `EXPERIMENTS.md`。
@@ -37,6 +39,12 @@ checks = [
     check("label-only ceiling %", round(100 * best / sum(pairs.values()), 1), 80.3),
     check("walkthrough frames", media["walkthrough"]["frames"], 1025),
     check("oracle_chosen AP25", round(pe["means"]["oracle_chosen"]["AP25"], 1), 51.5),
+    check("overwrite parts", ow["parts"], 481), check("overwrite ever found", ow["ever_found"], 360),
+    check("overwrite per-frame found %", round(100 * ow["per_frame_found_rate"], 1), 66.2),
+    check("overwrite per-frame found, ever-found %", round(100 * ow["per_frame_found_rate_ever_found"], 1), 80.9),
+    check("overwrite last view erases %", round(100 * ow["erased"]["last_view"]["all"], 1), 14.4),
+    check("overwrite last view erases, shown twice+ %", round(100 * ow["erased"]["last_view"]["shown_twice_or_more"], 1), 17.2),
+    check("overwrite largest view erases %", round(100 * ow["erased"]["largest_view"]["all"], 1), 10.3),
 ]
 mine = {rule: [r for r in rows_c if (r["depth"], r["rule"], r["frames"]) == ("lidar", rule, "best") and drawer(r)] for rule in ("c1", "geometric")}
 checks += [check("S0c drawers", len(mine["c1"]), 35), check("S0c drawers right, label only", sum(r["score"]["m"] for r in mine["c1"]), 31),
