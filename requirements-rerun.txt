@@ -1,0 +1,5 @@
+# Rerun export of the week-2 memory (scripts/make_week2_rrd.py), server side: pip install -r requirements-rerun.txt
+# A dry run on 2026-11-20 showed it adds only these two packages and changes none that requirements.txt installs.
+# To open the .rrd on another machine only rerun-sdk==0.43.2 is needed (it brings the viewer: `rerun <file>.rrd`).
+rerun-sdk==0.43.2
+pyarrow==26.0.1

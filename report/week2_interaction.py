@@ -156,8 +156,12 @@ def facing(normal: np.ndarray | None, contact: np.ndarray, frame: Frame) -> np.n
 
 
 def glyph(part, swing: bool, category: str, t: float, frame: Frame, style: Style) -> np.ndarray:
-    """3D polyline of the part's arrow at phase t (last segment carries the arrowhead)."""
-    normal = facing(part.normal, part.contact, frame)
+    """3D polyline of the part's arrow at phase t as seen from `frame` (last segment carries the arrowhead)."""
+    return glyph_at(part, swing, category, t, facing(part.normal, part.contact, frame), style)
+
+
+def glyph_at(part, swing: bool, category: str, t: float, normal: np.ndarray, style: Style) -> np.ndarray:
+    """3D polyline of the part's arrow at phase t, for the surface side `normal` faces (last segment: arrowhead)."""
     if part.kind == "rot" and part.axis is not None and not swing:
         start = -style.arc_span_deg / 2 + (t - 0.5) * style.arc_sweep_deg
         return arc(part.contact, part.axis, normal, style.arc_radius_m, start, style.arc_span_deg)

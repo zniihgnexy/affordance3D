@@ -1,0 +1,36 @@
+# Interactive 3D file (Rerun .rrd) of the week-2 memory of scene 421069: the orbit video's content in its game style, to
+# turn freely in the Rerun viewer (report/week2_rrd.py has the entity tree; notebook section 1.2 says how to open it).
+#
+#   python scripts/make_week2_rrd.py --config configs/report/week2_rrd.yaml
+
+name: week2_rrd
+outputs: runs/report_media
+run_config: configs/part_vectors/demo_421069_gravity.yaml   # the part-vector run whose vectors are drawn (as the videos)
+variant: [lidar, gravity, best]
+style_config: configs/report/week2_media.yaml   # colours, names, arrows: its walkthrough.interaction (same look as the videos)
+out: report/assets/week2_memory_421069.rrd
+application_id: week2_memory_421069
+seed: 0                   # which scan points are kept when downsampling
+
+scan:
+  cut_above_floor_m: 1.9  # as the orbit video: below it the room, above it the ceiling and wall tops (own entity, hidden)
+  max_points: 2000000     # room points kept (of about 5.3 million)
+  max_points_above_cut: 300000
+  radius_m: 0.006
+
+parts:
+  radius_m: 0.006         # the part's scan points
+  label_radius_m: 0.02    # the point at the contact that carries the tag
+  line_radius_m: 0.006    # arrows and arcs (the moving copy is drawn 1.5 times as thick)
+  rest_alpha: 110         # opacity (0-255) of the arrow at rest and of the axis
+  axis_half_m_twist: 0.06 # half length of the axis drawn through a knob or lever
+  axis_half_m_swing: 0.4  # half length of the hinge drawn for a door or window
+
+animation:
+  steps_per_loop: 16      # samples of one back-and-forth (the period is the videos': walkthrough.interaction.period_s)
+  loops: 4                # how many periods are logged on the timeline "loop"; the viewer plays it in a loop
+
+camera:
+  keyframes: 8            # walkthrough cameras drawn as frustums (no images, to keep the file small)
+  path_radius_m: 0.008
+  frustum_m: 0.25         # depth of a drawn frustum
