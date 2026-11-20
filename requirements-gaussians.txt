@@ -1,0 +1,9 @@
+# 3D Gaussian map (scripts/fit_gaussians.py), CUDA server only; installed with --no-deps by scripts/remote/setup_gaussians.sh
+# so that torch from requirements.txt stays as it is. The compiler parts match the environment's CUDA runtime (13.2.86).
+nvidia-cuda-nvcc==13.2.86
+nvidia-nvvm==13.2.86
+nvidia-cuda-crt==13.2.86
+ninja==1.13.2
+jaxtyping==0.3.11
+wadler_lindig==0.1.8
+gsplat==1.5.3

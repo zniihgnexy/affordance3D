@@ -12,3 +12,8 @@ export PIP_CACHE_DIR="$AFFORDANCE3D_NAS/pip_cache"
 export MPLCONFIGDIR="$AFFORDANCE3D_NAS/mpl_cache"
 source "$HOME/anaconda3/etc/profile.d/conda.sh"
 conda activate "$AFFORDANCE3D_ENV"
+# 3D Gaussian map (gsplat): its CUDA code is compiled once for the A6000 (sm_86) and kept on the NAS; CUDA_HOME is a
+# folder of links to the pip CUDA 13.2 compiler and libraries (made by scripts/remote/setup_gaussians.sh).
+export CUDA_HOME="$AFFORDANCE3D_NAS/cuda13"
+export TORCH_EXTENSIONS_DIR="$AFFORDANCE3D_NAS/torch_extensions"
+export TORCH_CUDA_ARCH_LIST="8.6"

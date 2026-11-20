@@ -1,0 +1,41 @@
+# Trial fit of the 3D Gaussian map (stage 1, for the framework freeze): the project lead chose on 2026-11-20
+# (week-2 notebook 7.11) Gaussians as the main map with the voxel map as the control, per-scene fitting counted as
+# reconstruction rather than training, and asked to install gsplat now and time one fit through the GPU queue.
+# Fixed before the run, with the predictions below; a different setting needs a new config name.
+#
+# Inputs are those a robot has: ARKit poses (expressed in the scan frame) and LiDAR depth; no annotation, no scan.
+# Gaussians start at the LiDAR points (every 4th pixel, merged in 1 cm voxels), then colour (L1 + SSIM) and depth losses
+# with gsplat's default densification. Every 8th frame is held out and scored.
+#
+# Predictions (validation scene 421254, its 80 frames):
+#   G-P1  fitting takes 3 to 20 minutes on one shared A6000 (7000 iterations at the working resolution)
+#   G-P2  held-out PSNR at least 20 dB
+#   G-P3  the stored Gaussians (float16, compressed) take at most 200 MB
+#   G-P4  median depth error on held-out views against LiDAR at most 0.10 m
+# Reading:
+#   - G-P1 holds: fitting all 82 validation videos costs at most about 27 GPU hours; per-scene fitting is affordable
+#     for stage 2. Over 40 minutes: fewer iterations or a faster variant before stage 2.
+#   - G-P2 or G-P4 fails: check the ARKit poses (they are the test-time poses, not the COLMAP ones) before relying on
+#     rendered close-ups or render-vs-photo change checks.
+# The demo scene 421069 (the week-2 videos; 1025 frames, every 8th) is fitted too, to show renders of a scene the
+# project lead knows; it does not enter the predictions.
+#
+#   bash scripts/remote/queue_fit_gaussians.sh configs/gaussians/fit_trial.yaml     (GPU queue only)
+
+name: fit_trial
+outputs: runs/gaussians
+data_root: data/scenefun3d
+scenes:
+  - {visit: "421254", video: "42444755", frame_stride: 1, role: validation}
+  - {visit: "421069", video: "42444490", frame_stride: 8, role: demo}
+pixel_step: 2              # the working resolution of the pipeline (half the video's)
+test_every: 8
+init: {pixel_stride: 4, voxel_m: 0.01, opacity: 0.1}
+iterations: 7000
+sh_degree: 3
+seed: 0
+loss: {ssim_weight: 0.2, depth_weight: 0.1}
+lr: {means: 1.6e-4, scales: 5.0e-3, quats: 1.0e-3, opacities: 5.0e-2, sh0: 2.5e-3, shN: 1.25e-4}  # gsplat's simple trainer
+strategy: {refine_start_iter: 500, refine_stop_iter: 5000, reset_every: 3000, refine_every: 100}
+figure_views: 3
+expect: {fit_min: [3, 20], psnr_db_min: 20, file_mb_max: 200, depth_median_m_max: 0.10}
