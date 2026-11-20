@@ -6,6 +6,7 @@
 # For every scene a job makes the generic regions, then runs scripts/run_mem_phase1.py with the model-reading step.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+CARDS="$(cat "$ROOT/scripts/remote/allowed_cards")"  # the only GPUs this project may use (never 2 or 3)
 QUEUE="${AFFORDANCE3D_QUEUE:?set AFFORDANCE3D_QUEUE to the queue folder (the one that holds pending/)}"
 SCENES="$1"
 JOBS="${2:-3}"
@@ -18,7 +19,7 @@ for job in $(seq 0 $((JOBS - 1))); do
   [ -n "$visits" ] || continue
   file="$QUEUE/pending/${PRIORITY}_${TAG}_${job}.sh"
   cat > "$file" <<JOB
-#Q minmb=16000 share=3
+#Q minmb=16000 share=3 cards=$CARDS
 set -uo pipefail
 cd "$ROOT"
 source scripts/remote/env.sh

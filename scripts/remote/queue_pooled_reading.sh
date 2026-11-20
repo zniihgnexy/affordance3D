@@ -7,6 +7,7 @@
 # (default 100). [model] is 8b (default; asks for a card with 30 GB free) or 4b (16 GB).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+CARDS="$(cat "$ROOT/scripts/remote/allowed_cards")"  # the only GPUs this project may use (never 2 or 3)
 QUEUE="${AFFORDANCE3D_QUEUE:?set AFFORDANCE3D_QUEUE to the queue folder (the one that holds pending/)}"
 SCENES="$1"
 JOBS="${2:-3}"
@@ -21,7 +22,7 @@ for job in $(seq 0 $((JOBS - 1))); do
   [ -n "$visits" ] || continue
   file="$QUEUE/pending/${PRIORITY}_${TAG}_${job}.sh"
   cat > "$file" <<JOB
-#Q minmb=$MINMB share=3
+#Q minmb=$MINMB share=3 cards=$CARDS
 set -uo pipefail
 cd "$ROOT"
 source scripts/remote/env.sh
