@@ -2,7 +2,7 @@
 #
 #   python scripts/make_week2_media.py --config configs/report/week2_media.yaml
 
-name: week2_media
+name: week2_media_interaction   # 2026-11-20: walkthrough redrawn game-style (was week2_media)
 outputs: runs/report_media
 run_config: configs/part_vectors/demo_421069_gravity.yaml   # the part-vector run whose vectors are drawn
 variant: [lidar, gravity, best]                              # that run's main variant: inputs only, apart from the oracle masks
@@ -11,8 +11,46 @@ walkthrough:
   out: report/assets/week2_walkthrough_421069.mp4
   width: 540             # pixels; the frames are drawn at the working resolution (half the video's) and scaled down
   fps: 12                # the registered frames come about 8.5 times a second, so this plays a little fast
-  tolerance_m: 0.15      # a part counts as hidden when its contact is this far behind the frame's depth
-  length_m: 0.2          # drawn length of an axis or a direction (the SceneFun3D viewer's)
+  interaction:           # game-style overlay, report/week2_interaction.py (its docstring lists how each arrow moves)
+    colours:             # RGB per action category (Okabe-Ito, colour-blind safe)
+      pull: [86, 180, 233]
+      push: [230, 159, 0]
+      turn: [204, 121, 167]
+      open: [0, 158, 115]
+    actions:             # SceneFun3D affordance label -> [action name shown, category]
+      pinch_pull: [pull, pull]
+      hook_pull: [pull, pull]
+      unplug: [unplug, pull]
+      tip_push: [push, push]
+      key_press: [press, push]
+      foot_push: [step on, push]
+      plug_in: [plug in, push]
+      rotate: [rotate, turn]
+      hook_turn: [turn, turn]
+    swing: [open, open]  # a rotation about an axis off the part (door, window, lid), whatever its label
+    objects:             # object name when the part has no task text (a part no task names): affordance label -> name
+      rotate: knob
+      hook_turn: handle
+      hook_pull: handle
+      pinch_pull: knob
+      key_press: button
+      tip_push: button
+      foot_push: pedal
+      plug_in: socket
+      unplug: plug
+    swing_min_offset_m: 0.05  # contact at least this far from the memory's axis -> swing; nearer -> twist in place
+    alpha: 0.55          # opacity of the part's colour fill at its strongest (it pulses down to 70% with the arrow)
+    grow_px: 3           # the part's mask is grown by this many pixels (working resolution) so that small handles show
+    min_pixels: 30       # a part is drawn when at least this many of its pixels are visible (working resolution)
+    period_s: 1.6        # one back-and-forth of an arrow, in seconds of the video
+    arrow_m: 0.15        # length of a straight arrow (3D)
+    travel_m: 0.07       # how far a straight arrow slides
+    arc_radius_m: 0.07   # radius of a turning arrow
+    arc_span_deg: 220    # angle the turning arrow covers
+    arc_sweep_deg: 70    # how far the turning arrow swings back and forth
+    line_px: 6           # arrow thickness (working resolution)
+    font_size: 13        # tag text, pixels of the final video
+    max_words: 3         # object name: at most this many words, taken from the part's task text
 
 orbit:
   out: report/assets/week2_memory_orbit_421069.mp4

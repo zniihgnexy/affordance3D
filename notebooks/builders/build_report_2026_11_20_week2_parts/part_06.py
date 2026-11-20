@@ -49,5 +49,10 @@ checks = [
 mine = {rule: [r for r in rows_c if (r["depth"], r["rule"], r["frames"]) == ("lidar", rule, "best") and drawer(r)] for rule in ("c1", "geometric")}
 checks += [check("S0c drawers", len(mine["c1"]), 35), check("S0c drawers right, label only", sum(r["score"]["m"] for r in mine["c1"]), 31),
            check("S0c drawers right, geometric", sum(r["score"]["m"] for r in mine["geometric"]), 20)]
+turns = [r for r in demo_rows if (r["depth"], r["rule"], r["frames"]) == ("lidar", "gravity", "best") and r["vector"] and r["label"] == "rotate"]
+taps, knobs = [r for r in turns if "tap" in r["task"].lower()], [r for r in turns if not r["task"]]
+checks += [check("walkthrough: tap axis error, degrees (smaller of the two)", round(min(r["score"]["axis_deg"] for r in taps)), 80),
+           check("walkthrough: knobs without a task", len(knobs), 6),
+           check("walkthrough: knob axes within 15 degrees", sum(r["score"]["axis_deg"] <= 15 for r in knobs), 4)]
 print(f"{len(checks)} numbers checked, all match the result files")
 """)

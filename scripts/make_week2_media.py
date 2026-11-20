@@ -1,5 +1,7 @@
 """Videos of the week-2 report (report/week2_2026-11-16_to_11-22.ipynb): the part-vector memory of one scene drawn on
-its whole walkthrough, and an orbit around its laser scan with every part's vector (report/week2_media.py).
+its whole walkthrough in a game-style overlay (report/week2_interaction.py: each visible part highlighted, an arrow
+showing how to move it, object and action named), and an orbit around its laser scan with every part's vector
+(report/week2_media.py).
 
     python scripts/make_week2_media.py --config configs/report/week2_media.yaml [--only walkthrough|orbit]
 
@@ -26,6 +28,7 @@ import run_part_vectors as R  # noqa: E402
 
 from affordance3d.experiment import load_config, log_stage, run_folder  # noqa: E402
 from affordance3d.mem import pipeline as P  # noqa: E402
+from report import week2_interaction as G  # noqa: E402
 from report import week2_media as M  # noqa: E402
 
 LEGEND = "orange: memory (rules)   green: annotation   line: axis   arrow: move"
@@ -51,8 +54,8 @@ def main() -> None:
     media["parts"] = len(parts)
     if args.only in (None, "walkthrough"):
         w = config["walkthrough"]
-        media["walkthrough"] = M.render_walkthrough(scene, parts, REPO_ROOT / w["out"], w["width"], w["fps"], w["tolerance_m"],
-                                                    w["length_m"], LEGEND)
+        media["walkthrough"] = G.render_walkthrough(scene, parts, REPO_ROOT / w["out"], w["width"], w["fps"],
+                                                    G.Style.from_config(w["interaction"]), M.video_writer)
         print("walkthrough", media["walkthrough"], flush=True)
     if args.only in (None, "orbit"):
         o = config["orbit"]

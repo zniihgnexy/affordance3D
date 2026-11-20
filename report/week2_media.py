@@ -1,7 +1,8 @@
 """Videos of the week-2 report (report/week2_2026-11-16_to_11-22.ipynb), made by scripts/make_week2_media.py.
 
-1. walkthrough: the part-vector memory of one scene drawn on every frame of its video, so that one sees the vectors
-   stay on their parts while the camera moves (the memory was written once, from 40 keyframes);
+1. walkthrough: the part-vector memory of one scene drawn on every frame of its video in a game-style overlay
+   (report/week2_interaction.py), so that one sees each part highlighted where it is and how to move it while the
+   camera moves (the memory was written once, from 40 keyframes);
 2. orbit: a camera circling above the scene's laser scan (ceiling cut away) with every part's vector.
 
 Display only. The frames use the dataset's scan-registered cameras and rendered depth (hires poses, hires depth), so
@@ -40,6 +41,9 @@ class DrawnPart:
     true_kind: str
     true_direction: np.ndarray
     true_anchor: np.ndarray
+    part: int = -1  # index of the scene's element (as in the label maps)
+    normal: np.ndarray | None = None
+    task: str = ""  # a task text that names the part
 
 
 def load_parts(run_dir: Path, variant: Sequence[str], truths: dict[int, A.PartMotion]) -> list[DrawnPart]:
@@ -52,8 +56,9 @@ def load_parts(run_dir: Path, variant: Sequence[str], truths: dict[int, A.PartMo
             continue
         vector, truth = row["vector"], truths[row["part"]]
         axis = None if vector["axis"] is None else np.array(vector["axis"])
+        normal = None if vector.get("normal") is None else np.array(vector["normal"])
         parts.append(DrawnPart(row["label"], vector["kind"], np.array(vector["contact"]), axis, np.array(vector["origin"]),
-                               truth.kind, truth.direction, truth.anchor))
+                               truth.kind, truth.direction, truth.anchor, row["part"], normal, row.get("task", "")))
     return parts
 
 
@@ -127,31 +132,13 @@ def with_bands(image_bgr: np.ndarray, header: str, legend: str, band_px: int = 2
     return canvas[: canvas.shape[0] // 2 * 2, : width // 2 * 2]
 
 
-def _writer(path: Path, hw: tuple[int, int], fps: int):
+def video_writer(path: Path, hw: tuple[int, int], fps: int):
+    """An H.264 writer of RGB frames of size `hw` (height, width), primed and ready for send()."""
     path.parent.mkdir(parents=True, exist_ok=True)
     writer = imageio_ffmpeg.write_frames(str(path), (hw[1], hw[0]), fps=fps, codec="libx264", pix_fmt_out="yuv420p",
                                          macro_block_size=2, output_params=["-crf", "28", "-movflags", "+faststart"])
     writer.send(None)
     return writer
-
-
-def render_walkthrough(scene: P.Scene, parts: Sequence[DrawnPart], out_path: Path, width: int, fps: int, tolerance_m: float,
-                       length_m: float, legend: str, chunk: int = 40) -> dict:
-    """Every frame of the video that has a registered camera and depth, with the memory drawn on it."""
-    times = scene.gt_index.depth_times
-    writer, counts = None, []
-    for start in range(0, len(times), chunk):
-        for time, frame in zip(times[start:start + chunk], P.gt_frames(scene, times[start:start + chunk])):
-            image = cv2.cvtColor(frame.rgb, cv2.COLOR_RGB2BGR)
-            counts.append(draw_parts(image, frame, parts, tolerance_m, length_m))
-            scale = width / image.shape[1]
-            image = cv2.resize(image, (width, int(np.rint(image.shape[0] * scale))), interpolation=cv2.INTER_AREA)
-            header = f"t = {float(time) - float(times[0]):5.1f} s   memory parts in view: {counts[-1]}"
-            canvas = with_bands(image, header, legend)
-            writer = writer or _writer(out_path, canvas.shape[:2], fps)
-            writer.send(np.ascontiguousarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)))
-    writer.close()
-    return {"frames": len(times), "parts_in_view_median": float(np.median(counts)), "frames_with_parts": int(np.sum(np.array(counts) > 0))}
 
 
 # ---------------------------------------------------------------- orbit around the laser scan
@@ -224,7 +211,7 @@ def render_orbit(scene: P.Scene, parts: Sequence[DrawnPart], out_path: Path, hw:
         bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         counts.append(draw_parts(bgr, frame, parts, tolerance_m=0.08, length_m=length_m, width=3, labels=False))
         canvas = with_bands(bgr, f"laser scan, ceiling removed   parts drawn: {counts[-1]} of {len(parts)}", legend)
-        writer = writer or _writer(out_path, canvas.shape[:2], fps)
+        writer = writer or video_writer(out_path, canvas.shape[:2], fps)
         writer.send(np.ascontiguousarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)))
     writer.close()
     return {"frames": n_frames, "points": len(xyz), "radius_m": round(radius, 2), "parts_drawn_median": float(np.median(counts))}
