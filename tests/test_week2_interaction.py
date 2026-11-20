@@ -6,7 +6,7 @@ from report import week2_interaction as G
 
 STYLE = G.Style({"pull": (1, 2, 3), "push": (4, 5, 6), "turn": (7, 8, 9), "open": (0, 1, 0)},
                 {"hook_pull": ("pull", "pull"), "key_press": ("press", "push"), "rotate": ("rotate", "turn")},
-                ("open", "open"), {"rotate": "knob"}, 0.05, 0.45, 3, 30, 1.6, 0.12, 0.06, 0.05, 220, 70, 4, 13, 3)
+                ("open", "open"), {"rotate": "knob"}, 0.05, 0.45, 3, 30, 1.6, 0.12, 0.06, 0.05, 220, 70, 4, 13, 3, 2, 0)
 
 
 @pytest.mark.parametrize(("task", "name"), [
@@ -91,3 +91,14 @@ def test_a_tag_avoids_an_earlier_tag():
     first = G.place_tag((200.0, 200.0), 80, 30, [], (540, 720))
     second = G.place_tag((200.0, 200.0), 80, 30, [first], (540, 720))
     assert G.overlap(first, second) == 0
+
+
+def test_neighbouring_tags_with_the_same_object_and_action_merge():
+    colour = (1, 2, 3)
+    items = [((100.0, 100.0), "knob", "rotate", colour, (95, 95, 105, 105)),
+             ((140.0, 100.0), "knob", "rotate", colour, (135, 95, 145, 105)),
+             ((120.0, 100.0), "button", "press", colour, (115, 95, 125, 105)),  # other object: own tag
+             ((400.0, 100.0), "knob", "rotate", colour, (395, 95, 405, 105))]  # too far: own tag
+    merged = G.group_tags(items, 70)
+    assert [m[1] for m in merged] == ["knob \u00d72", "button", "knob"]
+    assert merged[0][0] == (120.0, 100.0) and merged[0][4] == (95, 95, 145, 105)

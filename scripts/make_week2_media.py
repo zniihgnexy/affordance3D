@@ -1,7 +1,7 @@
 """Videos of the week-2 report (report/week2_2026-11-16_to_11-22.ipynb): the part-vector memory of one scene drawn on
-its whole walkthrough in a game-style overlay (report/week2_interaction.py: each visible part highlighted, an arrow
-showing how to move it, object and action named), and an orbit around its laser scan with every part's vector
-(report/week2_media.py).
+its whole walkthrough and on an orbit around its laser scan, both in the same game-style overlay
+(report/week2_interaction.py: each visible part highlighted, an arrow showing how to move it, object and action named;
+report/week2_media.py).
 
     python scripts/make_week2_media.py --config configs/report/week2_media.yaml [--only walkthrough|orbit]
 
@@ -31,8 +31,6 @@ from affordance3d.mem import pipeline as P  # noqa: E402
 from report import week2_interaction as G  # noqa: E402
 from report import week2_media as M  # noqa: E402
 
-LEGEND = "orange: memory (rules)   green: annotation   line: axis   arrow: move"
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -59,8 +57,10 @@ def main() -> None:
         print("walkthrough", media["walkthrough"], flush=True)
     if args.only in (None, "orbit"):
         o = config["orbit"]
+        style = G.Style.from_config({**config["walkthrough"]["interaction"], **o["interaction"]})  # same look, own sizes
         media["orbit"] = M.render_orbit(scene, parts, REPO_ROOT / o["out"], tuple(o["hw"]), o["frames"], o["fps"], o["points"],
-                                        o["cut_above_floor_m"], o["elevation_deg"], o["radius_scale"], o["fov_deg"], o["length_m"], LEGEND)
+                                        o["cut_above_floor_m"], o["elevation_deg"], o["radius_scale"], o["fov_deg"],
+                                        o["depth_tol_m"], style)
         print("orbit", media["orbit"], flush=True)
     media_path.write_text(json.dumps(media, indent=1))
     print(f"wrote {folder}")

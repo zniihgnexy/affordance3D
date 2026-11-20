@@ -68,7 +68,7 @@ DEMO = load_config(ROOT / "configs" / "part_vectors" / "demo_421069_gravity.yaml
 scene, times, frames, labels = RPV.load_inputs(DEMO, str(DEMO["visit"]), str(DEMO["video"]))
 demo_rows = H.run_json("demo_421069_gravity", "parts.json")
 truths = {p: RPV.truth_of(scene, p) for p in {r["part"] for r in demo_rows}}
-media = json.loads((ROOT / "runs" / "report_media" / "week2_media_interaction" / "media.json").read_text())
+media = json.loads((ROOT / "runs" / "report_media" / "week2_media_game" / "media.json").read_text())
 
 
 def check(name, got, want, tol=0.05):
@@ -146,9 +146,9 @@ print(f"{w['frames']} frames; at least one memory part in view in {w['frames_wit
 md(r"""
 ## 1.2 视频二：三维的记忆（同一个场景）
 
-**这是什么：** 这个场景的激光扫描点云，去掉了天花板，镜头在上方绕一圈。每个部件一个橙点和它的向量，绿色是标注；被墙挡住的部件不画。
+**这是什么：** 这个场景的激光扫描点云，去掉了天花板，镜头在上方绕一圈。画法和视频一相同（11-20 重画，和视频一对齐）：每个部件按动作类别上色高亮，箭头来回滑动表示怎么动，标签写物体名和动作名。只画从这个角度看得见的部件：部件的扫描点要和画出来的点云深度对得上，被墙挡住的不画。箭头同样只画记忆的向量。
 
-**看点：** 记忆就是一张"部件表"，这是它在三维里的样子。每一条都能画出来、能检查：哪里碰、往哪动、绕哪根轴。
+**看点：** 记忆就是一张"部件表"，这是它在三维里的样子：一眼能看到整个房间里哪些地方能交互、各是什么动作，每一条都能画出来、能检查。
 """)
 
 code(r"""

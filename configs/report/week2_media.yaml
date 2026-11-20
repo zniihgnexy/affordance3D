@@ -2,7 +2,7 @@
 #
 #   python scripts/make_week2_media.py --config configs/report/week2_media.yaml
 
-name: week2_media_interaction   # 2026-11-20: walkthrough redrawn game-style (was week2_media)
+name: week2_media_game   # 2026-11-20: walkthrough, then also the orbit, redrawn game-style (was week2_media, week2_media_interaction)
 outputs: runs/report_media
 run_config: configs/part_vectors/demo_421069_gravity.yaml   # the part-vector run whose vectors are drawn
 variant: [lidar, gravity, best]                              # that run's main variant: inputs only, apart from the oracle masks
@@ -51,6 +51,8 @@ walkthrough:
     line_px: 6           # arrow thickness (working resolution)
     font_size: 13        # tag text, pixels of the final video
     max_words: 3         # object name: at most this many words, taken from the part's task text
+    tag_lines: 2         # object over action
+    group_px: 0          # every part has its own tag
 
 orbit:
   out: report/assets/week2_memory_orbit_421069.mp4
@@ -62,4 +64,11 @@ orbit:
   elevation_deg: 50
   radius_scale: 0.45
   fov_deg: 55
-  length_m: 0.25
+  depth_tol_m: 0.08       # a part's scan point counts as seen when within this of the drawn scan's depth there
+  interaction:            # the walkthrough's overlay settings, with these replaced: the orbit is drawn at its own size
+    min_pixels: 4         # parts are a few metres away here, so far fewer pixels
+    grow_px: 2
+    line_px: 3
+    font_size: 12
+    tag_lines: 1          # "object > action" on one line: 13 to 15 parts are in view at once here
+    group_px: 70          # neighbouring parts with the same object and action share one tag ("knob x4")

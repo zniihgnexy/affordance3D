@@ -62,13 +62,15 @@ class Style:
     line_px: int
     font_size: int
     max_words: int
+    tag_lines: int  # 2: object over action; 1: "object > action" on one line (for crowded views)
+    group_px: float  # parts with the same object and action whose anchors are this close share one tag (0: never)
 
     @classmethod
     def from_config(cls, c: dict) -> Style:
         return cls({k: tuple(v) for k, v in c["colours"].items()}, {k: tuple(v) for k, v in c["actions"].items()},
                    tuple(c["swing"]), dict(c["objects"]), c["swing_min_offset_m"], c["alpha"], c["grow_px"], c["min_pixels"], c["period_s"],
                    c["arrow_m"], c["travel_m"], c["arc_radius_m"], c["arc_span_deg"], c["arc_sweep_deg"], c["line_px"],
-                   c["font_size"], c["max_words"])
+                   c["font_size"], c["max_words"], c["tag_lines"], c["group_px"])
 
 
 # ---------------------------------------------------------------- pure helpers (tested)
@@ -212,27 +214,53 @@ def overlap(a: Box, b: Box) -> float:
 def place_tag(anchor: tuple[float, float], w: float, h: float, blocked: Sequence[Box], image_wh: tuple[int, int],
               gap: float = 26.0, margin: float = 4.0) -> Box:
     """A w x h tag box near `anchor`, inside the image and clear of `blocked` (parts, arrows, earlier tags) when it can be:
-    tries above-right, above-left, below-right, below-left, then twice as far; else the in-image spot overlapping least."""
+    tries above-right, above-left, below-right, below-left, right, left, then two and three times as far; else the
+    in-image spot overlapping least."""
     x, y = anchor
     width, height = image_wh
-    candidates = [(x + dx * gap + (0 if dx > 0 else -w), y + dy * gap + (-h if dy < 0 else 0))
-                  for reach in (1, 2) for dy, dx in ((-reach, reach), (-reach, -reach), (reach, reach), (reach, -reach))]
+    sides = ((-1, 1), (-1, -1), (1, 1), (1, -1), (0, 1), (0, -1))  # (down, right) signs
+    candidates = [(x + reach * gap if dx > 0 else x - reach * gap - w,
+                   y - h / 2 if dy == 0 else y + reach * gap if dy > 0 else y - reach * gap - h)
+                  for reach in (1, 2, 3) for dy, dx in sides]
     boxes = [(min(max(left, margin), width - w - margin), min(max(top, margin), height - h - margin)) for left, top in candidates]
     boxes = [(left, top, left + w, top + h) for left, top in boxes]
     return min(boxes, key=lambda box: (sum(overlap(box, b) for b in blocked), boxes.index(box)))
 
 
-def draw_labels(canvas_rgba: Image.Image, items: Sequence[tuple[tuple[float, float], str, str, tuple, Box]], size: int) -> None:
-    """Rounded game-UI tags (object on top, action below in its colour), each linked to its part by a thin line and
-    placed clear of every part, arrow and earlier tag when possible."""
+def group_tags(items: Sequence[tuple], radius_px: float) -> list[tuple]:
+    """Tags of parts with the same object and action whose anchors lie within `radius_px` of a group's first anchor
+    merged into one: mean anchor, "name ×n", the union of their keep-out boxes."""
+    groups: list[list[tuple]] = []
+    for item in items:
+        home = next((g for g in groups if g[0][1:4] == item[1:4] and np.hypot(g[0][0][0] - item[0][0], g[0][0][1] - item[0][1])
+                     <= radius_px), None)
+        if home is None:
+            groups.append([item])
+        else:
+            home.append(item)
+    merged = []
+    for g in groups:
+        anchor = (float(np.mean([i[0][0] for i in g])), float(np.mean([i[0][1] for i in g])))
+        boxes = np.array([i[4] for i in g])
+        name = g[0][1] if len(g) == 1 else f"{g[0][1]} \u00d7{len(g)}"
+        merged.append((anchor, name, g[0][2], g[0][3], (*boxes[:, :2].min(axis=0), *boxes[:, 2:].max(axis=0))))
+    return merged
+
+
+def draw_labels(canvas_rgba: Image.Image, items: Sequence[tuple[tuple[float, float], str, str, tuple, Box]], size: int,
+                lines: int = 2) -> None:
+    """Rounded game-UI tags (object on top, action below in its colour; or both on one line), each linked to its part
+    by a thin line and placed clear of every part, arrow and earlier tag when possible."""
     bold, regular = fonts(size)
     overlay = Image.new("RGBA", canvas_rgba.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
     blocked = [item[4] for item in items]
     for (x, y), name, action, colour, _ in sorted(items, key=lambda item: item[0][1]):
         line2 = f"\u25b6 {action}"
-        w = int(max(draw.textlength(name, font=bold), draw.textlength(line2, font=regular))) + 18
-        h = 2 * size + 12
+        gap = 6 if lines == 1 else 0
+        name_w, action_w = draw.textlength(name, font=bold), draw.textlength(line2, font=regular)
+        w = int(name_w + gap + action_w if lines == 1 else max(name_w, action_w)) + 18
+        h = 2 * size + 12 if lines == 2 else size + 10
         left, top, right, bottom = place_tag((x, y), w, h, blocked, canvas_rgba.size)
         blocked.append((left, top, right, bottom))
         edge = (min(max(x, left), right), min(max(y, top), bottom))  # nearest point of the tag to the anchor
@@ -241,7 +269,8 @@ def draw_labels(canvas_rgba: Image.Image, items: Sequence[tuple[tuple[float, flo
         draw.rounded_rectangle([left, top, right, bottom], radius=7, fill=(18, 20, 24, 205), outline=(*colour, 255), width=2)
         draw.rounded_rectangle([left, top, left + 5, bottom], radius=3, fill=(*colour, 255))
         draw.text((left + 11, top + 4), name, font=bold, fill=(255, 255, 255, 255))
-        draw.text((left + 11, top + size + 7), line2, font=regular, fill=(*colour, 255))
+        second = (left + 11 + name_w + gap, top + 5) if lines == 1 else (left + 11, top + size + 7)
+        draw.text(second, line2, font=regular, fill=(*colour, 255))
     canvas_rgba.alpha_composite(overlay)
 
 
@@ -300,7 +329,7 @@ def draw_frame(frame: Frame, labels: np.ndarray, parts: Sequence, actions: dict,
                      name, colour, keep_out))
     small = cv2.resize(image, (width, int(np.rint(image.shape[0] * scale))), interpolation=cv2.INTER_AREA)
     pil = Image.fromarray(cv2.cvtColor(small, cv2.COLOR_BGR2RGB)).convert("RGBA")
-    draw_labels(pil, tags, style.font_size)
+    draw_labels(pil, group_tags(tags, style.group_px) if style.group_px > 0 else tags, style.font_size, style.tag_lines)
     return bands(np.asarray(pil.convert("RGB")), header.format(n=len(tags)), style), len(tags)
 
 

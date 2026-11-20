@@ -1,13 +1,16 @@
 """Videos of the week-2 report (report/week2_2026-11-16_to_11-22.ipynb), made by scripts/make_week2_media.py.
 
-1. walkthrough: the part-vector memory of one scene drawn on every frame of its video in a game-style overlay
-   (report/week2_interaction.py), so that one sees each part highlighted where it is and how to move it while the
-   camera moves (the memory was written once, from 40 keyframes);
-2. orbit: a camera circling above the scene's laser scan (ceiling cut away) with every part's vector.
+Both videos show the part-vector memory of one scene in the same game-style overlay (report/week2_interaction.py: each
+visible part highlighted in its action colour, an arrow sliding the way to move it, a tag with object and action):
+1. walkthrough: every frame of the scene's video, so that one sees the parts and arrows stay put while the camera
+   moves (the memory was written once, from 40 keyframes);
+2. orbit: a camera circling above the scene's laser scan (ceiling cut away); a part is drawn where its scan points
+   are visible in that view (depth test against the drawn scan).
 
-Display only. The frames use the dataset's scan-registered cameras and rendered depth (hires poses, hires depth), so
-that a drawing sits where its vector is and parts behind a wall are hidden. The vectors themselves come from a
-part-vector run (scripts/run_part_vectors.py), which used the device's own poses and LiDAR depth.
+Display only. The walkthrough uses the dataset's scan-registered cameras and rendered depth (hires poses, hires depth),
+so that a drawing sits where its part is and parts behind a wall are hidden. The vectors themselves come from a
+part-vector run (scripts/run_part_vectors.py), which used the device's own poses and LiDAR depth; part masks and names
+come from the annotation.
 """
 
 from __future__ import annotations
@@ -17,17 +20,15 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-import cv2
 import imageio_ffmpeg
 import numpy as np
 
 from affordance3d.frames import Frame
-from affordance3d.geometry import project
 from affordance3d.mem import action_records as A
 from affordance3d.mem import pipeline as P
+from affordance3d.mem.labels import part_label_map
+from report import week2_interaction as G
 
-PRED = (213, 94, 0)  # Okabe-Ito vermilion (RGB): computed by rules
-TRUE = (0, 158, 115)  # Okabe-Ito green (RGB): annotation
 NEAR_M = 0.05  # a point closer to the camera than this is not drawn
 
 
@@ -60,76 +61,6 @@ def load_parts(run_dir: Path, variant: Sequence[str], truths: dict[int, A.PartMo
         parts.append(DrawnPart(row["label"], vector["kind"], np.array(vector["contact"]), axis, np.array(vector["origin"]),
                                truth.kind, truth.direction, truth.anchor, row["part"], normal, row.get("task", "")))
     return parts
-
-
-def segment(start: np.ndarray, direction: np.ndarray, kind: str | None, length: float) -> np.ndarray:
-    """3D ends of a drawn vector: a rotation axis as a line through `start`, a translation as an arrow from it."""
-    if kind == "rot":
-        return np.stack([start - length * direction, start + length * direction])
-    return np.stack([start, start + length * direction])
-
-
-def _line(image: np.ndarray, frame: Frame, ends: np.ndarray, colour: tuple, width: int, arrow: bool) -> None:
-    uv, z, _ = project(ends, frame)
-    if (z <= NEAR_M).any():
-        return
-    a, b = (tuple(int(np.rint(c)) for c in p) for p in uv)
-    bgr = colour[::-1]
-    if arrow:
-        cv2.arrowedLine(image, a, b, bgr, width, cv2.LINE_AA, tipLength=0.25)
-    else:
-        cv2.line(image, a, b, bgr, width, cv2.LINE_AA)
-
-
-def visible(frame: Frame, point: np.ndarray, tolerance_m: float) -> tuple[int, int] | None:
-    """Pixel of `point` if it is in the image and not hidden behind the frame's depth (0 = no surface: hidden)."""
-    uv, z, inside = project(point[None], frame)
-    if not inside[0] or z[0] <= NEAR_M:
-        return None
-    u, v = (int(np.rint(c)) for c in uv[0])
-    surface = float(frame.depth_m[v, u])
-    if surface <= 0 or z[0] > surface + tolerance_m:
-        return None
-    return u, v
-
-
-def draw_parts(image_bgr: np.ndarray, frame: Frame, parts: Sequence[DrawnPart], tolerance_m: float, length_m: float,
-               width: int = 3, labels: bool = True) -> int:
-    """Draw every visible part (truth green, then prediction vermilion) onto a BGR image of the frame's size; returns how
-    many were drawn."""
-    drawn = 0
-    for part in parts:
-        pixel = visible(frame, part.contact, tolerance_m)
-        if pixel is None:
-            continue
-        drawn += 1
-        _line(image_bgr, frame, segment(part.true_anchor, part.true_direction, part.true_kind, length_m), TRUE, width,
-              part.true_kind != "rot")
-        if part.axis is not None:
-            _line(image_bgr, frame, segment(part.origin, part.axis, part.kind, length_m), PRED, width, part.kind != "rot")
-        cv2.circle(image_bgr, pixel, width + 2, PRED[::-1], -1, cv2.LINE_AA)
-        cv2.circle(image_bgr, pixel, width + 2, (255, 255, 255), 1, cv2.LINE_AA)
-        if labels:
-            put_text(image_bgr, part.label, (pixel[0] + 8, pixel[1] - 8), 0.5)
-    return drawn
-
-
-def put_text(image_bgr: np.ndarray, text: str, origin: tuple[int, int], scale: float) -> None:
-    """White text on a dark box."""
-    (w, h), base = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, 1)
-    x, y = origin
-    cv2.rectangle(image_bgr, (x - 2, y - h - 3), (x + w + 2, y + base), (30, 30, 30), -1)
-    cv2.putText(image_bgr, text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, scale, (255, 255, 255), 1, cv2.LINE_AA)
-
-
-def with_bands(image_bgr: np.ndarray, header: str, legend: str, band_px: int = 28) -> np.ndarray:
-    """The image between a header band and a legend band; height and width made even (H.264)."""
-    height, width = image_bgr.shape[:2]
-    canvas = np.full((height + 2 * band_px, width, 3), 24, dtype=np.uint8)
-    canvas[band_px:band_px + height] = image_bgr
-    for text, y in ((header, band_px - 9), (legend, height + 2 * band_px - 9)):
-        cv2.putText(canvas, text, (8, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
-    return canvas[: canvas.shape[0] // 2 * 2, : width // 2 * 2]
 
 
 def video_writer(path: Path, hw: tuple[int, int], fps: int):
@@ -188,8 +119,9 @@ def orbit_points(scene: P.Scene, n_points: int, cut_above_floor_m: float) -> tup
 
 def render_orbit(scene: P.Scene, parts: Sequence[DrawnPart], out_path: Path, hw: tuple[int, int], n_frames: int, fps: int,
                  n_points: int, cut_above_floor_m: float, elevation_deg: float, radius_scale: float, fov_deg: float,
-                 length_m: float, legend: str) -> dict:
-    """A full circle above the scan, looking at the parts' centre, with every part's vector (hidden ones left out)."""
+                 depth_tol_m: float, style: G.Style) -> dict:
+    """A full circle above the scan, looking at the parts' centre, in the walkthrough's game style: a part is drawn where
+    its scan points pass the depth test against the drawn scan (`depth_tol_m`), with its arrow and tag."""
     xyz, rgb, floor = orbit_points(scene, n_points, cut_above_floor_m)
     up = A.unit(scene.up)
     contacts = np.array([p.contact for p in parts])
@@ -201,6 +133,9 @@ def render_orbit(scene: P.Scene, parts: Sequence[DrawnPart], out_path: Path, hw:
     radius = radius_scale * float(np.percentile(np.linalg.norm(flat - (target - (target @ up) * up), axis=1), 95))
     focal = hw[1] / 2 / np.tan(np.radians(fov_deg) / 2)
     intrinsics = np.array([[focal, 0, hw[1] / 2], [0, focal, hw[0] / 2], [0, 0, 1.0]])
+    actions = G.part_actions(parts, style)
+    part_points = [scene.part_points(p) for p in range(len(scene.elements))]
+    header = f"laser scan from above, ceiling removed    interactable parts in view: {{n}} of {len(parts)}"
     writer, counts = None, []
     for k in range(n_frames):
         angle = 2 * np.pi * k / n_frames
@@ -208,10 +143,11 @@ def render_orbit(scene: P.Scene, parts: Sequence[DrawnPart], out_path: Path, hw:
         pose = look_at(eye, target, up)
         image, depth = splat(xyz, rgb, intrinsics, pose, hw)
         frame = Frame(k, image, depth.astype(np.float32), intrinsics, pose)
-        bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        counts.append(draw_parts(bgr, frame, parts, tolerance_m=0.08, length_m=length_m, width=3, labels=False))
-        canvas = with_bands(bgr, f"laser scan, ceiling removed   parts drawn: {counts[-1]} of {len(parts)}", legend)
+        labels = part_label_map(part_points, frame, depth_tol_m)
+        canvas, n = G.draw_frame(frame, labels, parts, actions, G.phase(k, fps, style.period_s), hw[1], style, header)
+        counts.append(n)
         writer = writer or video_writer(out_path, canvas.shape[:2], fps)
-        writer.send(np.ascontiguousarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)))
+        writer.send(np.ascontiguousarray(canvas))
     writer.close()
-    return {"frames": n_frames, "points": len(xyz), "radius_m": round(radius, 2), "parts_drawn_median": float(np.median(counts))}
+    return {"frames": n_frames, "points": len(xyz), "radius_m": round(radius, 2), "parts_drawn_median": float(np.median(counts)),
+            "style": "interaction"}
