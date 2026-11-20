@@ -1,0 +1,33 @@
+# Stage 0, test T5 of the plan agreed on 2026-11-20 (proposal section 13): does OpenEQA ask about parts and how they
+# are used, i.e. could a part-level affordance memory show an advantage there, or only that it does no harm?
+# Text only: the public question file, no ScanNet or HM3D data, no model. Instrument, predictions and reading fixed
+# before the file was opened; a different setting needs a new config name.
+#
+# Instrument: a question is flagged when its text contains, as a whole word and ignoring case, one of the part words or
+# one of the use words below (a trailing "s" is allowed on part words). Then 30 flagged and 30 unflagged questions,
+# drawn with the seed, are read by hand against one criterion: answering needs a functional part (where it is, how it
+# moves or is used, or its open/closed/on/off state). The share flagged is corrected by the precision and recall that
+# this sample gives.
+#
+# Predictions: flagged share 10% to 25% over all questions; highest in object state recognition.
+# Reading (for the benchmark choice; categories "object state recognition", "functional reasoning",
+# "object localization", matched by the words state / functional / localization in the category name):
+#   - corrected share of part questions in these three categories at least 30%: OpenEQA is a candidate for the QA head,
+#     with its part subset as a headline
+#   - 10% to 30%: the part subset is reported on the side; OpenEQA as a whole only shows that nothing gets worse
+#   - below 10%: OpenEQA is a no-regression check only
+# Counted separately for the ScanNet and HM3D episodes (the 11-18 plan starts with ScanNet).
+#
+#   python scripts/openeqa_fit.py --config configs/stage0/openeqa_fit.yaml
+
+name: openeqa_fit
+outputs: runs/stage0
+source: https://raw.githubusercontent.com/facebookresearch/open-eqa/main/data/open-eqa-v0.json
+local: data/openeqa/open-eqa-v0.json        # downloaded once; MIT licence of the OpenEQA repository
+part_words: [handle, knob, button, switch, lever, pedal, plug, socket, outlet, faucet, tap, drawer, door, lid, latch,
+             dial, thermostat, remote]
+use_words: [open, opened, opening, close, closed, closing, shut, "turn on", "turn off", "turned on", "turned off",
+            "switch on", "switch off", pull, push, press, "plug in", unplug, rotate, twist, flush, lock, locked, unlock]
+focus_categories: [state, functional, localization]
+sample_per_side: 30
+seed: 0

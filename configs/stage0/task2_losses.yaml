@@ -1,0 +1,48 @@
+# Stage 0, tests T1 and T2 of the plan agreed on 2026-11-20 (proposal section 13), from results that already exist
+# (public evaluation of 27.2, the SAM 3 tool maps, the projected annotations); CPU only, nothing re-run.
+#
+# T1, where Task 2 is lost. For every one of the 445 tasks, the memory arm with SAM 3 maps (p4t_sam3) ends in one stage:
+#   never_found   SAM 3 found the target on no keyframe that shows it (tool-map rule: a box centred on the part, 8 px margin)
+#   not_chosen    found somewhere, but the box the VLM chose is not on the target (controls "hit" false)
+#   lost_in_mask  the VLM chose the target, but the lifted mask misses (IoU with the target below 0.25)
+#   hit           IoU at least 0.25 (the AP25 hit of the public evaluation's scorer)
+# A task with no target visible in any keyframe is "not_in_keyframes" (no map can help it). Each part of the 30 scenes
+# that the keyframes show is also described: label, largest area in pixels over the keyframes, number of keyframes
+# that show it (at least MIN_PART_PIXELS), its median LiDAR depth there; found or never found by SAM 3.
+#
+# T2, where the memory beats the raw video (M2): per task, hit of p4t_sam3 minus hit of c3 (the VLM reading 40 uniform
+# frames), split by (a) target size: largest area below or above the median over targets; (b) parts of the target's
+# label in the scene: 1 or at least 2; (c) keyframes showing the target: at most 3 or more. Paired, 95% intervals by
+# resampling scenes.
+#
+# Predictions, written before the run:
+#   T1-P1  among the tasks that annotated maps (p4n) hit and p4t_sam3 misses, never_found is the largest stage and
+#          holds at least 50% of them
+#   T1-P2  never-found parts are smaller: their median largest area is below half that of the found parts
+#   T1-P3  the never-found share differs by at least 20 points between the best and worst label (labels with >= 20 parts)
+#   T2-P1  the memory's gain over c3 is larger for small targets than for large ones
+#   T2-P2  the memory's gain over c3 is larger when the scene holds at least 2 parts of the target's label
+# Reading (for the benchmark choice):
+#   - T1-P1 holds and the misses are concentrated (T1-P2 or T1-P3): a targeted fix has a clear target (zoom/tiling for
+#     small parts, or prompts for weak labels); Task 2 stays a candidate pending one GPU try (decision 5 c)
+#   - T1-P1 holds but neither T1-P2 nor T1-P3: the misses are spread out; Task 2 becomes a supporting metric
+#   - not_chosen or lost_in_mask is the largest stage instead: the gap is in reading or lifting, not in the maps
+#   - T2: gains concentrated where predicted support "small parts in a long video, several look-alikes" as the task
+#     where the memory is strongest; a gain spread evenly makes "fewer frames read" the claim rather than "more accurate"
+#
+#   python scripts/diagnose_task2_losses.py --config configs/stage0/task2_losses.yaml
+
+name: task2_losses
+outputs: runs/stage0
+public_eval: runs/public_eval/public_eval_split0_8b     # lifted predictions of every arm, from scripts/run_public_eval.py
+controls: runs/mem_phase1/controls_8b_all              # the VLM's chosen box per task and arm ("hit")
+tool_maps: runs/mem_phase1/tool_maps/sam3              # SAM 3 boxes on the 40 keyframes
+scenes: third_party/scenefun3d/benchmark_file_lists/val_scenes.txt
+memory_arm: p4t_sam3
+annotated_arm: p4n
+raw_arm: c3
+iou_hit: 0.25
+small_split: median          # target size split at the median largest area over the 445 targets
+few_keyframes: 3
+resamples: 2000
+seed: 0

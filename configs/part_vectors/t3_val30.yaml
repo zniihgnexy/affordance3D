@@ -1,0 +1,67 @@
+# Stage 0, test T3 of the plan agreed on 2026-11-20 (proposal section 13): the part-vector rules on all 30 validation
+# scenes, to see whether the motion vectors are good enough for Task 3 to be a candidate benchmark. Same code and
+# settings as S0c, only more scenes; LiDAR depth and the best keyframe only (the inputs a robot has). Part masks and
+# labels are the annotation (ORACLE): this asks "given the part, is the motion right", not "is the part found".
+# CPU only, no model. Fixed before the run, with the predictions below; a different setting needs a new config name.
+#
+# Only published reference (SceneFun3D paper, Mask3D-FM, TEST split, 85 scenes): AP25 26.5, +M 24.0, +MA 10.2,
+# +MAO 8.1. Divided by AP25, a rough "given a found part" rate: type 90.6%, type+axis 38.5%, type+axis+origin 30.6%.
+# Rough on purpose: a ratio of APs is not a per-part accuracy, and the split differs.
+#
+# Predictions (LiDAR, best keyframe, scored parts of all 30 scenes):
+#   T3-P1  coverage: the parts never shown by the 40 keyframes are 12% to 22% of the moving parts (S0b 18%, S0c 15%)
+#   T3-P2  gravity (types from the labels): +MA between 35% and 60%, +MAO between 28% and 50% (S0b c1 34/30, S0c 52/36)
+#   T3-P3  the type is the larger error: oracle_gravity +MA at least 15 points above gravity +MA (S0c +23)
+#   T3-P4  door origin stays weak: rotations about an axis off the part, oracle_gravity +MAO at most 30% (S0c 18%)
+# Reading (for the benchmark choice, not for the pipeline):
+#   - gravity at or above both rough references (+MA 38.5, +MAO 30.6): the vectors are at a level worth comparing;
+#     Task 3 stays a candidate, how to compare is settled by the desk check (T4) on published numbers and code
+#   - below both: Task 3 waits for a better type (W4); oracle_gravity shows the level once the type is right
+#   - in between: unclear, reported as such
+#
+#   python scripts/run_part_vectors.py --config configs/part_vectors/t3_val30.yaml
+
+name: t3_val30
+outputs: runs/part_vectors
+data_root: data/scenefun3d
+scenes:
+  - {visit: "421254", video: "42444755"}
+  - {visit: "421393", video: "42444924"}
+  - {visit: "421657", video: "42445639"}
+  - {visit: "422356", video: "42446579"}
+  - {visit: "422842", video: "42897547"}
+  - {visit: "423070", video: "42447202"}
+  - {visit: "423452", video: "42897434"}
+  - {visit: "423957", video: "42898340"}
+  - {visit: "434888", video: "42899184"}
+  - {visit: "434897", video: "42899165"}
+  - {visit: "435324", video: "42899221"}
+  - {visit: "435357", video: "42899624"}
+  - {visit: "437157", video: "43649686"}
+  - {visit: "437294", video: "43649762"}
+  - {visit: "438102", video: "43896244"}
+  - {visit: "438775", video: "44358173"}
+  - {visit: "455342", video: "44358472"}
+  - {visit: "466092", video: "44796568"}
+  - {visit: "466112", video: "44796520"}
+  - {visit: "466162", video: "44796575"}
+  - {visit: "466437", video: "45260951"}
+  - {visit: "466841", video: "47331591"}
+  - {visit: "466876", video: "47331560"}
+  - {visit: "466880", video: "47331711"}
+  - {visit: "466916", video: "47331617"}
+  - {visit: "467115", video: "47333319"}
+  - {visit: "467139", video: "47333298"}
+  - {visit: "467330", video: "45261600"}
+  - {visit: "468282", video: "47331279"}
+  - {visit: "468476", video: "45261686"}
+keyframes: {kind: steady, n: 40}
+
+depths: [lidar]
+rules: [c1, geometric, oracle_kind, gravity, oracle_gravity]
+frames: [best]
+main: [lidar, gravity, best]
+
+scoring: {axis_deg: 15, origin_m: 0.25}
+hinge: {plane_tol_m: 0.02, gap_px: 8, door_asymmetry: 0.5}
+figure: {keyframes: 6, arrow_m: 0.2}
