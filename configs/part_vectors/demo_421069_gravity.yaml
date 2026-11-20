@@ -1,0 +1,23 @@
+# Week-2 report demo (report/2026-11-20_week2_summary.ipynb): the rules as recommended after S0c (proposal
+# docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md, 9.6) on scene 421069, the scene of S0 and the only one whose whole
+# video is on the server, so that the report's videos show the current rule set. A DEMO, NOT A TEST: those rules were
+# fixed after S0 had already run on this scene, so its scores are no evidence (S0c is the test). Part masks and labels
+# are the annotation (ORACLE). Every other value is S0's.
+#
+#   python scripts/run_part_vectors.py --config configs/part_vectors/demo_421069_gravity.yaml
+
+name: demo_421069_gravity
+outputs: runs/part_vectors
+data_root: data/scenefun3d
+visit: "421069"
+video: "42444490"
+keyframes: {kind: steady, n: 40}
+
+depths: [lidar, rendered]
+rules: [c1, geometric, gravity, oracle_gravity]
+frames: [best]
+main: [lidar, gravity, best]         # the part table, the figure and the report's videos: inputs only, apart from the oracle masks
+
+scoring: {axis_deg: 15, origin_m: 0.25}
+hinge: {plane_tol_m: 0.02, gap_px: 8, door_asymmetry: 0.5}
+figure: {keyframes: 6, arrow_m: 0.2}

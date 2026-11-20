@@ -20,11 +20,14 @@ Long builders keep their cells in `<builder>_parts/part_NN.py` (each under 500 l
 | `build_mem_pipeline_examples.py` | `notebooks/mem/pipeline_examples.ipynb` |
 | `build_mem_phase1_results.py` | `notebooks/mem/phase1_results.ipynb` |
 | `build_report_2026_11_16_weekly.py` | `report/2026-11-16_weekly_summary.ipynb` |
+| `build_report_2026_11_20_week2.py` | `report/2026-11-20_week2_summary.ipynb` |
 
 `notebooks/mem/pipeline.ipynb` has no builder: it is a text-only working document that is edited by hand (one cell per pipeline block plus a notes cell for the project lead), so never regenerate it. Its examples live in `notebooks/mem/pipeline_examples.ipynb`, which does have a builder and needs the two frozen models fetched by `scripts/remote/fetch_models.py`.
 
 `notebooks/mem/phase1_results.ipynb` shows results that were computed elsewhere: the per-scene files in `runs/mem_phase1/` come from GPU queue jobs (`scripts/remote/queue_phase1.sh`) and are summarised by `scripts/aggregate_mem_phase1.py`; the notebook itself runs on the CPU in a few minutes.
 
 `report/2026-11-16_weekly_summary.ipynb` (the weekly wrap-up of 9 to 15 November, in Chinese) also only reads result files under `runs/` (from `runs/mem_phase1/`, `runs/hdepic/`, `runs/mem_c0/` and `runs/mem_c1/preview/`); it runs on the CPU in under a minute and checks every number its text quotes against those files.
+
+`report/2026-11-20_week2_summary.ipynb` (the week-2 report, 16 to 20 November, in Chinese) reads the part-vector runs in `runs/part_vectors/` (S0, S0b, S0c with their door diagnoses, and the demo run `demo_421069_gravity`), the public evaluation in `runs/public_eval/public_eval_split0_8b/`, and the two videos `report/assets/week2_*.mp4` made by `scripts/make_week2_media.py`; it runs on the CPU and checks the numbers its text quotes.
 
 `bash scripts/run_notebooks.sh` executes every committed notebook into `runs/notebook_check/` without touching the committed copies; use it to confirm a machine is set up.

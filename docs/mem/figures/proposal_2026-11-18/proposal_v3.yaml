@@ -1,0 +1,109 @@
+# Recommended pipeline, v3 after S0c and the comparison with the VLA direction's map (2026-11-20, doc sections 9.6
+# and 10): the vector rules now take door axes from gravity and add a grasp axis, and the action head hands out a
+# robot plan (contact, grasp, approach) followed by the part's motion. Otherwise as v2 (doc section 7.7).
+# One write-once memory of interpretable 3D affordance vectors read by two heads. Same colour roles as docs/mem/figures/pipeline/pipeline.yaml.
+# Render: python3 <cvpr-figure>/scripts/render.py proposal_v3.yaml -o proposal_v3 -f svg,pdf,png,pptx --dpi 600
+# Crops: copies of the current figure's crops (scene 421254, task "Open the top left drawer of the
+# cabinet located to the left of the TV"); the answer crop is the current pipeline's real pick.
+figure:
+  id: proposal_v3
+  venue: neurips
+  width: single
+  font: times
+  pptx_app: office
+  pad_bottom: 13
+
+roles:
+  input: grey.light
+  core: orange.light
+  encoder: blue.light
+  memory: red.light
+  decoder: green.light
+
+layout: col
+gap: 14
+
+panels:
+  - id: write
+    title: "Write once, per walkthrough video"
+    title_align: left
+    frame: dashed
+    body:
+      - row:
+          gap: 9
+          align: center
+          body:
+            - {id: img_in, shape: image, w: 36, src: pipeline_input.jpg, caption: "40 keyframes"}
+            - {id: pm, shape: trapezoid, text: "Part masks", role: encoder, wrap: 30, caption: "SAM 3"}
+            - col:
+                gap: 7
+                align: center
+                body:
+                  - {id: depth, shape: trapezoid, text: "Depth, poses", role: encoder, wrap: 44, caption: "LiDAR, else DA-V2"}
+                  - {id: typ, shape: trapezoid, text: "Type and host", role: encoder, wrap: 44, dash: true, caption: "VLM: type, mounted on"}
+            - {id: avb, shape: box, text: "Affordance vector per part", role: core, bold: true, wrap: 52, caption: "rules: gravity axis, grasp"}
+            - {id: mem, shape: box, text: "Memory", role: memory, caption: "part table"}
+
+  - id: read
+    title: "Read, per question"
+    title_align: left
+    frame: dashed
+    body:
+      - row:
+          gap: 9
+          align: center
+          body:
+            - {id: q, shape: box, text: "Question", role: input, caption: "free text"}
+            - {id: qp, shape: trapezoid, text: "Query parser", role: encoder, wrap: 30, dash: true, caption: "object + type"}
+            - {id: retr, shape: box, text: "Affordance-guided keyframes", role: core, bold: true, wrap: 46, caption: "meaning + type"}
+            - col:
+                gap: 9
+                align: start
+                body:
+                  - row:
+                      gap: 9
+                      align: center
+                      body:
+                        - {id: hqa, shape: invtrapezoid, text: "Open-QA head", role: decoder, wrap: 60, dash: true, caption: "VLM, free text"}
+                        - {id: ans, shape: box, text: "Free-form answer", role: input, wrap: 44, dash: true, caption: "OpenEQA"}
+                  - row:
+                      gap: 9
+                      align: center
+                      body:
+                        - {id: hact, shape: invtrapezoid, text: "Action head", role: decoder, wrap: 60, caption: "pick part, read vector"}
+                        - {id: img_out, shape: image, w: 28, src: pipeline_answer_zoom.jpg, caption: "chosen part"}
+                        - {id: act, shape: box, text: "3D action vector", role: input, wrap: 30, dash: true, caption: "grasp, then motion"}
+
+edges:
+  - {from: img_in.e, to: pm.w}
+  - {from: img_in.n, to: depth.w, route: vh}
+  - {from: pm.e, to: typ.w, route: hv, dash: true}
+  - {from: depth.e, to: avb.n, route: hv, label: "3D lift", label_size: 6.5, label_pos: 0.25, label_dy: -5}
+  - {from: typ.e, to: avb.w, route: hv, dash: true}
+  - {from: avb.e, to: mem.w}
+  - {from: q.e, to: qp.w, dash: true}
+  - {from: qp.e, to: retr.w, dash: true}
+  - {from: mem.s, to: retr.n, color: memory}
+  - {from: retr.e, to: hqa.w, route: hv, dash: true}
+  - {from: retr.e, to: hact.w, route: hv}
+  - {from: hqa.e, to: ans.w, dash: true}
+  - {from: hact.e, to: img_out.w}
+  - {from: img_out.e, to: act.w, dash: true}
+
+legend:
+  corner: se
+  dir: row
+  box: false
+  items:
+    - {text: "claimed contribution", color: orange.light, kind: swatch}
+    - {text: "frozen public model", color: blue.light, kind: swatch}
+    - {text: "not built yet", kind: dashed, arrow: false}
+
+caption: >-
+  \textbf{Recommended pipeline, v3 (2026-11-20).} Top: each walkthrough video is written once into a table of
+  parts; SAM 3 masks each part, a vision-language model gives its action type and what it is mounted on (a door,
+  a drawer or a fixed panel), and LiDAR depth with the device poses gives its contact point, grasp axis, motion
+  direction or axis (door axes from gravity), and the axis origin in world coordinates. Bottom: a question is parsed into an object and an action
+  type, keyframes are ranked by meaning and type match, and two heads read the same memory; the action head hands
+  out where and how to grasp, then how the part moves. Orange is the claim,
+  blue are frozen public models, dashed is not built yet.

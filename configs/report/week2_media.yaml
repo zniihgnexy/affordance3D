@@ -1,0 +1,27 @@
+# Videos of the week-2 report (report/2026-11-20_week2_summary.ipynb); display only, see report/week2_media.py.
+#
+#   python scripts/make_week2_media.py --config configs/report/week2_media.yaml
+
+name: week2_media
+outputs: runs/report_media
+run_config: configs/part_vectors/demo_421069_gravity.yaml   # the part-vector run whose vectors are drawn
+variant: [lidar, gravity, best]                              # that run's main variant: inputs only, apart from the oracle masks
+
+walkthrough:
+  out: report/assets/week2_walkthrough_421069.mp4
+  width: 540             # pixels; the frames are drawn at the working resolution (half the video's) and scaled down
+  fps: 12                # the registered frames come about 8.5 times a second, so this plays a little fast
+  tolerance_m: 0.15      # a part counts as hidden when its contact is this far behind the frame's depth
+  length_m: 0.2          # drawn length of an axis or a direction (the SceneFun3D viewer's)
+
+orbit:
+  out: report/assets/week2_memory_orbit_421069.mp4
+  hw: [540, 720]
+  frames: 180
+  fps: 15
+  points: 8000000         # every point of the cropped scan below the cut (about 6 million in 421069)
+  cut_above_floor_m: 1.9  # the ceiling and the tops of the walls are left out so that one sees in from above
+  elevation_deg: 50
+  radius_scale: 0.45
+  fov_deg: 55
+  length_m: 0.25
