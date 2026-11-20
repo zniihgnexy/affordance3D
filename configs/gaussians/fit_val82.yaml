@@ -1,0 +1,37 @@
+# Stage 2 (week-2 notebook 8.6; framework frozen by the project lead on 2026-11-20, "1 a；2 a"): the 3D Gaussian map of
+# every video of the 30 validation scenes, 82 videos (the phase-1 video of each scene and its 52 second-visit videos),
+# with the trial's settings (configs/gaussians/fit_trial.yaml). These maps are the W6 input of the stage-2 comparisons
+# (retrieval, close-up views, second-visit update), each pre-registered in its own config. Fixed before the run, with
+# the predictions below; a different setting needs a new config name.
+#
+# Inputs as a robot has them: ARKit poses (in the scan frame) and LiDAR depth of the keyframes each video brought
+# (40 steady + 40 uniform, about 80 frames); every 8th frame is held out and scored.
+#
+# Predictions (over the 82 videos; the trial's validation video gave 14.7 min, 25.4 dB, 1.6 cm, 201.5 MB):
+#   G2-P1  median fitting time 8 to 25 minutes per video on a shared A6000
+#   G2-P2  median held-out PSNR at least 22 dB
+#   G2-P3  median depth error on held-out views at most 0.03 m
+#   G2-P4  at most 4 videos fail to fit
+# Reading: videos below 20 dB are listed (low_psnr); the close-up comparison reports them apart (notebook 8.5: rendered
+# close-ups are unreliable where frames are sparse). Medians are also given per role (phase-1 vs second-visit videos).
+#
+#   AFFORDANCE3D_QUEUE=<queue> bash scripts/remote/queue_fit_gaussians_batch.sh configs/gaussians/fit_val82.yaml 6
+#   python scripts/fit_gaussians_batch.py --config configs/gaussians/fit_val82.yaml --stage summarise
+
+name: fit_val82
+outputs: runs/gaussians
+scenes: third_party/scenefun3d/benchmark_file_lists/val_scenes.txt
+lists: third_party/scenefun3d/benchmark_file_lists
+data_roots: {primary: data/scenefun3d, revisit: data/scenefun3d_revisit}
+frame_stride: 1
+pixel_step: 2
+test_every: 8
+init: {pixel_stride: 4, voxel_m: 0.01, opacity: 0.1}
+iterations: 7000
+sh_degree: 3
+seed: 0
+loss: {ssim_weight: 0.2, depth_weight: 0.1}
+lr: {means: 1.6e-4, scales: 5.0e-3, quats: 1.0e-3, opacities: 5.0e-2, sh0: 2.5e-3, shN: 1.25e-4}
+strategy: {refine_start_iter: 500, refine_stop_iter: 5000, reset_every: 3000, refine_every: 100}
+figure_views: 3
+expect: {fit_min: [8, 25], psnr_db_min: 22, depth_median_m_max: 0.03, failures_max: 4}

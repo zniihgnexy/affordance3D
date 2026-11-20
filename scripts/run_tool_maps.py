@@ -3,6 +3,8 @@
     python scripts/run_tool_maps.py --visit 421254 --tool sam3          # SAM 3, prompted once with each of the eight part names
     python scripts/run_tool_maps.py --visit 421254 --tool qwen8b        # Qwen3-VL-8B, asked once per keyframe for JSON boxes
     python scripts/run_tool_maps.py --visit 421254 --tool sam3 --gate   # only the two keyframes shown to the lead at the gate
+    python scripts/run_tool_maps.py --visit <visit> --video <video> --data-root data/scenefun3d_revisit --runs runs/stage2 --tool sam3
+                                    # another video of the scene (stage 2, second visit): writes <visit>_<video>.json
     python scripts/run_tool_maps.py --visit 421254 --tool sam3_tasks    # SAM 3 prompted with each task's text on c3's 40
                                                                         # even frames (for arm sam3q of run_mem_controls.py)
     python scripts/run_tool_maps.py --visit 421254 --tool sam3_tasks --all-tasks   # every task of the scene (section 27.2):
@@ -40,6 +42,7 @@ from affordance3d.mem import keyframes
 from affordance3d.mem import pipeline as P
 from affordance3d.mem import tool_maps as TM
 from affordance3d.mem.encoders import VisionLanguageModel, model_source
+from affordance3d.scenefun3d_partial import N_KEYFRAMES
 
 CHOICES = (*TM.TOOLS, TM.TASK_PROMPTED)
 TEXT_TOKENS = 32  # SAM 3's text encoder reads at most 32 tokens; a longer task text is cut
@@ -163,7 +166,7 @@ def run_part_names(args: argparse.Namespace, scene: P.Scene, steady: list[str], 
 
     model_id, revision = TM.TOOLS[args.tool]
     out = args.runs / "tool_maps" / args.tool
-    file = out / f"{args.visit}.json"
+    file = out / f"{record_stem(args)}.json"
     image_hw = P.frame_hw(scene, steady[0], P.PIXEL_STEP)
     fresh = {"visit": args.visit, "tool": args.tool, "model": f"{model_id}@{revision}", "version": TM.VERSION, "times": steady,
              "image_hw": list(image_hw), "prompts": list(TM.PART_NAMES) if args.tool == "sam3" else TM.detection_prompt(),
@@ -173,7 +176,7 @@ def run_part_names(args: argparse.Namespace, scene: P.Scene, steady: list[str], 
     if args.tool == "sam3":
         detector = Sam3Detector() if todo else None
     else:
-        reader = H.CachedReader(out / f"answers_{args.visit}.json", lambda: VisionLanguageModel(model_id=model_id, revision=revision))
+        reader = H.CachedReader(out / f"answers_{record_stem(args)}.json", lambda: VisionLanguageModel(model_id=model_id, revision=revision))
     for k in todo:
         rgb = P.input_frame(scene, steady[k], np.zeros(image_hw, dtype=np.float32)).rgb
         entry = sam3_entry(detector, rgb) if args.tool == "sam3" else qwen_entry(reader, rgb, steady[k], revision)
@@ -183,6 +186,11 @@ def run_part_names(args: argparse.Namespace, scene: P.Scene, steady: list[str], 
     boxes = sum(len(entry["detections"]) for entry in record["keyframes"].values())
     print(f"{args.visit} {args.tool}: {done} of {len(steady)} keyframes done, {boxes} raw boxes, "
           f"{TM.tool_seconds(record):.0f} s of tool time", flush=True)
+
+
+def record_stem(args: argparse.Namespace) -> str:
+    """<visit> for the phase-1 video of a scene, <visit>_<video> for another video of it (stage 2)."""
+    return f"{args.visit}_{args.video}" if args.video else args.visit
 
 
 def task_prompt_folder(all_tasks: bool) -> str:
@@ -254,13 +262,20 @@ def main() -> None:
     parser.add_argument("--keyframes", default="", help="comma-separated keyframe indices (default: all 40)")
     parser.add_argument("--gate", action="store_true", help="only the two keyframes of the gate figure")
     parser.add_argument("--runs", type=Path, default=REPO_ROOT / "runs" / "mem_phase1")
+    parser.add_argument("--video", default="", help="another video of the scene (sam3 / qwen8b only); default: the phase-1 video")
+    parser.add_argument("--data-root", type=Path, default=REPO_ROOT / "data" / "scenefun3d")
     parser.add_argument("--all-tasks", action="store_true",
                         help="sam3_tasks only: every task of the scene, reusing the detections of sam3_tasks (section 27.2)")
     args = parser.parse_args()
     if args.all_tasks and args.tool != TM.TASK_PROMPTED:
         raise SystemExit("--all-tasks applies to sam3_tasks only")
-    result = json.loads((args.runs / f"{args.visit}.json").read_text())
-    scene = P.load_scene(REPO_ROOT / "data" / "scenefun3d", args.visit, result["video"])
+    if args.video and args.tool == TM.TASK_PROMPTED:
+        raise SystemExit("--video applies to sam3 and qwen8b only")
+    if args.video:  # no phase-1 record for another video: its saved choice of N_KEYFRAMES steady keyframes is used
+        result = {"video": args.video, "n_keyframes": N_KEYFRAMES}
+    else:
+        result = json.loads((args.runs / f"{args.visit}.json").read_text())
+    scene = P.load_scene(args.data_root, args.visit, result["video"])
     if args.tool == TM.TASK_PROMPTED:
         run_task_prompts(args, scene, result)
         return

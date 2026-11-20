@@ -111,12 +111,12 @@ def evaluate(params, data: dict, test: list[int], config: dict) -> dict:
 
 
 @torch.no_grad()
-def save(params, frames: list, config: dict, folder: Path, visit: str) -> float:
-    """The Gaussians as float16 (returns the file size in MB) and a figure of held-out views."""
+def save(params, frames: list, config: dict, folder: Path, stem: str) -> float:
+    """The Gaussians as float16 in <stem>.npz (returns the file size in MB) and <stem>_views.png of held-out views."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    path = folder / f"{visit}.npz"
+    path = folder / f"{stem}.npz"
     np.savez_compressed(path, **{k: params[k].detach().cpu().numpy().astype(np.float16) for k in PARAMS})
     data = tensors(frames, params["means"].device)
     _, test = G.split_frames(len(frames), config["test_every"])
@@ -130,7 +130,7 @@ def save(params, frames: list, config: dict, folder: Path, visit: str) -> float:
             ax.set_title(title, fontsize=9)
             ax.axis("off")
     fig.tight_layout()
-    fig.savefig(folder / f"{visit}_views.png", dpi=110)
+    fig.savefig(folder / f"{stem}_views.png", dpi=110)
     plt.close(fig)
     return round(path.stat().st_size / 2**20, 1)
 
