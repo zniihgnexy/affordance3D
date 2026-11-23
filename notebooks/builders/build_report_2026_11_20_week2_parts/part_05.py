@@ -1,119 +1,103 @@
-# Cells of build_report_2026_11_20_week2.py, part 5 (main-idea check, decisions, future directions, 2026 papers, notes).
+# Cells of build_report_2026_11_20_week2.py, part 5 (section 4: memory form and related work; section 5: stage 2;
+# section 6: main-idea check; the notes cell).
 
 md(r"""
 ---
-# 4. 主旨核对和需要你决定的事
+# 4. Memory form: one Gaussian map per room
 
-## 4.1 主旨核对（这一周整体）
+**What others store:**
+- **Text graphs:** an LLM reads captions. A wrong caption, or a part never detected, cannot be recovered, because the
+  pixels are gone. On OpenEQA, GPT-4 reading ConceptGraphs captions scores 36.5, close to a blind LLM at 33.5, while
+  GPT-4V reading frames scores 55.3.
+- **Image memories:** these re-read stored views and lose small parts at their stored resolution.
+- **SceneFun3D methods:** these re-read the whole video for every question.
+- **Dense feature maps:** these mostly stay at object level, and rarely update across visits.
 
-| 你的主旨 | 这一周 |
-| --- | --- |
-| M1 可解释的三维向量，能给机器人用 | **符合。** 每个部件一条三维向量，在世界坐标里，视频和点云里都能画出来（第 1 节）。下一步加抓握轴，每条记录就能解码成"抓哪里、怎么抓、抓住以后怎么动"。 |
-| M2 用向量帮忙挑关键帧 | **还没测，有了方案。** 40 张关键帧漏掉 15% 到 21% 的部件，要先保证关键帧能覆盖部件。11-20 提出用三维表面 affordance map 按"哪一帧看得清"挑帧（决定 6）。 |
-| M3 affordance 加深度算出动作向量 | **符合**，三轮检验测的就是这一步。但见下面第一条提醒。 |
-| M4 两个头 | **部分。** 动作头的"选部件"在公开评测上评了（第 3.4 节）：用 SAM 3 的部件图时明显落后于 UniFunc3D 8B，用标注的部件图时和它差不多。读向量和问答头还没做。 |
-| M5 现成模型加规则，不训练 | **符合。** 这一周全是规则和现成模型，没有训练。 |
-| M6 用尽量少的资源 | **符合。** 向量检验每个不到一分钟 CPU；两个视频也只用 CPU；公开评测的 GPU 部分 11-17 走队列跑完，后两步只用 CPU。 |
+**The gap:** no published system keeps one training-free, room-scale map that a new video is relocalised into, that is
+updated locally below object level, and that stores how each part moves.
 
-**提醒：**
-1. **偏移：只有 affordance 标签加深度不够。** 三轮检验都指向这一点：门还是抽屉，要知道拉手"装在什么上"。记忆里每个部件最好也存这一项，这会改变 affordance map 存什么（决定 2）。
-2. **可能的理解差异："affordance map"可以指两种东西。** 一种是网络预测的逐像素稠密图（VLA 那边就是这种），一种是这边逐部件的记录。逐部件的记录需要时也能投影成逐像素的图（决定 3）。
-3. **门窗的动作向量现在只有方向可靠，位置不可靠。** 机器人开门时，转动半径取决于门轴在哪里，要等门板掩码。
-4. **这一周的向量检验都用标注的部件掩码。** 公开评测说明，部件由 SAM 3 自己找时，差距主要就出在这一步。
+The detailed tables, checked against arXiv, are in the proposal document, sections 15–16.
 """)
 
-md(r"""
-## 4.2 需要你决定的事（聊天里也会列）
-
-1. **服务器上的下一步：用 SAM 3 门板掩码，再问 VLM"这个拉手装在什么上"，在 30 个验证场景上检验。** 要用 GPU，排队后不到 1 小时。
-   - (a) 我先把方案写好给你看：场景、提问方式、打分方法、事先的预测。你确认后再排队。
-   - (b) 写好方案就直接排队，排在你自己的 vid_tokenizer 作业前面。
-
-   我推荐 **(a)**：这是第一个要用 VLM 回答"装在什么上"的检验，问法会直接影响结果。
-2. **记忆里每个部件要不要也存"装在什么上"（门、抽屉、固定面板、烤箱门或翻盖）？**
-   - (a) 存，affordance map 每个部件多一个字段。
-   - (b) 不存。那样拉手的运动类型最多对 80%。
-
-   我推荐 **(a)**。
-3. **记忆里的 affordance map 用哪种形式？**
-   - (a) 逐部件的记录（现在的做法），需要时投影成逐像素的图。不用训练。
-   - (b) 由网络预测的逐像素稠密图。要训练。
-
-   我推荐 **(a)**：M5 是先不训练；投影出来的图也能交给需要这种输入的下游。
-4. **S0d 做不做：** 在 S0b、S0c 的 6 个场景上补算抓握轴和接触区域，加上接触点和失败归类的指标，重新打分。只用 CPU，几分钟。
-   - (a) 做，放在服务器那一步之前。
-   - (b) 不做，等服务器那一步时一起算。
-
-   我推荐 **(a)**。
-
-5. **公开评测"明显落后"以后怎么走？**（事先写定的读法要求停下来讨论，见第 3.4 节）
-   - (a) 接受落后，不把 Task 2 的准确度当卖点，如实报告；继续新 pipeline。
-   - (b) 先只用 CPU 看 SAM 3 漏掉的是哪些部件：按标签、大小、离相机多远分开数。用已有的结果，几分钟。再决定要不要花 GPU 补部件图。
-   - (c) 直接花 GPU 补部件图（换提示词、多帧合并），争取追上。不训练。
-
-   我推荐 **(b)**：不花 GPU，先弄清差在哪类部件。部件找不找得到，新 pipeline 也绕不开：Task 3 也要先定位对。
-
-6. **affordance map 做成三维表面图吗？**（11-20 提出，读了 AROS 以后；目的是帮忙搜索目标，物体和动作的可能性都要能搜）
-   - **做法：** 表面用关键帧的深度加位姿算出来（跑分时也可以用数据集给的激光扫描），每个表面点记住"哪些帧看见过它"。上面叠三层：
-     - 几何层：朝向、高度、前面有没有空地，用规则判断；
-     - 语义层：SAM 3 的掩码投到表面上，多帧投票；
-     - 向量层：部件的动作向量挂到这个部件的点上。
-
-     搜索时三层取交集，得到一小块三维掩码；再按"哪一帧看得清"挑帧，画到帧上给 VLM 看。
-   - **已有的证据：** 阶段 1 把 40 张深度图融合以后读接触点，并没有更准（中位误差 5.4 cm，单帧 4.1 cm；第 1 周 notebook 第 10 部分）。所以三维图负责"在哪、哪一帧看得清"，精确的接触点和门轴仍从单帧读。
-   - (a) 全场景粗体素（2 到 5 cm），三层都做。在公开评测的 30 个场景上验两件事：多帧投票能把 Task 2 的差距缩小多少；按三维可见性挑帧，离"最好的帧"上限（标注掩码投在选中的帧上 AP25 51.5，投在最好的帧上 88.1）近多少，先用标注掩码测。要排一次 GPU，把已存的 SAM 3 框转成掩码。
-   - (b) 只做几何层和向量层：只用 CPU，但搜不了物体。
-   - (c) 先不做。
-
-   我推荐 **(a)**。它给决定 3 多了一个选项"三维表面图"，决定 5 的诊断也能并进去。**要你确认：** 这会推翻 11-11 第 3 轮的"不融合稠密几何"（虽然是粗的融合）。
-
-**完整的背景和理由**在 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`：第 9 节（S0c）、第 10 节（对照 VLA 的 map）和第 11 节（公开评测）。决定 6 的讨论在聊天里（11-20），这里是完整的选项。
+code(r"""
+fig = WR.positioning()
+display(fig)
+plt.close(fig)
 """)
-
 
 md(r"""
 ---
-# 5. 未来方向（先存起来，按实验结果再定）
+# 5. Stage 2: run end to end (started 20 Nov)
 
-## 5.1 横向对比的候选卖点
+**Data:** the 30 validation scenes have 82 videos, the phase-1 video of each scene plus 52 second visits (keyframes only,
+3.1 GB).
 
-先全部记下，之后看实验结果，挑数据最有力的几项做主表。为了让主表站得住，每个 bench 跑过的结果都留在 `runs/` 和 `EXPERIMENTS.md` 里，包括没放进主表的；论文里写明挑选的理由。
+**GPU jobs:** queued in front of your own jobs, on the default cards 0 1 4 5 6 7.
+- **SAM 3 part maps** of the 52 second-visit videos.
+- **Gaussian maps** of all 82 videos, with the trial's settings.
+  - On the first pass, 64 were fitted and 18 failed with CUDA out-of-memory. Our jobs used 3–4 GB, but other users'
+    processes of about 17 GB each filled the shared cards.
+  - That breaks the prediction "at most 4 failures" (G2-P4) on the first pass. The 18 were re-queued with the same
+    settings, waiting for 12 GB of free memory before starting.
+  - The cell below shows the state at build time.
+""")
 
-**最可能占优的任务：** 在一段长视频里，按一句话找到要动的小部件，并给出怎么动。下面这些条件越多，affordance map 帮得越多：
-- 目标小，只在少数帧里出现（把手、旋钮、开关）；
-- 要知道"怎么做"，不只是"是什么"；
-- 同类部件很多，要靠空间关系区分（"电视下面柜子最下层的抽屉"）；
-- 问可行性（"门开得开吗""前面站得下人吗"）；
-- 同一个场景反复提问（记忆建一次，问很多次）。
-
-**不占优：** 时间顺序、事件、外观这类通用视频问答；场景会变；户外。
-
-| 卖点 | bench | 对比对象（文献数字） | 指标 |
-| --- | --- | --- | --- |
-| 找得到部件 | SceneFun3D Task 2（split0） | Fun3DU 33.3；UniFunc3D 8B 44.0、30B 51.0；AffordMem 41.7 | AP25、mIoU，加读了几帧、GPU 时间 |
-| 动作做得对 | SceneFun3D Task 3；OPDMulti | SceneFun3D 基线 +MAO 8.1（测试集）；AffordBot；REACT3D | +M、+MA、+MAO，轴的角度误差，原点距离；可加 AFUN 用的轨迹误差和"接触点落在掩码里"的比例（5.2 节） |
-| 答得对 | OpenEQA EM-EQA：以功能推理、物体定位、物体状态三类为主，全部类别也报 | 3D-Mem 57.2；SpatialMem 62.0；ConceptGraphs 类方法；同一个 VLM 加均匀抽帧 | LLM 打分 |
-| 挑帧更省（M2） | 上面这些 bench，帧数预算相同 | 均匀抽帧；按文字相似度挑帧 | 预算相同时的准确率 |
-| 空间问题（可选） | VSI-Bench 的相对距离、相对方向、路线规划、计数 | 同一个 VLM 加均匀抽帧 | 准确率 |
-
-文献数字见 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md` 第 2.5 节。OpenEQA 的数据带深度和位姿，我们的 pipeline 能直接跑；VSI-Bench 的视频有一部分来自 ARKitScenes，和 SceneFun3D 同源。
-
-**一个只有我们能报的指标：** 在 SceneFun3D 同一批任务上，部件找对（IoU 至少 0.25）并且运动对（类型、轴、原点）才算成功。别的方法要拼两个系统才能比。
-
-**每个 bench 都做同一组对照：** 不用 map（均匀帧）、标注的 map（上限）、SAM 3 的 map；每张表加资源列（读了几帧、GPU 时间、记忆多大）。
-
-**现在的提醒：** Task 2 用 SAM 3 的 map 时明显落后（第 3.4 节）。决定 5、6 定下来以前，它不适合当卖点。
+code(r"""
+spec = importlib.util.spec_from_file_location("fit_gaussians_batch", ROOT / "scripts" / "fit_gaussians_batch.py")
+FGB = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(FGB)
+CFG = load_config(ROOT / "configs" / "gaussians" / "fit_val82.yaml")
+OUT = ROOT / CFG["outputs"] / CFG["name"]
+stems = [f"{v['visit']}_{v['video']}" for v in FGB.videos(CFG)]
+rows = [json.loads((OUT / f"{s}.json").read_text()) for s in stems if (OUT / f"{s}.json").exists()]
+failed = [s for s in stems if (OUT / f"{s}.failed.json").exists() and not (OUT / f"{s}.json").exists()]
+sam3 = sorted((ROOT / "runs" / "stage2" / "tool_maps" / "sam3").glob("*_*.json"))
+sam3_done = sum(len(json.loads(p.read_text())["keyframes"]) == 40 for p in sam3)
+display(Markdown(f"**At build time:** SAM 3 maps of second-visit videos finished: **{sam3_done} of 52**. "
+                 f"Gaussian maps: **{len(rows)} fitted**, **{len(failed)} failed so far and re-queued**, "
+                 f"{len(stems) - len(rows) - len(failed)} not reached yet (of {len(stems)})."))
+fig = WR.stage2_fits(rows)
+display(fig)
+plt.close(fig)
+pred = FGB.judge(rows, len(stems) - len(rows), CFG["expect"]) if rows else {}
+display(pd.DataFrame([[k, v["value"], "held" if v["held"] else "not held"] for k, v in pred.items()],
+                     columns=["prediction (over the videos fitted so far)", "value", ""]).style.hide(axis="index"))
+check("revisit videos listed", len(stems) - 30, 52)
 """)
 
 md(r"""
-## 5.2 2026 年的新工作（11-20 读）
+**Next in stage 2** (each comparison is written down with its predictions before it runs):
+1. **"Mounted on what?" (W4):** the VLM prompt and its scoring, shown to you before it runs.
+2. **Lifting features onto the Gaussians:** training-free, in the style of Occam's LGS or LUDVIG. The voxel control uses
+   the same five operations.
+3. **Second visit:** relocalisation with AnyLoc and Reloc3r, then the conditional overwrite, checked by rendering and by
+   depth.
+4. **Task 3 scorer:** our own, following the public definitions, plus one run under AffordBot's protocol.
+5. **Comparisons:**
+   - retrieval of the target part, including the 41 parts SAM 3 never found;
+   - VLM picks on rendered close-ups vs the best keyframes, on the 44 "chose another part" tasks;
+   - update errors on the second visit;
+   - cost.
 
-| 工作 | 做什么 | 和我们的关系 | 能借的 |
-| --- | --- | --- | --- |
-| **AFUN**（arXiv 2606.02551，2026-06，预印本） | 一帧 RGB-D 加一句任务，输出部件掩码（用 SAM 3）和接触以后的三维运动轨迹。冻结 Qwen3-VL-8B、SAM 3 和点云编码器，训练一个 3200 万参数的小解码器 | **最相关。** 它在 SceneFun3D 上只评运动（721 条，场景不在它的训练集里），用轨迹误差 ADE/FDE 和"接触点落在掩码里"的比例 CIM，不评 Task 2，也没和 Fun3DU、UniFunc3D 比。在 8 个部件分割测试集上，"Qwen3-VL-8B 加 SAM 3"的平均 gIoU 只有 42.5，AFUN 是 69.3：现成模型找部件确实弱，和我们 Task 2 落后的原因一致 | ① 轨迹误差和 CIM 可以作为动作向量的辅助指标；② 让 VLM 把提示交给 SAM 3 的接法，可以用来补部件图（决定 5 的 (c)）。它是单帧、没有记忆、要训练，不是必须打败的基线 |
-| **AffordMatcher**（arXiv 2603.27970，2026-03，预印本） | 给一张"示意图"（图像加动作短语），在场景点云上找能做这个动作的区域；要训练 | 新建了 AffordBridge 数据集：31.8 万个样本，约 690 个场景（论文里写 685 和 689 两种），扫描来自 SceneFun3D，逐点掩码，指标 mAP 和 mAP@0.25。没评 SceneFun3D Task 2；代码和数据是否公开，没找到明确的说法 | 逐点的场景掩码正是三维表面图要的格式。如果数据公开，可以作为三维表面图的 bench 候选。拿查询去和场景点做特征匹配的思路也可以借 |
-| **Embodied3DBench**（arXiv 2605.29074，2026-05，写的是投 ACM MM 2026） | 考 VLM 的底层空间能力；其中 affordance 类问"作用点在哪"和"往哪个方向动" | 仿真渲染的单帧，物体级（抽屉），不是小部件；没有视频和位姿，我们没法直接跑 | 作用点用距离、方向用余弦相似度分开打分，适合打我们的原点和轴。Qwen3-VL-4B 不训练时，三维位置 31.7、方向 25.2，可以作为"VLM 直接回答"的参考 |
-| **VideoAfford / VIDA**（arXiv 2602.09638，2026-02） | 用人和物体交互的视频，在单个物体的点云上预测 affordance 热图；要训练 | 物体级，没有运动，数据还没公开。不适合做我们的 bench 或基线 | 只有一个很弱的旁证：用 8 帧比 16 帧好（mIoU 28.2 对 18.5，只跑了一次） |
+---
+# 6. Main-idea check
 
-**结论：** 这四篇都不能取代 5.1 的组合，没有一篇同时做"不训练、写一次的记忆、三维动作向量、开放问答"。AFUN 的结果从侧面支持决定 5 和 6：差距出在"现成模型找部件"这一步，多帧合并和更好的部件图是关键。
+| Main idea | This week | Verdict |
+| --- | --- | --- |
+| M1 interpretable 3D vector, robot-ready | part vectors in world coordinates; tested on 30 scenes | conforms |
+| M2 the vector helps choose keyframes | each map element records the frames that saw it; close-ups rendered on demand | conforms |
+| M3 affordance + depth → action vector | rules on LiDAR depth; the type comes from "mounted on" (stage 2) | conforms |
+| M4 two heads (open QA, action vector) | action head built; QA head interface frozen, not built | partly |
+| M5 off-the-shelf models + rules, no training | no network trained; per-scene Gaussian fitting counts as reconstruction (your 20 Nov ruling) | conforms |
+| M6 minimal resources | stage 0 CPU only; about 15 GPU-min and 0.2 GB per video for a map | conforms |
+
+No drift this week.
+""")
+
+md(r"""
+## ✏️ Your notes
+
+Write comments and updates for this week here; I read them and answer point by point.
+
+(empty)
 """)

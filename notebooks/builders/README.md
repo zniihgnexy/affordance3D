@@ -47,6 +47,6 @@ Week-1 parts and what they need when re-run:
 - The phase-1 results (part 10) show results computed elsewhere: the per-scene files in `runs/mem_phase1/` come from GPU queue jobs (`scripts/remote/queue_phase1.sh`) and are summarised by `scripts/aggregate_mem_phase1.py`; the notebook itself runs on the CPU in a few minutes.
 - The weekly summary (part 1) only reads result files under `runs/` (`runs/mem_phase1/`, `runs/hdepic/`, `runs/mem_c0/`, `runs/mem_c1/preview/`); it runs on the CPU in under a minute and checks every number its text quotes.
 
-The week-2 notebook (in Chinese) reads the part-vector runs in `runs/part_vectors/` (S0, S0b, S0c with their door diagnoses, and the demo run `demo_421069_gravity`), the public evaluation in `runs/public_eval/public_eval_split0_8b/`, and the two videos `report/assets/week2_*.mp4` made by `scripts/make_week2_media.py`; it runs on the CPU and checks the numbers its text quotes.
+The week-2 notebook (concise English report with charts since 2026-11-23; chart code in `report/week2_report.py`) reads the part-vector runs in `runs/part_vectors/` (S0, S0b, S0c with their door diagnoses, and the demo run `demo_421069_gravity`), the public evaluation in `runs/public_eval/public_eval_split0_8b/`, and the two videos `report/assets/week2_*.mp4` made by `scripts/make_week2_media.py`; it runs on the CPU and checks the numbers its text quotes.
 
 `bash scripts/run_notebooks.sh` executes the current week's notebook into `runs/notebook_check/` without touching the committed copy; pass paths to run others.

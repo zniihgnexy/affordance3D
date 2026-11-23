@@ -1,68 +1,35 @@
-# Cells of build_report_2026_11_20_week2.py, part 6 (appendix: commands and number checks).
+# Cells of build_report_2026_11_20_week2.py, part 6 (appendix: commands and the number checks).
 
 md(r"""
 ---
-# 附录
+# Appendix
 
-## A. 命令（都在仓库根目录，服务器上跑；除公开评测的 GPU 一步外都只用 CPU）
+## A. Commands (repository root, on the server; GPU steps only through the queue)
 
-| 内容 | 命令 |
+| What | Command |
 | --- | --- |
-| S0、S0b、S0c | `python scripts/run_part_vectors.py --config configs/part_vectors/<s0_421069 / s0b_val3 / s0c_gravity_val3>.yaml` |
-| 门窗诊断 | `python scripts/diagnose_door_hinges.py --config configs/part_vectors/<s0b_val3 / s0c_gravity_val3>.yaml` |
-| 演示用的向量（场景 421069） | `python scripts/run_part_vectors.py --config configs/part_vectors/demo_421069_gravity.yaml` |
-| 两个视频 | `python scripts/make_week2_media.py --config configs/report/week2_media.yaml` |
-| 标签和运动类型、部件形状 | `python scripts/count_label_motions.py --scenes third_party/scenefun3d/benchmark_file_lists/val_scenes.txt`；`count_part_shapes.py` 同样的参数 |
-| 公开评测 | `python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage <queue / lift / score --official>` |
-| 阶段 0（第 6 节） | `python scripts/diagnose_task2_losses.py --config configs/stage0/task2_losses.yaml`；`python scripts/run_part_vectors.py --config configs/part_vectors/t3_val30.yaml`；`python scripts/openeqa_fit.py --config configs/stage0/openeqa_fit.yaml --stage <count / correct>` |
-| 覆盖模拟（第 7 节） | `python scripts/simulate_overwrite.py --config configs/stage0/overwrite_sim.yaml` |
-| 高斯试拟合（第 8 节，GPU 队列） | 一次性安装 `bash scripts/remote/setup_gaussians.sh`；排队 `bash scripts/remote/queue_fit_gaussians.sh configs/gaussians/fit_trial.yaml 100 11000 3`（最后的 3 是你指定的 3 号卡） |
-| 其余 52 段验证视频 | `python scripts/download_revisit_videos.py --scenes third_party/scenefun3d/benchmark_file_lists/val_scenes.txt` |
-| 这份 notebook | `python notebooks/builders/build_report_2026_11_20_week2.py report/week2_2026-11-16_to_11-22.ipynb`，再用 `jupyter nbconvert --to notebook --execute --inplace` 执行 |
+| Part vectors (S0, S0b, S0c, demo, T3) | `python scripts/run_part_vectors.py --config configs/part_vectors/<s0_421069 / s0b_val3 / s0c_gravity_val3 / demo_421069_gravity / t3_val30>.yaml` |
+| Public evaluation, Task 2 | `python scripts/run_public_eval.py --config configs/public_eval/split0_8b.yaml --stage <queue / lift / score --official>` |
+| Stage 0: Task 2 losses, OpenEQA | `python scripts/diagnose_task2_losses.py --config configs/stage0/task2_losses.yaml`; `python scripts/openeqa_fit.py --config configs/stage0/openeqa_fit.yaml --stage <count / correct>` |
+| Overwrite simulation | `python scripts/simulate_overwrite.py --config configs/stage0/overwrite_sim.yaml` |
+| Label vs motion type | `python scripts/count_label_motions.py --scenes third_party/scenefun3d/benchmark_file_lists/val_scenes.txt` |
+| Gaussian trial (GPU queue) | `bash scripts/remote/setup_gaussians.sh` once; `bash scripts/remote/queue_fit_gaussians.sh configs/gaussians/fit_trial.yaml 100 11000 3` |
+| Stage 2: second-visit videos | `python scripts/download_revisit_videos.py --scenes third_party/scenefun3d/benchmark_file_lists/val_scenes.txt` |
+| Stage 2: SAM 3, Gaussian maps (GPU queue) | `bash scripts/remote/queue_tool_maps_revisit.sh configs/stage2/revisit_videos.txt 2`; `bash scripts/remote/queue_fit_gaussians_batch.sh configs/gaussians/fit_val82.yaml 6`, then `python scripts/fit_gaussians_batch.py --config configs/gaussians/fit_val82.yaml --stage summarise` |
+| Videos; interactive 3D file | `python scripts/make_week2_media.py --config configs/report/week2_media.yaml`; `python scripts/make_week2_rrd.py --config configs/report/week2_rrd.yaml` |
+| This notebook | `python notebooks/builders/build_report_2026_11_20_week2.py report/week2_2026-11-16_to_11-22.ipynb`, then `jupyter nbconvert --to notebook --execute --inplace` |
 
-**文档：** 推荐 pipeline 和三轮检验 `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`；理解差异 `docs/mem/理解差异记录.md`；实验索引 `EXPERIMENTS.md`。
+**Documents:** the proposal and every discussion of the week (Chinese): `docs/mem/新pipeline_差异_文献_推荐_2026-11-18.md`;
+understanding gaps: `docs/mem/理解差异记录.md`; experiment index: `EXPERIMENTS.md`. The earlier, longer Chinese version of
+this notebook is in git history (commit b5b1267).
 
-## B. 数字核对
+## B. Number checks
 
-正文里引用的数字，下面逐个从结果文件里重新算一遍；对不上时这一格会报错。
+Each number quoted in the text was recomputed from the result files in the cell that shows it; a mismatch stops the
+notebook.
 """)
 
 code(r"""
-s0b_doors = H.run_json("s0b_val3", "door_hinges.json")["counts"]["lidar"]
-checks = [
-    check("S0c parts", s0c["counts"]["elements"], 80), check("S0c scored", s0c["counts"]["scored"], 64),
-    check("S0c never in keyframes", s0c["counts"]["not_seen"], 12),
-    check("S0c true door axes vertical", doors["true_axis_vertical"], 16), check("S0c doors", doors["doors"], 19),
-    check("S0c oracle_kind door +MA %", round(off["oracle_kind"]["ma"]), 68), check("S0c oracle_gravity door +MA %", round(off["oracle_gravity"]["ma"]), 84),
-    check("S0c oracle_kind door +MAO %", round(off["oracle_kind"]["mao"]), 16), check("S0c oracle_gravity door +MAO %", round(off["oracle_gravity"]["mao"]), 21),
-    check("S0b doors", s0b_doors["doors"], 44), check("S0b true axes vertical", s0b_doors["true_axis_vertical"], 42),
-    check("S0b old rule axis right", s0b_doors["rule"]["axis_ok"], 21), check("S0b vertical+handle axis right", s0b_doors["up_handle"]["axis_ok"], 39),
-    check("S0b side given, axis+origin", s0b_doors["up_right_end"]["axis_and_origin_ok"], 21),
-    check("label-only ceiling %", round(100 * best / sum(pairs.values()), 1), 80.3),
-    check("walkthrough frames", media["walkthrough"]["frames"], 1025),
-    check("oracle_chosen AP25", round(pe["means"]["oracle_chosen"]["AP25"], 1), 51.5),
-    check("overwrite parts", ow["parts"], 481), check("overwrite ever found", ow["ever_found"], 360),
-    check("overwrite per-frame found %", round(100 * ow["per_frame_found_rate"], 1), 66.2),
-    check("overwrite per-frame found, ever-found %", round(100 * ow["per_frame_found_rate_ever_found"], 1), 80.9),
-    check("overwrite last view erases %", round(100 * ow["erased"]["last_view"]["all"], 1), 14.4),
-    check("overwrite last view erases, shown twice+ %", round(100 * ow["erased"]["last_view"]["shown_twice_or_more"], 1), 17.2),
-    check("overwrite largest view erases %", round(100 * ow["erased"]["largest_view"]["all"], 1), 10.3),
-    check("Gaussian fit minutes (validation)", round(fit["scenes"][0]["fit_s"] / 60, 1), 14.7),
-    check("Gaussian test PSNR (validation)", round(fit["scenes"][0]["test_psnr_db"], 1), 25.4),
-    check("Gaussian test PSNR (demo)", round(fit["scenes"][1]["test_psnr_db"], 1), 20.3),
-    check("Gaussian depth median cm (validation)", round(100 * fit["scenes"][0]["test_depth_median_m"], 1), 1.6),
-    check("Gaussian peak GPU GB (validation)", round(fit["scenes"][0]["peak_gpu_gb"], 1), 3.7),
-    check("Gaussian file MB (validation)", round(fit["scenes"][0]["file_mb"], 1), 201.5),
-    check("Gaussian file MB (demo)", round(fit["scenes"][1]["file_mb"]), 379),
-    check("Gaussian frames (validation)", fit["scenes"][0]["frames"], 80),
-]
-mine = {rule: [r for r in rows_c if (r["depth"], r["rule"], r["frames"]) == ("lidar", rule, "best") and drawer(r)] for rule in ("c1", "geometric")}
-checks += [check("S0c drawers", len(mine["c1"]), 35), check("S0c drawers right, label only", sum(r["score"]["m"] for r in mine["c1"]), 31),
-           check("S0c drawers right, geometric", sum(r["score"]["m"] for r in mine["geometric"]), 20)]
-turns = [r for r in demo_rows if (r["depth"], r["rule"], r["frames"]) == ("lidar", "gravity", "best") and r["vector"] and r["label"] == "rotate"]
-taps, knobs = [r for r in turns if "tap" in r["task"].lower()], [r for r in turns if not r["task"]]
-checks += [check("walkthrough: tap axis error, degrees (smaller of the two)", round(min(r["score"]["axis_deg"] for r in taps)), 80),
-           check("walkthrough: knobs without a task", len(knobs), 6),
-           check("walkthrough: knob axes within 15 degrees", sum(r["score"]["axis_deg"] <= 15 for r in knobs), 4)]
-print(f"{len(checks)} numbers checked, all match the result files")
+print(f"{len(CHECKS)} numbers checked, all match the result files:")
+print("; ".join(CHECKS))
 """)

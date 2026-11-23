@@ -1,112 +1,89 @@
-# Cells of build_report_2026_11_20_week2.py, part 3 of 3 (results of the week; the public evaluation is in part 4).
+# Cells of build_report_2026_11_20_week2.py, part 3 (section 2: frozen pipeline v4; section 3.1-3.2: Task 2 results).
 
 md(r"""
 ---
-# 3. 这一周的结果
+# 2. Pipeline v4 (frozen 20 Nov)
 
-## 3.1 规则算出的三维向量：S0、S0b、S0c
-
-三个检验问的是同一个问题：**有了部件掩码（标注）以后，规则加深度能不能算出对的三维向量？** 都只用 CPU，每个不到一分钟。
-
-| 检验 | 场景 | 做法 |
-| --- | --- | --- |
-| S0 | 421069（1 个） | 第一次试：规则行不行 |
-| S0b | 422842、467115、466916（门最多的 3 个验证场景，事先按规则选） | 换场景看 S0 的结论还成不成立；事后诊断门窗错在哪 |
-| S0c | 466880、466437、466841（门第 4 到第 6 多的验证场景，事先选） | 检验事后看出的"门轴竖直"：规则和预测在跑之前提交 |
-
-**怎么读下面的表：** 每格是三个百分比，"+M / +MA / +MAO"：
-- **+M**：运动类型（平移还是转动）对了；
-- **+MA**：类型对，并且轴或方向和真值的夹角在 15° 以内（只比直线，不比正反）；
-- **+MAO**：再加上转动的原点离真轴不到 0.25 m（平移没有原点，这一项同 +MA）。
-
-这是 SceneFun3D Task 3 论文里的定义。下面都是 LiDAR 深度、每个部件用画面最大的一帧。
-
-列的意思：
-- **c1**：只看标签；
-- **geometric**：标签，再加上按拉手在门面上的位置猜门还是抽屉；
-- **gravity**：geometric，但门轴取重力方向（S0c 新加）；
-- **oracle**（类型给对）：用标注的运动类型。真实系统里没有它，用来看"类型对了以后，几何算得准不准"。
+Orange is the claim, blue are frozen public models, and dashed blocks are not built yet. What is frozen is each block's
+input and output; how a block works inside can still change.
 """)
 
 code(r"""
-BASE = {"c1": "lidar/c1/best", "geometric": "lidar/geometric/best", "oracle_kind": "lidar/oracle_kind/best"}
-NEW = {"c1": "lidar/c1/best", "geometric": "lidar/geometric/best", "gravity（新）": "lidar/gravity/best",
-       "oracle_kind": "lidar/oracle_kind/best", "oracle_gravity（新）": "lidar/oracle_gravity/best"}
-for title, name, variants in (("S0：场景 421069", "s0_421069", BASE), ("S0b：3 个门多的验证场景（合并）", "s0b_val3", BASE),
-                              ("S0c：3 个新的验证场景（合并）", "s0c_gravity_val3", NEW)):
-    print(title)
-    display(H.rates_table(name, variants))
+display(Image(filename=str(FIG / "proposal_2026-11-18" / "proposal_v4.png"), width=950))
 """)
 
 md(r"""
-**读法：**
-1. **按、插的部件：** 三轮都在一半到八成之间。规则加深度对这类部件够用。
-2. **旋钮：** 很差，因为旋钮周围的表面法线估不准（旋钮很小，周围常是斜面或曲面）。
-3. **门窗类：** 只看标签几乎全错，因为"拉"在标签里分不出门和抽屉。类型给对以后，S0c 的新规则（oracle_gravity）把 +MA 从 68% 提到 84%，但 +MAO 只有 21%：门轴的位置还是找不准。
-4. **全部部件：** S0c 里 geometric 的 +M 比只看标签还低，原因见 3.3。
+| Block | Input → output | Uses now | Status |
+| --- | --- | --- | --- |
+| W1 keyframes | video → 40 keyframes | poses, sharpness | built |
+| W2 part masks | keyframes → part masks and part names | SAM 3, 8 part names | built |
+| W3 depth, poses | keyframes → LiDAR depth, camera poses (scan frame) | phone LiDAR, ARKit | built |
+| W4 type and host | part → motion type, mounted on (door / drawer / panel / lid) | label prior; VLM question | stage 2 |
+| W5 affordance vector | part, W3, W4 → contact, normal, region, grasp axis, type, axis, origin (world) | rules | prototype |
+| W6 scene map | video → one map per room: Gaussians, lifted features, visibility, last-confirmed time, part records | gsplat, SigLIP 2; voxel control | trial fit done |
+| W7 revisit | new video, old map → pose, changed regions, updated map | AnyLoc + Reloc3r; render or depth check | stage 2 |
+| R1–R3 read | question → object and action → candidates and best or rendered views → VLM picks the part | LLM, map query, VLM | R3 built |
+| Heads | part → world action vector (grasp, then motion); question → free-text answer | part record; VLM | action head built |
+
+The map offers five operations, shared by the Gaussian map and the voxel control: build, update, query, views, part.
 """)
 
 md(r"""
-## 3.2 S0c：事先写好的四条预测
+---
+# 3. Results
 
-预测和采用规则写在 `configs/part_vectors/s0c_gravity_val3.yaml` 里，在运行前提交（提交 9cd8daf）。下面的数直接从结果文件读出来。
+## 3.1 Public SceneFun3D Task 2: find the part (445 validation tasks)
+
+The same scorer is used for every arm; UniFunc3D's numbers come from its public predictions. With SAM 3 part maps the
+memory is 19.1 points behind UniFunc3D 8B; with annotated part maps it is level. The upper bounds show what a perfect
+mask would give on the frame the model chose, and on the best frame.
 """)
 
 code(r"""
-s0c = H.run_json("s0c_gravity_val3")
-doors = H.run_json("s0c_gravity_val3", "door_hinges.json")["counts"]["lidar"]
-off = {rule: s0c["variants"][f"lidar/{rule}/best"]["off_part_rotations"] for rule in ("oracle_kind", "oracle_gravity")}
-rows_c = [r for v in ("466880", "466437", "466841") for r in H.run_json(f"s0c_gravity_val3/{v}", "parts.json")]
-key = lambda r: (r["visit"], r["depth"], r["frames"], r["part"])
-by_rule = {rule: {key(r): r for r in rows_c if r["rule"] == rule} for rule in ("geometric", "gravity", "oracle_kind", "oracle_gravity")}
-checked = differ = 0
-for a_rule, b_rule in (("geometric", "gravity"), ("oracle_kind", "oracle_gravity")):
-    for k, a in by_rule[a_rule].items():
-        b = by_rule[b_rule][k]
-        if a["label"] not in ("hook_pull", "pinch_pull", "hook_turn") or b["vector"] is None or b["vector"]["kind"] != "rot":
-            checked, differ = checked + 1, differ + (a["score"] != b["score"])
-p1 = 100 * doors["true_axis_vertical"] / doors["doors"]
-p2 = off["oracle_gravity"]["ma"] - off["oracle_kind"]["ma"]
-predictions = pd.DataFrame([
-    ("P1", "真轴至少 80% 是竖直的", f"{doors['true_axis_vertical']}/{doors['doors']} = {p1:.0f}%", p1 >= 80),
-    ("P2", "轴：oracle_gravity 的 +MA 比 oracle_kind 高至少 15 个点",
-     f"{off['oracle_gravity']['ma']:.0f}% 对 {off['oracle_kind']['ma']:.0f}%，高 {p2:.1f} 个点", p2 >= 15),
-    ("P3", "原点：oracle_gravity 的 +MAO 不低于 oracle_kind", f"{off['oracle_gravity']['mao']:.0f}% 对 {off['oracle_kind']['mao']:.0f}%",
-     off["oracle_gravity"]["mao"] >= off["oracle_kind"]["mao"]),
-    ("P4", "别的部件分数不变（构造上的检查）", f"{checked} 次比较，{differ} 处不同", differ == 0),
-], columns=["编号", "预测", "结果", "成立"]).set_index("编号")
-display(predictions)
-""")
-
-md(r"""
-**结论：** 四条都成立，其中 P1、P2 刚好过线（P2 只差 3 个部件）。按事先定的规则，"门轴 = 重力方向"写进了推荐 pipeline。"原点 = 门面远端"也按规则写进去了，但标成临时：4 个对的原点里，只有 2 个来自"门面远端"。
-""")
-
-md(r"""
-## 3.3 门窗：错在哪一步
-
-左边是 S0b（事后诊断），右边是 S0c（新场景）。对每个门窗类部件，比较四种定门轴的办法：
-- 旧规则：门面的边；
-- 竖直轴，过把手；
-- 竖直轴，过门面远端；
-- 竖直轴，过两端里对的那一端：相当于告诉它门轴在哪一边，是这类办法的上限。
-
-蓝色是"轴对"，橙色是"轴和原点都对"。
-""")
-
-code(r"""
-fig = H.doors_figure({"S0b (after the fact)": "s0b_val3", "S0c (new scenes)": "s0c_gravity_val3"})
+PE = ROOT / "runs" / "public_eval" / "public_eval_split0_8b"
+pe = json.loads((PE / "summary.json").read_text())
+cmp = {p.stem: json.loads(p.read_text()) for p in sorted((PE / "compare").glob("*.json"))}
+ref = cmp["p4t_sam3_vs_reference"]["first_minus_second"]
+unifunc = pe["means"]["p4t_sam3"]["AP25"] - ref["AP25"]["rate"]  # the reference's own score on the same tasks
+scores = {"raw video, 40 frames (VLM)": pe["means"]["c3"]["AP25"], "ours: memory, SAM 3 part maps (3 frames)": pe["means"]["p4t_sam3"]["AP25"],
+          "memory, annotated part maps": pe["means"]["p4n"]["AP25"], "UniFunc3D 8B": unifunc,
+          "upper bound: perfect mask, chosen frame": pe["means"]["oracle_chosen"]["AP25"],
+          "upper bound: perfect mask, best frame": pe["means"]["oracle_best"]["AP25"]}
+fig = WR.task2_bars(scores)
 display(fig)
 plt.close(fig)
-drawer = lambda r: r["label"] in ("hook_pull", "pinch_pull") and r["true_kind"] == "trans"
-for rule in ("c1", "geometric"):
-    mine = [r for r in rows_c if (r["depth"], r["rule"], r["frames"]) == ("lidar", rule, "best") and drawer(r)]
-    print(f"S0c drawers, rule {rule:9s}: type right {sum(r['score']['m'] for r in mine)} of {len(mine)}")
+check("raw video AP25", round(pe["means"]["c3"]["AP25"], 1), 19.3)
+check("memory SAM 3 AP25", round(pe["means"]["p4t_sam3"]["AP25"], 1), 24.9)
+check("memory annotated AP25", round(pe["means"]["p4n"]["AP25"], 1), 43.1)
+check("UniFunc3D 8B AP25", round(unifunc, 1), 44.0)
+check("memory minus UniFunc3D AP25", round(ref["AP25"]["rate"], 1), -19.1)
+check("memory minus raw video AP25", round(cmp["p4t_sam3_vs_c3"]["first_minus_second"]["AP25"]["rate"], 1), 5.6)
+check("oracle_chosen AP25", round(pe["means"]["oracle_chosen"]["AP25"], 1), 51.5)
+check("oracle_best AP25", round(pe["means"]["oracle_best"]["AP25"], 1), 88.1)
 """)
 
 md(r"""
-**门窗的问题拆成三步，难度不一样：**
-1. **门还是抽屉（类型）：** 只看标签最多对 80%。靠几何猜，在 S0b（门多）里有帮助，在 S0c（抽屉多）里反而把 11 个抽屉当成了门（上面最后两行）。所以要问"装在什么上"。
-2. **门轴方向：** 用重力方向就修好了，两轮里大多数门轴都是竖直的。例外是烤箱门、翻盖这类水平轴，也要靠"装在什么上"来区分。
-3. **门轴位置（原点）：** 最难。就算告诉它门轴在哪一边，也只对一半（S0b）到三分之一（S0c）。原因是靠深度找门面的边找早了：测到的门面宽度中位数只有约 0.3 m，比真门窄。要把整块门板分出来（SAM 3 门板掩码），这是下一步。
+## 3.2 Where Task 2 is lost, and where the memory wins (stage 0, tests T1 and T2)
+
+- **Losses:** of the 105 tasks that annotated maps get right and SAM 3 maps get wrong, the VLM chose another part in 44,
+  SAM 3 never found the part in 41, and the lifted mask missed in 19. Reading is the largest loss, then the part maps;
+  misses differ by 51 points between part labels.
+- **Wins:** the memory beats the raw video most on small parts and in scenes with look-alike parts, the task the memory
+  is built for.
+""")
+
+code(r"""
+S0 = ROOT / "runs" / "stage0"
+t1 = json.loads((S0 / "task2_losses" / "summary.json").read_text())
+fig = WR.stage0_losses(t1)
+display(fig)
+plt.close(fig)
+check("T1 hit", t1["stages_memory_arm"]["hit"], 111)
+check("T1 lost to annotated", t1["lost_to_annotated"]["tasks"], 105)
+check("T1 lost: not chosen", t1["lost_to_annotated"]["stages"]["not_chosen"], 44)
+check("T1 lost: never found", t1["lost_to_annotated"]["stages"]["never_found"], 41)
+check("T1 lost: mask", t1["lost_to_annotated"]["stages"]["lost_in_mask"], 19)
+check("T1 label spread", round(100 * t1["predictions"]["T1-P3"]["spread"]), 51)
+check("T2 all", round(t1["memory_minus_raw"]["all"]["diff"], 1), 5.6)
+check("T2 small", round(t1["memory_minus_raw"]["small"]["diff"], 1), 10.3)
 """)

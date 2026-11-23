@@ -1,8 +1,11 @@
 """Generate report/week2_2026-11-16_to_11-22.ipynb: the one notebook of week 2 (Monday 16 to Sunday 22 November, London
-time) for the project lead (Chinese).
+time) for the project lead: a concise English report with charts (rewritten on 2026-11-23 at the project lead's request;
+the earlier, longer Chinese version is in git history at b5b1267).
 
 It reads only result files that already exist under runs/ (no model runs, CPU only) and checks every number quoted in its
-text against them (appendix); it needs the part-vector runs, the public-evaluation run and the two videos named in the notebook.
+text in the cell that shows it (listed in the appendix). It needs the part-vector runs, the public-evaluation and
+stage-0 runs, the Gaussian trial, the report media (videos and the .rrd) and, for the stage-2 status, whatever of
+runs/gaussians/fit_val82 and runs/stage2 exists at build time. Charts: report/week2_report.py.
 """
 
 import sys

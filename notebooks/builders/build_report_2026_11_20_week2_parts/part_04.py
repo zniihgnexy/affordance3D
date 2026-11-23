@@ -1,57 +1,137 @@
-# Cells of build_report_2026_11_20_week2.py, part 4 (the public evaluation, discussion draft section 27.2).
+# Cells of build_report_2026_11_20_week2.py, part 4 (sections 3.3-3.6: part vectors, OpenEQA, overwrite, Gaussian trial).
 
 md(r"""
-## 3.4 公开评测：SceneFun3D Task 2，和 UniFunc3D 8B 比（445 条任务）
+## 3.3 Part vectors on 30 validation scenes (stage 0, test T3)
 
-**测的是什么：** 上周的 pipeline 能不能在公开协议下"指出要操作的部件"。流程是：
-1. SAM 3 建记忆；
-2. 挑 3 张关键帧；
-3. Qwen3-VL-8B 在编号框里选一个部件；
-4. SAM 3 把选中的部件分出来；
-5. 投到激光扫描上，变成扫描上的点集，和标注比。
+**Setup:** the part is given (annotated masks). The scores ask whether the memory's vector gets the motion right:
+- **+M:** the type is right;
+- **+MA:** the type and the axis or direction are right (within 15°);
+- **+MAO:** in addition, the origin is right (within 0.25 m).
 
-**比的对象是 UniFunc3D 8B：** 同样大小的模型，每个问题看 64 帧。用他们公开的预测和我们同一套打分代码比。怎么读在跑之前就写定了（讨论稿 27.2）。
+The 471 parts are those the keyframes show; 78 more never appear in them.
 
-**这一周做了什么：** GPU 那一步 11-17 走队列跑完；这周五补完了"投到扫描上"和"打分"两步，只用 CPU。
-
-**指标：** AP25 是"预测的点集和标注重合够多（IoU 至少 0.25）"的比例；mIoU 是平均重合度。都是百分比，越高越好。
+**Readings:**
+- **Main rule:** type from the label plus a gravity axis gives +MA 48.8 and +MAO 38.4.
+- **Type given:** the same rule reaches 71.5 and 53.9. The type is the largest error, which is why each part will store
+  what it is mounted on.
+- **Doors and windows:** the axis direction is right for 82.5% of them, but the hinge position only for 24.5%. That needs
+  the door panel (SAM 3 door masks, stage 2).
+- **Geometry does not settle the type:** guessing "door or drawer" from geometry is worse than the label alone (+M 68.4
+  for the main rule vs 74.3 for label only).
 """)
 
 code(r"""
-PE = ROOT / "runs" / "public_eval" / "public_eval_split0_8b"
-pe = json.loads((PE / "summary.json").read_text())
-cmp = {p.stem: json.loads(p.read_text()) for p in sorted((PE / "compare").glob("*.json"))}
-METRICS = ("AP25", "mIoU", "AP50", "mAP")
-ARMS = {"p4t_sam3": "记忆，SAM 3 建的部件图（P4，主要的一组）", "c3": "模型直接看 40 张均匀帧（c3）", "sam3q": "用任务文字直接提示 SAM 3",
-        "p4n": "记忆，标注的部件图（上限）", "oracle_chosen": "投法上限：模型选的那一帧上，完美的掩码", "oracle_best": "投法上限：最好的那一帧上，完美的掩码"}
-ref = cmp["p4t_sam3_vs_reference"]["first_minus_second"]
-unifunc = {m: pe["means"]["p4t_sam3"][m] - ref[m]["rate"] for m in METRICS}  # the reference's own score, on the same tasks
-rows = [{"组": name, **{m: round(pe["means"][arm][m], 1) for m in METRICS}} for arm, name in ARMS.items()]
-rows.insert(1, {"组": "UniFunc3D 8B（他们公开的预测，我们的打分代码）", **{m: round(v, 1) for m, v in unifunc.items()}})
-display(pd.DataFrame(rows).set_index("组"))
-
-VERDICT = {"comparable": "相当", "behind": "落后", "clearly behind": "明显落后", "unclear": "说不清"}
-PAIRS = {"p4t_sam3_vs_reference": "记忆（SAM 3）减 UniFunc3D 8B", "p4n_vs_reference": "记忆（标注部件图）减 UniFunc3D 8B",
-         "p4t_sam3_vs_c3": "记忆（SAM 3）减 直接看原视频", "c3_vs_reference": "直接看原视频 减 UniFunc3D 8B",
-         "sam3q_vs_reference": "直接提示 SAM 3 减 UniFunc3D 8B"}
-diff = lambda d: f"{d['rate']:+.1f}（{d['low']:+.1f} 到 {d['high']:+.1f}）"
-display(pd.DataFrame([{"成对比较（同样 445 条任务）": label, "AP25 差": diff(cmp[k]["first_minus_second"]["AP25"]),
-                       "mIoU 差": diff(cmp[k]["first_minus_second"]["mIoU"]), "按事先的规则": VERDICT[cmp[k]["verdict"]]}
-                      for k, label in PAIRS.items()]).set_index("成对比较（同样 445 条任务）"))
-pe_checks = [check("P4 AP25", round(pe["means"]["p4t_sam3"]["AP25"], 1), 24.9), check("UniFunc3D 8B AP25", round(unifunc["AP25"], 1), 44.0),
-             check("P4 minus UniFunc3D AP25", round(ref["AP25"]["rate"], 1), -19.1), check("p4n AP25", round(pe["means"]["p4n"]["AP25"], 1), 43.1),
-             check("P4 minus c3 AP25", round(cmp["p4t_sam3_vs_c3"]["first_minus_second"]["AP25"]["rate"], 1), 5.6),
-             check("oracle_best AP25", round(pe["means"]["oracle_best"]["AP25"], 1), 88.1)]
-print(f"{len(pe_checks)} numbers of this section checked; differences in percentage points, 95% intervals from resampling the 30 scenes")
+t3 = H.run_json("t3_val30", "summary.json")
+fig = WR.vector_rules(t3)
+display(fig)
+plt.close(fig)
+g, og = t3["variants"]["lidar/gravity/best"], t3["variants"]["lidar/oracle_gravity/best"]
+check("T3 scored", t3["counts"]["scored"], 471)
+check("T3 not seen", t3["counts"]["not_seen"], 78)
+check("T3 gravity +MA", g["all"]["ma"], 48.8)
+check("T3 gravity +MAO", g["all"]["mao"], 38.4)
+check("T3 type given +MA", og["all"]["ma"], 71.5)
+check("T3 type given +MAO", og["all"]["mao"], 53.9)
+check("T3 door axis", og["off_part_rotations"]["ma"], 82.5)
+check("T3 door origin", og["off_part_rotations"]["mao"], 24.5)
+check("T3 gravity +M", g["all"]["m"], 68.4)
+check("T3 label-only +M", t3["variants"]["lidar/c1/best"]["all"]["m"], 74.3)
 """)
 
 md(r"""
-**读法（跑之前写定的）：**
-- **记忆（SAM 3 部件图）比 UniFunc3D 8B 明显落后。** AP25 低 19.1 个点（区间 −25.9 到 −12.4），mIoU 低 10.4 个点（−14.2 到 −7.0）。两个区间都整个低于门槛（AP25 −10，mIoU −5），按规则是"明显落后"。规则说这时要停下来讨论：论文不能靠准确度，只能看代价站不站得住（第 4 节决定 5）。
-- **差距主要在部件图。** 换成标注的部件图（上限），AP25 是 43.1，和 UniFunc3D 8B 的 44.0 分不出高低（差 −0.9，区间 −7.0 到 6.4）。SAM 3 只找到约四分之三的部件（74.8%），没找到的部件，后面再好也选不对。
-- **投到扫描上这一步损失不大。** 如果在最好的那一帧上有完美的掩码，AP25 能到 88.1。
-- **记忆比"直接看原视频"好一点。** AP25 高 5.6 个点（0.2 到 11.0），mIoU 差不多，按规则是"相当"。
-- **官方打分器的参照分数没算出来。** 它检查一个任务时，发现我们导出的点数和标注对不上，报错停了。上面的数都来自和 UniFunc3D 相同的打分代码，不受影响；导出的问题下周修。
+**Why the label alone cannot settle the type.** In the 30 validation scenes, one part label covers parts that slide
+and parts that turn. Even choosing each label's majority type gets at most 80.3% of the parts right.
+""")
 
-**这对新 pipeline 意味着什么：** 新 pipeline 的向量也要先有部件。S0 到 S0c 用的都是标注的部件掩码，而这里说明，部件用 SAM 3 自己找时，差距主要就出在这一步。Task 3 的打分也是先要定位对（AP25 之上再看运动），所以"部件找不找得到"是新 pipeline 绕不开的问题。
+code(r"""
+visits = (ROOT / "third_party" / "scenefun3d" / "benchmark_file_lists" / "val_scenes.txt").read_text().split()
+pairs = Counter(pair for visit in visits for pair in CLM.label_motions(ROOT / "data" / "scenefun3d", visit))
+fig = H.label_motion_figure(pairs)
+display(fig)
+plt.close(fig)
+best = sum(max(pairs[(lab, "trans")], pairs[(lab, "rot")]) for lab in {lab for lab, _ in pairs})
+check("label-only ceiling %", round(100 * best / sum(pairs.values()), 1), 80.3)
+""")
+
+md(r"""
+**What a robot would do with the memory (demo scene 421069).** Each vector is turned into the path of the contact point:
+- slide 30 cm for parts that push or pull;
+- turn 60° about the axis for parts that swing;
+- turn a full circle for knobs.
+
+Orange follows the memory and green the annotation. Two parts per kind are chosen in advance (those in the most
+keyframes), so right and wrong cases both appear.
+""")
+
+code(r"""
+examples = H.pick_examples(demo_rows, truths, DEMO["main"])
+fig = H.motion_paths_figure(examples, truths, frames["lidar"])
+display(fig)
+plt.close(fig)
+""")
+
+md(r"""
+## 3.4 OpenEQA: does it ask about parts? (stage 0, test T5)
+
+Questions were keyword-flagged, then a hand-read sample of 60 corrected the shares. Only object-state questions ("is the
+door open?") often need a part. Over the three focus categories about 15% of questions do, so OpenEQA stays an
+auxiliary check for the QA head.
+""")
+
+code(r"""
+t5 = json.loads((S0 / "openeqa_fit" / "summary.json").read_text())
+fig = WR.openeqa_share(t5["table"]["category"], t5["focus_categories"])
+display(fig)
+plt.close(fig)
+check("OpenEQA focus share corrected %", round(100 * t5["focus_corrected_share"], 1), 15.1)
+""")
+
+md(r"""
+## 3.5 Why "newest overwrites" needs a condition (overwrite simulation)
+
+**Setup:** one video in which nothing changes. How often does SAM 3 find a part that is in view, and how many found
+parts would a "one view decides" rule erase?
+
+**Reading:** a part in view is found on a single keyframe only about two times in three. "This frame did not see it"
+therefore mostly means a missed detection, not a change. That is why the chosen rule overwrites only where the view is
+clear and the geometry has changed.
+""")
+
+code(r"""
+ow = json.loads((S0 / "overwrite_sim" / "summary.json").read_text())
+fig = WR.overwrite_bars(ow)
+display(fig)
+plt.close(fig)
+check("overwrite ever found", ow["ever_found"], 360)
+check("overwrite per-frame found %", round(100 * ow["per_frame_found_rate"], 1), 66.2)
+check("overwrite last view erases %", round(100 * ow["erased"]["last_view"]["all"], 1), 14.4)
+check("overwrite last view erases, seen 2+ %", round(100 * ow["erased"]["last_view"]["shown_twice_or_more"], 1), 17.2)
+check("overwrite largest view erases %", round(100 * ow["erased"]["largest_view"]["all"], 1), 10.3)
+""")
+
+md(r"""
+## 3.6 Trial fit of the Gaussian map (stage 1, on GPU 3 as you asked)
+
+**Inputs:** ARKit poses and LiDAR depth, as a robot has them; every 8th frame is held out and scored.
+
+**Validation scene 421254** (below, photo | render | rendered depth): 80 frames.
+- It fits in 14.7 min with 3.7 GB peak GPU memory.
+- On held-out views the PSNR is 25.4 dB and the median depth error 1.6 cm.
+- Three of the four predictions held. The file is 201.5 MB, 1.5 MB over its bound.
+
+**Demo scene 421069:** a large room with sparse frames reaches only 20.3 dB and shows floaters. Rendered close-ups are
+therefore reported separately by coverage in stage 2.
+""")
+
+code(r"""
+fit = json.loads((ROOT / "runs" / "gaussians" / "fit_trial" / "summary.json").read_text())
+val, demo = fit["scenes"]
+display(Image(filename=str(ROOT / "runs" / "gaussians" / "fit_trial" / f"{val['visit']}_views.png"), width=760))
+check("trial fit minutes", round(val["fit_s"] / 60, 1), 14.7)
+check("trial peak GPU GB", round(val["peak_gpu_gb"], 1), 3.7)
+check("trial frames", val["frames"], 80)
+check("trial PSNR", round(val["test_psnr_db"], 1), 25.4)
+check("trial depth error cm", round(100 * val["test_depth_median_m"], 1), 1.6)
+check("trial file MB", round(val["file_mb"], 1), 201.5)
+check("demo PSNR", round(demo["test_psnr_db"], 1), 20.3)
 """)

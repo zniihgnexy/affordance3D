@@ -3,3 +3,9 @@
 # To open the .rrd on another machine only rerun-sdk==0.43.2 is needed (it brings the viewer: `rerun <file>.rrd`).
 rerun-sdk==0.43.2
 pyarrow==26.0.1
+# Optional inline viewer for Jupyter (week-2 notebook section 1.1, run by hand): a dry run on 2026-11-23 showed it adds
+# only these four packages. On the Mac: pip install rerun-sdk==0.43.2 rerun-notebook==0.43.2
+rerun-notebook==0.43.2
+anywidget==0.11.0
+jupyter-ui-poll==1.1.0
+psygnal==0.17.0
